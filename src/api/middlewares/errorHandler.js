@@ -1,10 +1,9 @@
-
 // ============================================================================
 // FILE: middleware/errorHandler.js
 // ============================================================================
 
-import logger from '../utils/logger.js';
-import AppError from '../utils/AppError.js';
+import logger from '../../utils/logger.js';
+import AppError from '../../utils/AppError.js';
 
 /**
  * Send error response in development mode
@@ -28,10 +27,13 @@ const sendErrorDev = (err, req, res) => {
 
   // Rendered Website Error
   console.error('ERROR 💥', err);
-  return res.status(err.statusCode).render('error', {
-    title: 'Something went wrong!',
-    message: err.message,
-  });
+return res.status(err.statusCode).json({
+  success: false,
+  status: err.status,
+  message: err.message,
+  stack: err.stack,
+});
+
 };
 
 /**
@@ -73,24 +75,29 @@ const sendErrorProd = (err, req, res) => {
 
   // Rendered Website Error
   if (err.isOperational) {
-    return res.status(err.statusCode).render('error', {
-      title: 'Something went wrong!',
-      message: err.message,
-    });
+return res.status(err.statusCode).json({
+  success: false,
+  status: err.status,
+  message: err.message,
+  stack: err.stack,
+});
+
   }
 
   // Programming or unknown error
   console.error('ERROR 💥', err);
-  return res.status(500).render('error', {
-    title: 'Error',
-    message: 'Please try again later.',
-  });
+return res.status(500).json({
+  success: false,
+  status: 'error',
+  message: 'Please try again later.',
+});
+
 };
 
 /**
  * Handle MongoDB Cast Error (Invalid ObjectId)
  */
-const handleCastErrorDB = (err) => {
+const handleCastErrorDB = err => {
   const message = `Invalid ${err.path}: ${err.value}`;
   return new AppError(message, 400, true, 'INVALID_ID');
 };
@@ -98,10 +105,10 @@ const handleCastErrorDB = (err) => {
 /**
  * Handle MongoDB Duplicate Field Error
  */
-const handleDuplicateFieldsDB = (err) => {
+const handleDuplicateFieldsDB = err => {
   const field = Object.keys(err.keyValue)[0];
   const value = err.keyValue[field];
-  
+
   let message = `Duplicate field value: ${value}. Please use another value!`;
   let code = 'DUPLICATE_FIELD';
 
@@ -135,8 +142,8 @@ const handleDuplicateFieldsDB = (err) => {
 /**
  * Handle MongoDB Validation Error
  */
-const handleValidationErrorDB = (err) => {
-  const errors = Object.values(err.errors).map((el) => el.message);
+const handleValidationErrorDB = err => {
+  const errors = Object.values(err.errors).map(el => el.message);
   const message = `Invalid input data. ${errors.join('. ')}`;
   return new AppError(message, 400, true, 'VALIDATION_ERROR');
 };
@@ -158,7 +165,7 @@ const handleJWTExpiredError = () => {
 /**
  * Handle Multer File Upload Error
  */
-const handleMulterError = (err) => {
+const handleMulterError = err => {
   let message = 'File upload failed';
   let code = 'FILE_UPLOAD_ERROR';
 
@@ -179,7 +186,7 @@ const handleMulterError = (err) => {
 /**
  * Handle MongoDB Connection Error
  */
-const handleMongoError = (err) => {
+const handleMongoError = err => {
   let message = 'Database connection error';
   let code = 'DATABASE_ERROR';
 
@@ -221,19 +228,14 @@ const handleRateLimitError = () => {
 /**
  * Handle Syntax Error (Invalid JSON)
  */
-const handleSyntaxError = (err) => {
-  return new AppError(
-    'Invalid JSON format in request body',
-    400,
-    true,
-    'INVALID_JSON'
-  );
+const handleSyntaxError = err => {
+  return new AppError('Invalid JSON format in request body', 400, true, 'INVALID_JSON');
 };
 
 /**
  * Handle Payment Processing Errors
  */
-const handlePaymentError = (err) => {
+const handlePaymentError = err => {
   let message = 'Payment processing failed';
   let code = 'PAYMENT_ERROR';
 
@@ -349,7 +351,7 @@ export const notFound = (req, res, next) => {
  * Async error wrapper
  * Wraps async route handlers to catch errors automatically
  */
-export const catchAsync = (fn) => {
+export const catchAsync = fn => {
   return (req, res, next) => {
     fn(req, res, next).catch(next);
   };
@@ -359,15 +361,15 @@ export const catchAsync = (fn) => {
  * Handle unhandled promise rejections
  * Call this in server.js
  */
-export const handleUnhandledRejection = (server) => {
-  process.on('unhandledRejection', (err) => {
+export const handleUnhandledRejection = server => {
+  process.on('unhandledRejection', err => {
     console.error('UNHANDLED REJECTION! 💥 Shutting down...');
     console.error(err.name, err.message);
     logger.error('Unhandled Rejection', {
       error: err.message,
       stack: err.stack,
     });
-    
+
     server.close(() => {
       process.exit(1);
     });
@@ -379,14 +381,14 @@ export const handleUnhandledRejection = (server) => {
  * Call this in server.js BEFORE any other code
  */
 export const handleUncaughtException = () => {
-  process.on('uncaughtException', (err) => {
+  process.on('uncaughtException', err => {
     console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
     console.error(err.name, err.message);
     logger.error('Uncaught Exception', {
       error: err.message,
       stack: err.stack,
     });
-    
+
     process.exit(1);
   });
 };
@@ -395,11 +397,11 @@ export const handleUncaughtException = () => {
  * Graceful shutdown on SIGTERM
  * Call this in server.js
  */
-export const handleSIGTERM = (server) => {
+export const handleSIGTERM = server => {
   process.on('SIGTERM', () => {
     console.log('👋 SIGTERM RECEIVED. Shutting down gracefully');
     logger.info('SIGTERM received, shutting down gracefully');
-    
+
     server.close(() => {
       console.log('💥 Process terminated!');
       logger.info('Process terminated');

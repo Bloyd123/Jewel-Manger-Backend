@@ -7,11 +7,11 @@ const organizationSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Organization name is required'],
       trim: true,
-      maxlength: [100, 'Organization name cannot exceed 100 characters']
+      maxlength: [100, 'Organization name cannot exceed 100 characters'],
     },
     displayName: {
       type: String,
-      trim: true
+      trim: true,
     },
     slug: {
       type: String,
@@ -19,35 +19,32 @@ const organizationSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true
+      index: true,
     },
-    
+
     // Contact Information
     email: {
       type: String,
       required: [true, 'Organization email is required'],
       lowercase: true,
       trim: true,
-      match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        'Please provide a valid email'
-      ]
+      match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
     },
     phone: {
       type: String,
       trim: true,
-      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number']
+      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number'],
     },
     alternatePhone: {
       type: String,
       trim: true,
-      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number']
+      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number'],
     },
     fax: {
       type: String,
-      trim: true
+      trim: true,
     },
-    
+
     // Address
     address: {
       street: String,
@@ -57,21 +54,21 @@ const organizationSchema = new mongoose.Schema(
       country: { type: String, default: 'India' },
       pincode: {
         type: String,
-        match: [/^[0-9]{6}$/, 'Invalid pincode']
+        match: [/^[0-9]{6}$/, 'Invalid pincode'],
       },
       location: {
         type: {
           type: String,
           enum: ['Point'],
-          default: 'Point'
+          default: 'Point',
         },
         coordinates: {
           type: [Number],
-          default: [0, 0]
-        }
-      }
+          default: [0, 0],
+        },
+      },
     },
-    
+
     // Business Information
     gstNumber: {
       type: String,
@@ -79,7 +76,7 @@ const organizationSchema = new mongoose.Schema(
       uppercase: true,
       sparse: true,
       unique: true,
-      match: [/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GST number']
+      match: [/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GST number'],
     },
     panNumber: {
       type: String,
@@ -87,126 +84,129 @@ const organizationSchema = new mongoose.Schema(
       uppercase: true,
       sparse: true,
       unique: true,
-      match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN number']
+      match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN number'],
     },
     tanNumber: {
       type: String,
       trim: true,
-      uppercase: true
+      uppercase: true,
     },
     cinNumber: {
       type: String,
       trim: true,
-      uppercase: true
+      uppercase: true,
     },
     registrationNumber: {
       type: String,
-      trim: true
+      trim: true,
     },
     businessType: {
       type: String,
       enum: ['retail', 'wholesale', 'manufacturing', 'mixed', 'online'],
-      default: 'retail'
+      default: 'retail',
     },
     industryType: {
       type: String,
       enum: ['jewelry', 'gold', 'silver', 'diamond', 'gemstone', 'mixed'],
-      default: 'jewelry'
+      default: 'jewelry',
     },
     establishedYear: {
       type: Number,
       min: 1900,
-      max: new Date().getFullYear()
+      max: new Date().getFullYear(),
     },
-    
+
     // Branding
     logo: {
       type: String,
-      default: null
+      default: null,
     },
     favicon: {
       type: String,
-      default: null
+      default: null,
     },
     website: {
       type: String,
       trim: true,
-      match: [/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/, 'Invalid website URL']
+      match: [
+        /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/,
+        'Invalid website URL',
+      ],
     },
     socialMedia: {
       facebook: String,
       instagram: String,
       twitter: String,
       linkedin: String,
-      youtube: String
+      youtube: String,
     },
-    
+
     // Subscription & Billing (SaaS Model)
     subscription: {
       plan: {
         type: String,
         enum: ['free', 'basic', 'standard', 'premium', 'enterprise'],
-        default: 'free'
+        default: 'free',
       },
       status: {
         type: String,
         enum: ['trial', 'active', 'suspended', 'cancelled', 'expired', 'payment_pending'],
-        default: 'trial'
+        default: 'trial',
       },
       startDate: {
         type: Date,
-        default: Date.now
+        default: Date.now,
       },
       endDate: {
-        type: Date
+        type: Date,
       },
       trialEndsAt: {
         type: Date,
-        default: function() {
+        default() {
           // 14 days trial by default
           return new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-        }
+        },
       },
       billingCycle: {
         type: String,
         enum: ['monthly', 'quarterly', 'yearly'],
-        default: 'monthly'
+        default: 'monthly',
       },
       amount: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
       },
       currency: {
         type: String,
-        default: 'INR'
+        default: 'INR',
       },
       lastPaymentDate: Date,
       nextPaymentDate: Date,
       paymentMethod: {
         type: String,
         enum: ['credit_card', 'debit_card', 'upi', 'net_banking', 'wallet', 'other'],
-        default: null
+        default: null,
       },
       maxShops: {
         type: Number,
         default: 1,
-        min: 1
+        min: 1,
       },
       maxUsers: {
         type: Number,
         default: 5,
-        min: 1
+        min: 1,
       },
       maxProducts: {
         type: Number,
         default: 1000,
-        min: 0
+        min: 0,
       },
       maxStorage: {
         type: Number,
         default: 1024, // in MB
-        min: 0
+        min: 0,
       },
       features: {
         inventoryManagement: { type: Boolean, default: true },
@@ -230,259 +230,261 @@ const organizationSchema = new mongoose.Schema(
         mobileApp: { type: Boolean, default: false },
         schemeManagement: { type: Boolean, default: false },
         repairManagement: { type: Boolean, default: false },
-        hallmarkingManagement: { type: Boolean, default: false }
-      }
+        hallmarkingManagement: { type: Boolean, default: false },
+      },
     },
-    
+
     // Business Settings
     settings: {
       // Regional Settings
-      currency: { 
-        type: String, 
+      currency: {
+        type: String,
         default: 'INR',
-        enum: ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR']
+        enum: ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR'],
       },
-      dateFormat: { 
-        type: String, 
+      dateFormat: {
+        type: String,
         default: 'DD/MM/YYYY',
-        enum: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']
+        enum: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'],
       },
       timeFormat: {
         type: String,
         default: '12',
-        enum: ['12', '24']
+        enum: ['12', '24'],
       },
-      timezone: { 
-        type: String, 
-        default: 'Asia/Kolkata' 
+      timezone: {
+        type: String,
+        default: 'Asia/Kolkata',
       },
       language: {
         type: String,
         default: 'en',
-        enum: ['en', 'hi', 'mr', 'gu', 'ta', 'te']
+        enum: ['en', 'hi', 'mr', 'gu', 'ta', 'te'],
       },
-      
+
       // Financial Settings
-      fiscalYearStart: { 
-        type: String, 
-        default: '04-01' 
+      fiscalYearStart: {
+        type: String,
+        default: '04-01',
       },
-      
+
       // Jewelry Specific Settings
       defaultWeightUnit: {
         type: String,
         enum: ['gram', 'kg', 'tola', 'ounce', 'carat'],
-        default: 'gram'
+        default: 'gram',
       },
       defaultPurityUnit: {
         type: String,
         enum: ['karat', 'percentage', 'purity_916', 'purity_999'],
-        default: 'karat'
+        default: 'karat',
       },
       enableHallmarking: {
         type: Boolean,
-        default: false
+        default: false,
       },
       enableStoneManagement: {
         type: Boolean,
-        default: true
+        default: true,
       },
       enableMakingCharges: {
         type: Boolean,
-        default: true
+        default: true,
       },
-      
+
       // Invoice Settings
       invoicePrefix: {
         type: String,
-        default: 'INV'
+        default: 'INV',
       },
       invoiceStartNumber: {
         type: Number,
-        default: 1
+        default: 1,
       },
       purchasePrefix: {
         type: String,
-        default: 'PUR'
+        default: 'PUR',
       },
       quotationPrefix: {
         type: String,
-        default: 'QUO'
+        default: 'QUO',
       },
-      
+
       // Tax Settings
       enableGST: {
         type: Boolean,
-        default: true
+        default: true,
       },
       gstRates: {
         gold: { type: Number, default: 3 },
         silver: { type: Number, default: 3 },
         diamond: { type: Number, default: 3 },
         platinum: { type: Number, default: 3 },
-        makingCharges: { type: Number, default: 18 }
+        makingCharges: { type: Number, default: 18 },
       },
-      
+
       // Notification Settings
       enableEmailNotifications: {
         type: Boolean,
-        default: true
+        default: true,
       },
       enableSMSNotifications: {
         type: Boolean,
-        default: false
+        default: false,
       },
       enableWhatsAppNotifications: {
         type: Boolean,
-        default: false
+        default: false,
       },
-      
+
       // Security Settings
       enableTwoFactorAuth: {
         type: Boolean,
-        default: false
+        default: false,
       },
       sessionTimeout: {
         type: Number,
-        default: 30 // minutes
+        default: 30, // minutes
       },
       passwordExpiryDays: {
         type: Number,
-        default: 90
+        default: 90,
       },
-      
+
       // Backup Settings
       autoBackupEnabled: {
         type: Boolean,
-        default: false
+        default: false,
       },
       backupFrequency: {
         type: String,
         enum: ['daily', 'weekly', 'monthly'],
-        default: 'weekly'
-      }
+        default: 'weekly',
+      },
     },
-    
+
     // Owner Information
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true
+      index: true,
     },
-    
+
     // Compliance & Certifications
     compliance: {
       bis: {
         certified: { type: Boolean, default: false },
         certificateNumber: String,
-        expiryDate: Date
+        expiryDate: Date,
       },
       hallmarking: {
         certified: { type: Boolean, default: false },
         certificateNumber: String,
         hallmarkingCenter: String,
-        expiryDate: Date
+        expiryDate: Date,
       },
       iso: {
         certified: { type: Boolean, default: false },
         certificateNumber: String,
-        expiryDate: Date
-      }
-    },
-    
-    // Banking Details
-    bankDetails: [{
-      bankName: String,
-      accountNumber: String,
-      ifscCode: String,
-      accountHolderName: String,
-      branchName: String,
-      accountType: {
-        type: String,
-        enum: ['savings', 'current', 'overdraft'],
-        default: 'current'
+        expiryDate: Date,
       },
-      isPrimary: {
-        type: Boolean,
-        default: false
-      }
-    }],
-    
+    },
+
+    // Banking Details
+    bankDetails: [
+      {
+        bankName: String,
+        accountNumber: String,
+        ifscCode: String,
+        accountHolderName: String,
+        branchName: String,
+        accountType: {
+          type: String,
+          enum: ['savings', 'current', 'overdraft'],
+          default: 'current',
+        },
+        isPrimary: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
+
     // Usage Statistics
     usage: {
       totalShops: {
         type: Number,
-        default: 0
+        default: 0,
       },
       totalUsers: {
         type: Number,
-        default: 0
+        default: 0,
       },
       totalProducts: {
         type: Number,
-        default: 0
+        default: 0,
       },
       totalInvoices: {
         type: Number,
-        default: 0
+        default: 0,
       },
       storageUsed: {
         type: Number,
-        default: 0 // in MB
+        default: 0, // in MB
       },
       lastUpdated: {
         type: Date,
-        default: Date.now
-      }
+        default: Date.now,
+      },
     },
-    
+
     // Status
     isActive: {
       type: Boolean,
-      default: true
+      default: true,
     },
     isVerified: {
       type: Boolean,
-      default: false
+      default: false,
     },
     verifiedAt: {
       type: Date,
-      default: null
+      default: null,
     },
     verifiedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null
+      default: null,
     },
-    
+
     // Audit Trail
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null
+      default: null,
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null
+      default: null,
     },
-    
+
     // Metadata
     notes: {
       type: String,
-      maxlength: 1000
+      maxlength: 1000,
     },
     tags: [String],
     deletedAt: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
   }
 );
 
@@ -501,36 +503,35 @@ organizationSchema.index({ 'address.location': '2dsphere' });
 organizationSchema.virtual('shops', {
   ref: 'JewelryShop',
   localField: '_id',
-  foreignField: 'organizationId'
+  foreignField: 'organizationId',
 });
 
 // Virtual for total users
 organizationSchema.virtual('users', {
   ref: 'User',
   localField: '_id',
-  foreignField: 'organizationId'
+  foreignField: 'organizationId',
 });
 organizationSchema.virtual('purchases', {
   ref: 'Purchase',
   localField: '_id',
-  foreignField: 'organizationId'
+  foreignField: 'organizationId',
 });
 
 organizationSchema.virtual('sales', {
   ref: 'Sale',
   localField: '_id',
-  foreignField: 'organizationId'
+  foreignField: 'organizationId',
 });
 
 organizationSchema.virtual('parties', {
   ref: 'Party',
   localField: '_id',
-  foreignField: 'organizationId'
+  foreignField: 'organizationId',
 });
 
-
 // Virtual for subscription days remaining
-organizationSchema.virtual('subscriptionDaysRemaining').get(function() {
+organizationSchema.virtual('subscriptionDaysRemaining').get(function () {
   if (!this.subscription.endDate) return null;
   const now = new Date();
   const diff = this.subscription.endDate - now;
@@ -538,7 +539,7 @@ organizationSchema.virtual('subscriptionDaysRemaining').get(function() {
 });
 
 // Virtual for trial days remaining
-organizationSchema.virtual('trialDaysRemaining').get(function() {
+organizationSchema.virtual('trialDaysRemaining').get(function () {
   if (!this.subscription.trialEndsAt) return null;
   const now = new Date();
   const diff = this.subscription.trialEndsAt - now;
@@ -546,7 +547,7 @@ organizationSchema.virtual('trialDaysRemaining').get(function() {
 });
 
 // Soft delete middleware
-organizationSchema.pre(/^find/, function(next) {
+organizationSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null });
   }
@@ -554,7 +555,7 @@ organizationSchema.pre(/^find/, function(next) {
 });
 
 // Ensure only one primary bank account
-organizationSchema.pre('save', function(next) {
+organizationSchema.pre('save', function (next) {
   if (this.bankDetails && this.bankDetails.length > 0) {
     const primaryAccounts = this.bankDetails.filter(bank => bank.isPrimary);
     if (primaryAccounts.length > 1) {
@@ -572,7 +573,7 @@ organizationSchema.pre('save', function(next) {
 // Instance Methods
 
 // Check if subscription is active
-organizationSchema.methods.isSubscriptionActive = function() {
+organizationSchema.methods.isSubscriptionActive = function () {
   const now = new Date();
   return (
     this.subscription.status === 'active' &&
@@ -582,7 +583,7 @@ organizationSchema.methods.isSubscriptionActive = function() {
 };
 
 // Check if trial is active
-organizationSchema.methods.isTrialActive = function() {
+organizationSchema.methods.isTrialActive = function () {
   const now = new Date();
   return (
     this.subscription.status === 'trial' &&
@@ -592,77 +593,79 @@ organizationSchema.methods.isTrialActive = function() {
 };
 
 // Check if organization can access system
-organizationSchema.methods.canAccess = function() {
+organizationSchema.methods.canAccess = function () {
   return this.isActive && (this.isSubscriptionActive() || this.isTrialActive());
 };
 
 // Check if feature is available
-organizationSchema.methods.hasFeature = function(featureName) {
+organizationSchema.methods.hasFeature = function (featureName) {
   return this.subscription.features[featureName] || false;
 };
 
 // Check if can add more shops
-organizationSchema.methods.canAddShop = function() {
+organizationSchema.methods.canAddShop = function () {
   return this.usage.totalShops < this.subscription.maxShops;
 };
 
 // Check if can add more users
-organizationSchema.methods.canAddUser = function() {
+organizationSchema.methods.canAddUser = function () {
   return this.usage.totalUsers < this.subscription.maxUsers;
 };
 
 // Check if can add more products
-organizationSchema.methods.canAddProduct = function() {
+organizationSchema.methods.canAddProduct = function () {
   return this.usage.totalProducts < this.subscription.maxProducts;
 };
 
 // Check storage limit
-organizationSchema.methods.hasStorageSpace = function(sizeInMB) {
-  return (this.usage.storageUsed + sizeInMB) <= this.subscription.maxStorage;
+organizationSchema.methods.hasStorageSpace = function (sizeInMB) {
+  return this.usage.storageUsed + sizeInMB <= this.subscription.maxStorage;
 };
 
 // Update usage statistics
-organizationSchema.methods.updateUsage = async function() {
+organizationSchema.methods.updateUsage = async function () {
   const User = mongoose.model('User');
   const JewelryShop = mongoose.model('JewelryShop');
-  
-  this.usage.totalUsers = await User.countDocuments({ 
+
+  this.usage.totalUsers = await User.countDocuments({
     organizationId: this._id,
-    deletedAt: null 
+    deletedAt: null,
   });
-  
-  this.usage.totalShops = await JewelryShop.countDocuments({ 
+
+  this.usage.totalShops = await JewelryShop.countDocuments({
     organizationId: this._id,
-    deletedAt: null 
+    deletedAt: null,
   });
-  
+
   this.usage.lastUpdated = new Date();
   return this.save();
 };
 
 // Get primary bank account
-organizationSchema.methods.getPrimaryBank = function() {
+organizationSchema.methods.getPrimaryBank = function () {
   return this.bankDetails.find(bank => bank.isPrimary);
 };
 
 // Soft delete
-organizationSchema.methods.softDelete = function() {
+organizationSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   this.isActive = false;
   return this.save();
 };
 
 // Restore soft deleted organization
-organizationSchema.methods.restore = function() {
+organizationSchema.methods.restore = function () {
   this.deletedAt = null;
   this.isActive = true;
   return this.save();
 };
 
 // Extend subscription
-organizationSchema.methods.extendSubscription = function(days) {
+organizationSchema.methods.extendSubscription = function (days) {
   if (this.subscription.endDate) {
-    this.subscription.endDate = new Date(this.subscription.endDate.getTime() + days * 24 * 60 * 60 * 1000);
+    this.subscription.endDate = new Date(
+      this.subscription.endDate.getTime() + days * 24 * 60 * 60 * 1000
+    );
   } else {
     this.subscription.endDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   }
@@ -670,7 +673,7 @@ organizationSchema.methods.extendSubscription = function(days) {
 };
 
 // Upgrade subscription plan
-organizationSchema.methods.upgradePlan = function(plan, features = {}) {
+organizationSchema.methods.upgradePlan = function (plan, features = {}) {
   this.subscription.plan = plan;
   Object.assign(this.subscription.features, features);
   return this.save();
@@ -679,53 +682,53 @@ organizationSchema.methods.upgradePlan = function(plan, features = {}) {
 // Static Methods
 
 // Generate unique slug
-organizationSchema.statics.generateSlug = async function(name) {
-  let slug = name
+organizationSchema.statics.generateSlug = async function (name) {
+  const slug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  
+
   let uniqueSlug = slug;
   let counter = 1;
-  
+
   while (await this.findOne({ slug: uniqueSlug })) {
     uniqueSlug = `${slug}-${counter}`;
     counter++;
   }
-  
+
   return uniqueSlug;
 };
 
 // Find active organizations
-organizationSchema.statics.findActive = function() {
+organizationSchema.statics.findActive = function () {
   return this.find({ isActive: true, deletedAt: null });
 };
 
 // Find by subscription status
-organizationSchema.statics.findBySubscriptionStatus = function(status) {
-  return this.find({ 
+organizationSchema.statics.findBySubscriptionStatus = function (status) {
+  return this.find({
     'subscription.status': status,
-    deletedAt: null 
+    deletedAt: null,
   });
 };
 
 // Find expiring subscriptions
-organizationSchema.statics.findExpiringSubscriptions = function(days = 7) {
+organizationSchema.statics.findExpiringSubscriptions = function (days = 7) {
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + days);
-  
+
   return this.find({
     'subscription.status': 'active',
-    'subscription.endDate': { 
+    'subscription.endDate': {
       $lte: futureDate,
-      $gte: new Date()
+      $gte: new Date(),
     },
-    deletedAt: null
+    deletedAt: null,
   });
 };
 
 // Find deleted organizations
-organizationSchema.statics.findDeleted = function() {
+organizationSchema.statics.findDeleted = function () {
   return this.find({ deletedAt: { $ne: null } }).setOptions({ includeDeleted: true });
 };
 

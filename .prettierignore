@@ -1,0 +1,10 @@
+### **2. `.prettierignore` (Files to Ignore)**
+node_modules
+dist
+build
+coverage
+.env
+.env.*
+*.log
+package-lock.json
+yarn.lock

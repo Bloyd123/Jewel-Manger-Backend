@@ -13,7 +13,7 @@ class CacheManager {
       stdTTL: 600, // Default TTL: 10 minutes
       checkperiod: 120, // Check for expired keys every 2 minutes
       useClones: true, // Clone variables before returning
-      deleteOnExpire: true
+      deleteOnExpire: true,
     });
 
     // Cache statistics
@@ -21,7 +21,7 @@ class CacheManager {
       hits: 0,
       misses: 0,
       sets: 0,
-      deletes: 0
+      deletes: 0,
     };
 
     // Setup event listeners
@@ -57,13 +57,13 @@ class CacheManager {
   get(key) {
     try {
       const value = this.cache.get(key);
-      
+
       if (value !== undefined) {
         this.stats.hits++;
         logger.debug(`Cache HIT: ${key}`);
         return value;
       }
-      
+
       this.stats.misses++;
       logger.debug(`Cache MISS: ${key}`);
       return undefined;
@@ -82,15 +82,13 @@ class CacheManager {
    */
   set(key, value, ttl = null) {
     try {
-      const success = ttl 
-        ? this.cache.set(key, value, ttl)
-        : this.cache.set(key, value);
-      
+      const success = ttl ? this.cache.set(key, value, ttl) : this.cache.set(key, value);
+
       if (success) {
         this.stats.sets++;
         logger.debug(`Cache SET: ${key} (TTL: ${ttl || 'default'}s)`);
       }
-      
+
       return success;
     } catch (error) {
       logger.error(`Cache SET error for key ${key}:`, error);
@@ -227,7 +225,7 @@ class CacheManager {
       misses: cacheStats.misses,
       ksize: cacheStats.ksize,
       vsize: cacheStats.vsize,
-      hitRate: this.stats.hits / (this.stats.hits + this.stats.misses) || 0
+      hitRate: this.stats.hits / (this.stats.hits + this.stats.misses) || 0,
     };
   }
 
@@ -300,11 +298,11 @@ class CacheManager {
       const keys = this.cache.keys();
       const regex = new RegExp(pattern.replace('*', '.*'));
       const matchingKeys = keys.filter(key => regex.test(key));
-      
+
       if (matchingKeys.length > 0) {
         return this.mdel(matchingKeys);
       }
-      
+
       return 0;
     } catch (error) {
       logger.error('Cache DELETE PATTERN error:', error);
@@ -323,19 +321,19 @@ class CacheManager {
     try {
       // Try to get from cache
       let value = this.get(key);
-      
+
       if (value !== undefined) {
         return value;
       }
-      
+
       // Cache miss - execute function
       value = await fn();
-      
+
       // Store in cache
       if (value !== undefined && value !== null) {
         this.set(key, value, ttl);
       }
-      
+
       return value;
     } catch (error) {
       logger.error(`Cache REMEMBER error for key ${key}:`, error);
@@ -370,11 +368,11 @@ class CacheManager {
   async warmup(data) {
     try {
       const items = [];
-      
+
       for (const [key, value] of Object.entries(data)) {
         items.push({ key, val: value });
       }
-      
+
       this.mset(items);
       logger.info(`Cache warmed up with ${items.length} items`);
     } catch (error) {

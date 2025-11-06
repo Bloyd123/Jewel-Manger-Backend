@@ -7,13 +7,13 @@ const schemeSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
       required: [true, 'Organization ID is required'],
-      index: true
+      index: true,
     },
     shopId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'JewelryShop',
       required: [true, 'Shop ID is required'],
-      index: true
+      index: true,
     },
 
     // Scheme Identification
@@ -22,16 +22,16 @@ const schemeSchema = new mongoose.Schema(
       required: true,
       uppercase: true,
       trim: true,
-      index: true
+      index: true,
     },
     schemeName: {
       type: String,
       required: [true, 'Scheme name is required'],
-      trim: true
+      trim: true,
     },
     description: {
       type: String,
-      maxlength: 1000
+      maxlength: 1000,
     },
 
     // Scheme Type
@@ -39,7 +39,7 @@ const schemeSchema = new mongoose.Schema(
       type: String,
       enum: ['gold_saving', 'installment', 'advance_booking', 'festival_scheme', 'custom'],
       default: 'gold_saving',
-      required: true
+      required: true,
     },
 
     // Duration
@@ -47,13 +47,13 @@ const schemeSchema = new mongoose.Schema(
       months: {
         type: Number,
         required: true,
-        min: 1
+        min: 1,
       },
       weeks: {
         type: Number,
         default: 0,
-        min: 0
-      }
+        min: 0,
+      },
     },
 
     // Installment Details
@@ -61,42 +61,42 @@ const schemeSchema = new mongoose.Schema(
       totalInstallments: {
         type: Number,
         required: true,
-        min: 1
+        min: 1,
       },
       installmentAmount: {
         type: Number,
         required: true,
-        min: 0
+        min: 0,
       },
       frequency: {
         type: String,
         enum: ['weekly', 'monthly', 'custom'],
-        default: 'monthly'
+        default: 'monthly',
       },
       dueDay: {
         type: Number, // 1-31 for monthly, 1-7 for weekly
         min: 1,
-        max: 31
-      }
+        max: 31,
+      },
     },
 
     // Bonus & Benefits
     bonus: {
       hasBonus: {
         type: Boolean,
-        default: false
+        default: false,
       },
       bonusType: {
         type: String,
         enum: ['percentage', 'flat_amount', 'free_making', 'discount'],
-        default: 'percentage'
+        default: 'percentage',
       },
       bonusValue: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
       },
-      bonusDescription: String
+      bonusDescription: String,
     },
 
     // Maturity Details
@@ -104,27 +104,27 @@ const schemeSchema = new mongoose.Schema(
       totalSchemeAmount: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
       },
       bonusAmount: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
       },
       totalMaturityValue: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
       },
       canWithdrawCash: {
         type: Boolean,
-        default: false
+        default: false,
       },
       withdrawalCharges: {
         type: Number,
         default: 0,
-        min: 0
-      }
+        min: 0,
+      },
     },
 
     // Eligibility & Conditions
@@ -132,97 +132,99 @@ const schemeSchema = new mongoose.Schema(
       minAge: {
         type: Number,
         default: 18,
-        min: 0
+        min: 0,
       },
       maxAge: {
         type: Number,
-        default: null
+        default: null,
       },
       minInstallmentAmount: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
       },
       requiresKYC: {
         type: Boolean,
-        default: true
-      }
+        default: true,
+      },
     },
 
     // Terms & Conditions
-    termsAndConditions: [{
-      condition: String,
-      order: Number
-    }],
+    termsAndConditions: [
+      {
+        condition: String,
+        order: Number,
+      },
+    ],
 
     // Redemption Rules
     redemption: {
       canRedeemEarly: {
         type: Boolean,
-        default: false
+        default: false,
       },
       earlyRedemptionPenalty: {
         type: {
           type: String,
           enum: ['percentage', 'flat', 'none'],
-          default: 'none'
+          default: 'none',
         },
         value: {
           type: Number,
           default: 0,
-          min: 0
-        }
+          min: 0,
+        },
       },
       gracePeriodDays: {
         type: Number,
         default: 30,
-        min: 0
+        min: 0,
       },
       missedInstallmentPenalty: {
         type: Number,
         default: 0,
-        min: 0
-      }
+        min: 0,
+      },
     },
 
     // Pricing & Rates
     pricing: {
       useCurrentMetalRate: {
         type: Boolean,
-        default: true
+        default: true,
       },
       fixedMetalRate: {
         type: Number,
-        default: null
+        default: null,
       },
       makingChargesDiscount: {
         type: Number,
         default: 0,
         min: 0,
-        max: 100
+        max: 100,
       },
       waiveMakingCharges: {
         type: Boolean,
-        default: false
-      }
+        default: false,
+      },
     },
 
     // Limits
     limits: {
       maxEnrollments: {
         type: Number,
-        default: null // null = unlimited
+        default: null, // null = unlimited
       },
       currentEnrollments: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
       },
       maxEnrollmentsPerCustomer: {
         type: Number,
         default: 3,
-        min: 1
-      }
+        min: 1,
+      },
     },
 
     // Validity
@@ -230,57 +232,57 @@ const schemeSchema = new mongoose.Schema(
       startDate: {
         type: Date,
         required: true,
-        default: Date.now
+        default: Date.now,
       },
       endDate: {
         type: Date,
-        required: true
+        required: true,
       },
       enrollmentDeadline: Date,
       isActive: {
         type: Boolean,
         default: true,
-        index: true
-      }
+        index: true,
+      },
     },
 
     // Marketing
     marketing: {
       isFeatured: {
         type: Boolean,
-        default: false
+        default: false,
       },
       displayOrder: {
         type: Number,
-        default: 0
+        default: 0,
       },
       imageUrl: String,
       bannerUrl: String,
-      highlights: [String]
+      highlights: [String],
     },
 
     // Statistics
     statistics: {
       totalEnrollments: {
         type: Number,
-        default: 0
+        default: 0,
       },
       activeEnrollments: {
         type: Number,
-        default: 0
+        default: 0,
       },
       completedEnrollments: {
         type: Number,
-        default: 0
+        default: 0,
       },
       totalRevenue: {
         type: Number,
-        default: 0
+        default: 0,
       },
       averageInstallmentCollection: {
         type: Number,
-        default: 0
-      }
+        default: 0,
+      },
     },
 
     // Status
@@ -288,18 +290,18 @@ const schemeSchema = new mongoose.Schema(
       type: String,
       enum: ['draft', 'active', 'paused', 'expired', 'archived'],
       default: 'draft',
-      index: true
+      index: true,
     },
 
     // Approval
     approvalStatus: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
-      default: 'pending'
+      default: 'pending',
     },
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
     },
     approvedAt: Date,
     rejectionReason: String,
@@ -307,7 +309,7 @@ const schemeSchema = new mongoose.Schema(
     // Notes & Tags
     notes: {
       type: String,
-      maxlength: 1000
+      maxlength: 1000,
     },
     internalNotes: String,
     tags: [String],
@@ -316,18 +318,18 @@ const schemeSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: true,
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
     },
-    deletedAt: Date
+    deletedAt: Date,
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
   }
 );
 
@@ -342,14 +344,14 @@ schemeSchema.index({ 'validity.startDate': 1, 'validity.endDate': 1 });
 schemeSchema.virtual('enrollments', {
   ref: 'SchemeEnrollment',
   localField: '_id',
-  foreignField: 'schemeId'
+  foreignField: 'schemeId',
 });
 
-schemeSchema.virtual('isExpired').get(function() {
+schemeSchema.virtual('isExpired').get(function () {
   return new Date() > this.validity.endDate;
 });
 
-schemeSchema.virtual('isEnrollmentOpen').get(function() {
+schemeSchema.virtual('isEnrollmentOpen').get(function () {
   const now = new Date();
   if (this.validity.enrollmentDeadline) {
     return now <= this.validity.enrollmentDeadline && this.validity.isActive;
@@ -357,15 +359,16 @@ schemeSchema.virtual('isEnrollmentOpen').get(function() {
   return this.validity.isActive && !this.isExpired;
 });
 
-schemeSchema.virtual('totalDuration').get(function() {
-  return this.duration.months + (this.duration.weeks / 4);
+schemeSchema.virtual('totalDuration').get(function () {
+  return this.duration.months + this.duration.weeks / 4;
 });
 
 // Pre-save middleware
-schemeSchema.pre('save', function(next) {
+schemeSchema.pre('save', function (next) {
   // Calculate maturity values
-  this.maturity.totalSchemeAmount = this.installments.totalInstallments * this.installments.installmentAmount;
-  
+  this.maturity.totalSchemeAmount =
+    this.installments.totalInstallments * this.installments.installmentAmount;
+
   if (this.bonus.hasBonus) {
     if (this.bonus.bonusType === 'percentage') {
       this.maturity.bonusAmount = (this.maturity.totalSchemeAmount * this.bonus.bonusValue) / 100;
@@ -373,24 +376,27 @@ schemeSchema.pre('save', function(next) {
       this.maturity.bonusAmount = this.bonus.bonusValue;
     }
   }
-  
+
   this.maturity.totalMaturityValue = this.maturity.totalSchemeAmount + this.maturity.bonusAmount;
-  
+
   // Check if enrollment is still open
-  if (this.validity.maxEnrollments && this.limits.currentEnrollments >= this.limits.maxEnrollments) {
+  if (
+    this.validity.maxEnrollments &&
+    this.limits.currentEnrollments >= this.limits.maxEnrollments
+  ) {
     this.validity.isActive = false;
   }
-  
+
   // Check expiry
   if (this.isExpired && this.status === 'active') {
     this.status = 'expired';
   }
-  
+
   next();
 });
 
 // Soft delete middleware
-schemeSchema.pre(/^find/, function(next) {
+schemeSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null });
   }
@@ -398,44 +404,44 @@ schemeSchema.pre(/^find/, function(next) {
 });
 
 // Instance Methods
-schemeSchema.methods.softDelete = function() {
+schemeSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   this.validity.isActive = false;
   return this.save();
 };
 
-schemeSchema.methods.restore = function() {
+schemeSchema.methods.restore = function () {
   this.deletedAt = null;
   this.validity.isActive = true;
   return this.save();
 };
 
-schemeSchema.methods.activate = function() {
+schemeSchema.methods.activate = function () {
   this.status = 'active';
   this.validity.isActive = true;
   return this.save();
 };
 
-schemeSchema.methods.pause = function() {
+schemeSchema.methods.pause = function () {
   this.status = 'paused';
   this.validity.isActive = false;
   return this.save();
 };
 
-schemeSchema.methods.archive = function() {
+schemeSchema.methods.archive = function () {
   this.status = 'archived';
   this.validity.isActive = false;
   return this.save();
 };
 
-schemeSchema.methods.approve = function(userId) {
+schemeSchema.methods.approve = function (userId) {
   this.approvalStatus = 'approved';
   this.approvedBy = userId;
   this.approvedAt = new Date();
   return this.save();
 };
 
-schemeSchema.methods.reject = function(userId, reason) {
+schemeSchema.methods.reject = function (userId, reason) {
   this.approvalStatus = 'rejected';
   this.approvedBy = userId;
   this.approvedAt = new Date();
@@ -443,23 +449,23 @@ schemeSchema.methods.reject = function(userId, reason) {
   return this.save();
 };
 
-schemeSchema.methods.incrementEnrollment = function() {
+schemeSchema.methods.incrementEnrollment = function () {
   this.limits.currentEnrollments += 1;
   this.statistics.totalEnrollments += 1;
   this.statistics.activeEnrollments += 1;
   return this.save();
 };
 
-schemeSchema.methods.decrementEnrollment = function() {
+schemeSchema.methods.decrementEnrollment = function () {
   this.limits.currentEnrollments = Math.max(0, this.limits.currentEnrollments - 1);
   this.statistics.activeEnrollments = Math.max(0, this.statistics.activeEnrollments - 1);
   return this.save();
 };
 
-schemeSchema.methods.calculateMaturityValue = function(paidInstallments) {
+schemeSchema.methods.calculateMaturityValue = function (paidInstallments) {
   const paidAmount = paidInstallments * this.installments.installmentAmount;
   let bonusAmount = 0;
-  
+
   if (this.bonus.hasBonus && paidInstallments === this.installments.totalInstallments) {
     if (this.bonus.bonusType === 'percentage') {
       bonusAmount = (paidAmount * this.bonus.bonusValue) / 100;
@@ -467,90 +473,88 @@ schemeSchema.methods.calculateMaturityValue = function(paidInstallments) {
       bonusAmount = this.bonus.bonusValue;
     }
   }
-  
+
   return {
     paidAmount,
     bonusAmount,
-    totalValue: paidAmount + bonusAmount
+    totalValue: paidAmount + bonusAmount,
   };
 };
 
-schemeSchema.methods.calculateEarlyRedemptionValue = function(paidInstallments) {
+schemeSchema.methods.calculateEarlyRedemptionValue = function (paidInstallments) {
   const maturity = this.calculateMaturityValue(paidInstallments);
   let penalty = 0;
-  
+
   if (this.redemption.earlyRedemptionPenalty.type === 'percentage') {
     penalty = (maturity.paidAmount * this.redemption.earlyRedemptionPenalty.value) / 100;
   } else if (this.redemption.earlyRedemptionPenalty.type === 'flat') {
     penalty = this.redemption.earlyRedemptionPenalty.value;
   }
-  
+
   return {
     ...maturity,
     penalty,
-    netValue: maturity.totalValue - penalty
+    netValue: maturity.totalValue - penalty,
   };
 };
 
 // Static Methods
-schemeSchema.statics.generateSchemeCode = async function(shopId, prefix = 'SCH') {
+schemeSchema.statics.generateSchemeCode = async function (shopId, prefix = 'SCH') {
   const currentYear = new Date().getFullYear().toString().slice(-2);
-  
+
   let number = 1;
-  const lastScheme = await this.findOne({ shopId })
-    .sort({ schemeCode: -1 })
-    .select('schemeCode');
-  
+  const lastScheme = await this.findOne({ shopId }).sort({ schemeCode: -1 }).select('schemeCode');
+
   if (lastScheme && lastScheme.schemeCode) {
     const lastNumber = parseInt(lastScheme.schemeCode.split('-').pop());
     if (!isNaN(lastNumber)) {
       number = lastNumber + 1;
     }
   }
-  
+
   return `${prefix}-${currentYear}-${String(number).padStart(4, '0')}`;
 };
 
-schemeSchema.statics.findByShop = function(shopId, options = {}) {
+schemeSchema.statics.findByShop = function (shopId, options = {}) {
   return this.find({ shopId, deletedAt: null, ...options });
 };
 
-schemeSchema.statics.findActive = function(shopId) {
+schemeSchema.statics.findActive = function (shopId) {
   return this.find({
     shopId,
     status: 'active',
     'validity.isActive': true,
-    deletedAt: null
+    deletedAt: null,
   });
 };
 
-schemeSchema.statics.findByType = function(shopId, schemeType) {
+schemeSchema.statics.findByType = function (shopId, schemeType) {
   return this.find({
     shopId,
     schemeType,
-    deletedAt: null
+    deletedAt: null,
   });
 };
 
-schemeSchema.statics.findFeatured = function(shopId) {
+schemeSchema.statics.findFeatured = function (shopId) {
   return this.find({
     shopId,
     'marketing.isFeatured': true,
     'validity.isActive': true,
     status: 'active',
-    deletedAt: null
+    deletedAt: null,
   }).sort({ 'marketing.displayOrder': 1 });
 };
 
-schemeSchema.statics.findExpiringSoon = function(shopId, days = 30) {
+schemeSchema.statics.findExpiringSoon = function (shopId, days = 30) {
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + days);
-  
+
   return this.find({
     shopId,
     'validity.endDate': { $lte: futureDate, $gte: new Date() },
     status: 'active',
-    deletedAt: null
+    deletedAt: null,
   });
 };
 

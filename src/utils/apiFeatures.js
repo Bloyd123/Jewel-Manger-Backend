@@ -19,14 +19,14 @@ class APIFeatures {
   filter() {
     // 1) Create a copy of query object
     const queryObj = { ...this.queryString };
-    
+
     // 2) Exclude fields that are not for filtering
     const excludedFields = ['page', 'sort', 'limit', 'fields', 'search'];
-    excludedFields.forEach((field) => delete queryObj[field]);
+    excludedFields.forEach(field => delete queryObj[field]);
 
     // 3) Advanced filtering (gte, gt, lte, lt, ne)
     let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt|ne|in)\b/g, (match) => `$${match}`);
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt|ne|in)\b/g, match => `$${match}`);
 
     this.query = this.query.find(JSON.parse(queryStr));
 
@@ -86,7 +86,7 @@ class APIFeatures {
   search(fields = []) {
     if (this.queryString.search && fields.length > 0) {
       const searchRegex = new RegExp(this.queryString.search, 'i');
-      const searchConditions = fields.map((field) => ({
+      const searchConditions = fields.map(field => ({
         [field]: searchRegex,
       }));
 
@@ -125,7 +125,7 @@ class APIFeatures {
    */
   populate(fields) {
     if (fields) {
-      fields.forEach((field) => {
+      fields.forEach(field => {
         this.query = this.query.populate(field);
       });
     }

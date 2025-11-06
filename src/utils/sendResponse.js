@@ -19,7 +19,7 @@ export const sendSuccess = (res, statusCode = 200, message = 'Success', data = n
     statusCode,
     message,
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   // Add metadata if provided
@@ -43,7 +43,7 @@ export const sendError = (res, statusCode = 500, message = 'Error', errors = [],
     success: false,
     statusCode,
     message,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   // Add errors array if provided
@@ -72,7 +72,7 @@ export const sendCreated = (res, message = 'Resource created successfully', data
 /**
  * Send no content response (204)
  */
-export const sendNoContent = (res) => {
+export const sendNoContent = res => {
   return res.status(204).send();
 };
 
@@ -128,9 +128,8 @@ export const sendInternalError = (res, message = 'Internal server error', error 
   }
 
   // Don't expose error details in production
-  const errors = process.env.NODE_ENV === 'production' 
-    ? [] 
-    : [{ detail: error?.message, stack: error?.stack }];
+  const errors =
+    process.env.NODE_ENV === 'production' ? [] : [{ detail: error?.message, stack: error?.stack }];
 
   return sendError(res, 500, message, errors);
 };
@@ -153,7 +152,7 @@ export const sendServiceUnavailable = (res, message = 'Service temporarily unava
  */
 export const sendPaginated = (res, data, page, limit, total, message = 'Success') => {
   const totalPages = Math.ceil(total / limit);
-  
+
   const meta = {
     pagination: {
       currentPage: parseInt(page),
@@ -161,8 +160,8 @@ export const sendPaginated = (res, data, page, limit, total, message = 'Success'
       pageSize: parseInt(limit),
       totalItems: total,
       hasNextPage: page < totalPages,
-      hasPrevPage: page > 1
-    }
+      hasPrevPage: page > 1,
+    },
   };
 
   return sendSuccess(res, 200, message, data, meta);
@@ -183,7 +182,7 @@ export const sendCustom = (res, statusCode, success, message, data = null, meta 
     statusCode,
     message,
     data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   if (Object.keys(meta).length > 0) {
@@ -227,7 +226,10 @@ export const sendCSV = (res, csvData, fileName = 'export.csv') => {
  * @param {String} fileName - Excel filename
  */
 export const sendExcel = (res, excelBuffer, fileName = 'export.xlsx') => {
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
   return res.status(200).send(excelBuffer);
 };
@@ -251,7 +253,7 @@ export const sendPDF = (res, pdfBuffer, fileName = 'document.pdf', inline = fals
  * Wraps async route handlers to catch errors
  * @param {Function} fn - Async route handler function
  */
-export const asyncHandler = (fn) => {
+export const asyncHandler = fn => {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
@@ -261,11 +263,11 @@ export const asyncHandler = (fn) => {
  * Format validation errors from express-validator
  * @param {Array} validationErrors - Validation errors from express-validator
  */
-export const formatValidationErrors = (validationErrors) => {
+export const formatValidationErrors = validationErrors => {
   return validationErrors.map(err => ({
     field: err.param || err.path,
     message: err.msg,
-    value: err.value
+    value: err.value,
   }));
 };
 
@@ -276,12 +278,27 @@ export const formatValidationErrors = (validationErrors) => {
  * @param {String} successMessage - Message for successful operation
  * @param {String} errorMessage - Message for failed operation
  */
-export const sendResult = (res, result, successMessage = 'Operation successful', errorMessage = 'Operation failed') => {
+export const sendResult = (
+  res,
+  result,
+  successMessage = 'Operation successful',
+  errorMessage = 'Operation failed'
+) => {
   if (result.success) {
     return sendSuccess(res, 200, successMessage, result.data);
   } else {
     return sendError(res, result.statusCode || 400, errorMessage, result.errors);
   }
+};
+/**
+ * Send too many requests error (429)
+ */
+export const sendTooManyRequests = (
+  res,
+  message = 'Too many requests, please try again later',
+  meta = {}
+) => {
+  return sendError(res, 429, message, [], meta);
 };
 
 // Default export with all functions
@@ -306,5 +323,6 @@ export default {
   sendPDF,
   asyncHandler,
   formatValidationErrors,
-  sendResult
+  sendResult,
+  sendTooManyRequests,
 };

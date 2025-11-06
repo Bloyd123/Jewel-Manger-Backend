@@ -7,13 +7,13 @@ const customerSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
       required: [true, 'Organization ID is required'],
-      index: true
+      index: true,
     },
     shopId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'JewelryShop',
       required: [true, 'Shop ID is required'],
-      index: true
+      index: true,
     },
 
     // Customer Code
@@ -22,41 +22,41 @@ const customerSchema = new mongoose.Schema(
       required: true,
       uppercase: true,
       trim: true,
-      index: true
+      index: true,
     },
 
     // Basic Information
     firstName: {
       type: String,
       required: [true, 'First name is required'],
-      trim: true
+      trim: true,
     },
     lastName: {
       type: String,
-      trim: true
+      trim: true,
     },
     email: {
       type: String,
       lowercase: true,
       trim: true,
       sparse: true,
-      match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Invalid email']
+      match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Invalid email'],
     },
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
       trim: true,
-      match: [/^[0-9]{10}$/, 'Invalid phone number']
+      match: [/^[0-9]{10}$/, 'Invalid phone number'],
     },
     alternatePhone: {
       type: String,
       trim: true,
-      match: [/^[0-9]{10}$/, 'Invalid phone number']
+      match: [/^[0-9]{10}$/, 'Invalid phone number'],
     },
     whatsappNumber: {
       type: String,
       trim: true,
-      match: [/^[0-9]{10}$/, 'Invalid WhatsApp number']
+      match: [/^[0-9]{10}$/, 'Invalid WhatsApp number'],
     },
 
     // Personal Details
@@ -64,10 +64,10 @@ const customerSchema = new mongoose.Schema(
     gender: {
       type: String,
       enum: ['male', 'female', 'other'],
-      default: null
+      default: null,
     },
     anniversaryDate: Date,
-    
+
     // Address
     address: {
       street: String,
@@ -78,8 +78,8 @@ const customerSchema = new mongoose.Schema(
       country: { type: String, default: 'India' },
       pincode: {
         type: String,
-        match: [/^[0-9]{6}$/, 'Invalid pincode']
-      }
+        match: [/^[0-9]{6}$/, 'Invalid pincode'],
+      },
     },
 
     // KYC Details
@@ -87,44 +87,44 @@ const customerSchema = new mongoose.Schema(
       type: String,
       trim: true,
       sparse: true,
-      match: [/^[0-9]{12}$/, 'Invalid Aadhar number']
+      match: [/^[0-9]{12}$/, 'Invalid Aadhar number'],
     },
     panNumber: {
       type: String,
       trim: true,
       uppercase: true,
       sparse: true,
-      match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN']
+      match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN'],
     },
     gstNumber: {
       type: String,
       trim: true,
       uppercase: true,
-      sparse: true
+      sparse: true,
     },
 
     // Customer Type
     customerType: {
       type: String,
       enum: ['retail', 'wholesale', 'vip', 'regular'],
-      default: 'retail'
+      default: 'retail',
     },
     customerCategory: {
       type: String,
       enum: ['gold', 'silver', 'diamond', 'platinum', 'mixed'],
-      default: 'mixed'
+      default: 'mixed',
     },
 
     // Loyalty & Membership
     loyaltyPoints: {
       type: Number,
       default: 0,
-      min: 0
+      min: 0,
     },
     membershipTier: {
       type: String,
       enum: ['standard', 'silver', 'gold', 'platinum'],
-      default: 'standard'
+      default: 'standard',
     },
     membershipNumber: String,
     membershipStartDate: Date,
@@ -134,25 +134,25 @@ const customerSchema = new mongoose.Schema(
     creditLimit: {
       type: Number,
       default: 0,
-      min: 0
+      min: 0,
     },
     currentBalance: {
       type: Number,
-      default: 0
+      default: 0,
     },
     totalPurchases: {
       type: Number,
       default: 0,
-      min: 0
+      min: 0,
     },
     totalPaid: {
       type: Number,
       default: 0,
-      min: 0
+      min: 0,
     },
     totalDue: {
       type: Number,
-      default: 0
+      default: 0,
     },
 
     // Statistics
@@ -164,7 +164,7 @@ const customerSchema = new mongoose.Schema(
       averageOrderValue: { type: Number, default: 0 },
       lastOrderDate: Date,
       lastVisitDate: Date,
-      firstOrderDate: Date
+      firstOrderDate: Date,
     },
 
     // Preferences
@@ -172,40 +172,42 @@ const customerSchema = new mongoose.Schema(
       preferredMetal: {
         type: String,
         enum: ['gold', 'silver', 'platinum', 'diamond'],
-        default: null
+        default: null,
       },
       preferredPurity: String,
       preferredDesign: String,
       preferredPaymentMode: {
         type: String,
         enum: ['cash', 'card', 'upi', 'cheque', 'emi'],
-        default: null
+        default: null,
       },
       communicationPreference: {
         type: String,
         enum: ['email', 'sms', 'whatsapp', 'call', 'none'],
-        default: 'sms'
-      }
+        default: 'sms',
+      },
     },
 
     // Social Media
     socialMedia: {
       facebook: String,
       instagram: String,
-      twitter: String
+      twitter: String,
     },
 
     // Documents
-    documents: [{
-      documentType: {
-        type: String,
-        enum: ['aadhar', 'pan', 'passport', 'driving_license', 'voter_id', 'other'],
-        required: true
+    documents: [
+      {
+        documentType: {
+          type: String,
+          enum: ['aadhar', 'pan', 'passport', 'driving_license', 'voter_id', 'other'],
+          required: true,
+        },
+        documentNumber: String,
+        documentUrl: String,
+        uploadedAt: { type: Date, default: Date.now },
       },
-      documentNumber: String,
-      documentUrl: String,
-      uploadedAt: { type: Date, default: Date.now }
-    }],
+    ],
 
     // Profile Image
     profileImage: String,
@@ -213,11 +215,11 @@ const customerSchema = new mongoose.Schema(
     // Status
     isActive: {
       type: Boolean,
-      default: true
+      default: true,
     },
     isBlacklisted: {
       type: Boolean,
-      default: false
+      default: false,
     },
     blacklistReason: String,
     blacklistedAt: Date,
@@ -225,7 +227,7 @@ const customerSchema = new mongoose.Schema(
     // Notes & Tags
     notes: {
       type: String,
-      maxlength: 1000
+      maxlength: 1000,
     },
     tags: [String],
     internalNotes: String,
@@ -234,29 +236,29 @@ const customerSchema = new mongoose.Schema(
     source: {
       type: String,
       enum: ['walk_in', 'referral', 'online', 'phone', 'social_media', 'advertisement', 'other'],
-      default: 'walk_in'
+      default: 'walk_in',
     },
     referredBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Customer',
-      default: null
+      default: null,
     },
 
     // Audit Trail
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
     },
-    deletedAt: Date
+    deletedAt: Date,
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
   }
 );
 
@@ -269,22 +271,22 @@ customerSchema.index({ customerType: 1 });
 customerSchema.index({ membershipTier: 1 });
 
 // Virtuals
-customerSchema.virtual('fullName').get(function() {
+customerSchema.virtual('fullName').get(function () {
   return `${this.firstName} ${this.lastName || ''}`.trim();
 });
 
-customerSchema.virtual('isVIP').get(function() {
+customerSchema.virtual('isVIP').get(function () {
   return this.customerType === 'vip' || this.membershipTier === 'platinum';
 });
 
 customerSchema.virtual('orders', {
   ref: 'Sale',
   localField: '_id',
-  foreignField: 'customerId'
+  foreignField: 'customerId',
 });
 
 // Soft delete middleware
-customerSchema.pre(/^find/, function(next) {
+customerSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null });
   }
@@ -292,24 +294,24 @@ customerSchema.pre(/^find/, function(next) {
 });
 
 // Instance Methods
-customerSchema.methods.softDelete = function() {
+customerSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   this.isActive = false;
   return this.save();
 };
 
-customerSchema.methods.restore = function() {
+customerSchema.methods.restore = function () {
   this.deletedAt = null;
   this.isActive = true;
   return this.save();
 };
 
-customerSchema.methods.addLoyaltyPoints = function(points) {
+customerSchema.methods.addLoyaltyPoints = function (points) {
   this.loyaltyPoints += points;
   return this.save();
 };
 
-customerSchema.methods.redeemLoyaltyPoints = function(points) {
+customerSchema.methods.redeemLoyaltyPoints = function (points) {
   if (this.loyaltyPoints >= points) {
     this.loyaltyPoints -= points;
     return this.save();
@@ -317,13 +319,13 @@ customerSchema.methods.redeemLoyaltyPoints = function(points) {
   throw new Error('Insufficient loyalty points');
 };
 
-customerSchema.methods.updateBalance = function(amount) {
+customerSchema.methods.updateBalance = function (amount) {
   this.currentBalance += amount;
   this.totalDue = this.currentBalance < 0 ? Math.abs(this.currentBalance) : 0;
   return this.save();
 };
 
-customerSchema.methods.blacklist = function(reason) {
+customerSchema.methods.blacklist = function (reason) {
   this.isBlacklisted = true;
   this.blacklistReason = reason;
   this.blacklistedAt = new Date();
@@ -331,7 +333,7 @@ customerSchema.methods.blacklist = function(reason) {
   return this.save();
 };
 
-customerSchema.methods.removeBlacklist = function() {
+customerSchema.methods.removeBlacklist = function () {
   this.isBlacklisted = false;
   this.blacklistReason = null;
   this.blacklistedAt = null;
@@ -340,43 +342,40 @@ customerSchema.methods.removeBlacklist = function() {
 };
 
 // Static Methods
-customerSchema.statics.generateCustomerCode = async function(shopId, prefix = 'CUST') {
+customerSchema.statics.generateCustomerCode = async function (shopId, prefix = 'CUST') {
   let code = `${prefix}${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
   let counter = 1;
-  
+
   while (await this.findOne({ shopId, customerCode: code })) {
     code = `${prefix}${String(Math.floor(Math.random() * 100000) + counter).padStart(5, '0')}`;
     counter++;
   }
-  
+
   return code;
 };
 
-customerSchema.statics.findByShop = function(shopId, options = {}) {
+customerSchema.statics.findByShop = function (shopId, options = {}) {
   return this.find({ shopId, deletedAt: null, ...options });
 };
 
-customerSchema.statics.findByPhone = function(phone) {
+customerSchema.statics.findByPhone = function (phone) {
   return this.findOne({ phone, deletedAt: null });
 };
 
-customerSchema.statics.findVIPCustomers = function(shopId) {
+customerSchema.statics.findVIPCustomers = function (shopId) {
   return this.find({
     shopId,
-    $or: [
-      { customerType: 'vip' },
-      { membershipTier: 'platinum' }
-    ],
+    $or: [{ customerType: 'vip' }, { membershipTier: 'platinum' }],
     deletedAt: null,
-    isActive: true
+    isActive: true,
   });
 };
 
-customerSchema.statics.findByMembershipTier = function(shopId, tier) {
+customerSchema.statics.findByMembershipTier = function (shopId, tier) {
   return this.find({ shopId, membershipTier: tier, deletedAt: null, isActive: true });
 };
 
-customerSchema.statics.findTopCustomers = function(shopId, limit = 10) {
+customerSchema.statics.findTopCustomers = function (shopId, limit = 10) {
   return this.find({ shopId, deletedAt: null, isActive: true })
     .sort({ 'statistics.totalSpent': -1 })
     .limit(limit);

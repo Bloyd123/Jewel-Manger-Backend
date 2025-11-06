@@ -34,7 +34,7 @@ class EventLogger {
     metadata = {},
     ipAddress = null,
     userAgent = null,
-    status = 'success'
+    status = 'success',
   }) {
     try {
       // Create activity log in database
@@ -49,12 +49,12 @@ class EventLogger {
         metadata,
         ipAddress,
         userAgent,
-        status
+        status,
       });
 
       // Log to console as well
       const logMessage = `[${module.toUpperCase()}] ${action} - ${description} ${userId ? `by User:${userId}` : ''}`;
-      
+
       switch (level) {
         case 'error':
           logger.error(logMessage, metadata);
@@ -90,7 +90,7 @@ class EventLogger {
       level: status === 'success' ? 'success' : 'warn',
       status,
       ipAddress,
-      metadata
+      metadata,
     });
   }
 
@@ -106,7 +106,7 @@ class EventLogger {
       module: 'product',
       description,
       level: 'info',
-      metadata: { productId, ...metadata }
+      metadata: { productId, ...metadata },
     });
   }
 
@@ -122,14 +122,22 @@ class EventLogger {
       module: 'sale',
       description,
       level: 'success',
-      metadata: { saleId, ...metadata }
+      metadata: { saleId, ...metadata },
     });
   }
 
   /**
    * Log purchase events
    */
-  async logPurchase(userId, organizationId, shopId, action, purchaseId, description, metadata = {}) {
+  async logPurchase(
+    userId,
+    organizationId,
+    shopId,
+    action,
+    purchaseId,
+    description,
+    metadata = {}
+  ) {
     return this.logActivity({
       userId,
       organizationId,
@@ -138,14 +146,22 @@ class EventLogger {
       module: 'purchase',
       description,
       level: 'info',
-      metadata: { purchaseId, ...metadata }
+      metadata: { purchaseId, ...metadata },
     });
   }
 
   /**
    * Log customer events
    */
-  async logCustomer(userId, organizationId, shopId, action, customerId, description, metadata = {}) {
+  async logCustomer(
+    userId,
+    organizationId,
+    shopId,
+    action,
+    customerId,
+    description,
+    metadata = {}
+  ) {
     return this.logActivity({
       userId,
       organizationId,
@@ -154,14 +170,21 @@ class EventLogger {
       module: 'customer',
       description,
       level: 'info',
-      metadata: { customerId, ...metadata }
+      metadata: { customerId, ...metadata },
     });
   }
 
   /**
    * Log user management events
    */
-  async logUserManagement(userId, organizationId, action, targetUserId, description, metadata = {}) {
+  async logUserManagement(
+    userId,
+    organizationId,
+    action,
+    targetUserId,
+    description,
+    metadata = {}
+  ) {
     return this.logActivity({
       userId,
       organizationId,
@@ -169,7 +192,7 @@ class EventLogger {
       module: 'user_management',
       description,
       level: 'info',
-      metadata: { targetUserId, ...metadata }
+      metadata: { targetUserId, ...metadata },
     });
   }
 
@@ -185,7 +208,7 @@ class EventLogger {
       module: 'financial',
       description,
       level: 'info',
-      metadata
+      metadata,
     });
   }
 
@@ -204,8 +227,8 @@ class EventLogger {
       metadata: {
         error: error.message,
         stack: error.stack,
-        ...metadata
-      }
+        ...metadata,
+      },
     });
   }
 
@@ -220,7 +243,7 @@ class EventLogger {
       module: 'system',
       description,
       level,
-      metadata
+      metadata,
     });
   }
 
@@ -280,7 +303,7 @@ class EventLogger {
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
       const result = await ActivityLog.deleteMany({
-        createdAt: { $lt: cutoffDate }
+        createdAt: { $lt: cutoffDate },
       });
 
       logger.info(`Cleaned ${result.deletedCount} old activity logs`);

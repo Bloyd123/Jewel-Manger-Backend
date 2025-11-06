@@ -7,13 +7,13 @@ const paymentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
       required: [true, 'Organization ID is required'],
-      index: true
+      index: true,
     },
     shopId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'JewelryShop',
       required: [true, 'Shop ID is required'],
-      index: true
+      index: true,
     },
 
     // Payment Identification
@@ -23,21 +23,28 @@ const paymentSchema = new mongoose.Schema(
       unique: true,
       uppercase: true,
       trim: true,
-      index: true
+      index: true,
     },
     paymentDate: {
       type: Date,
       required: true,
       default: Date.now,
-      index: true
+      index: true,
     },
 
     // Payment Type
     paymentType: {
       type: String,
-      enum: ['sale_payment', 'purchase_payment', 'scheme_payment', 'advance_payment', 'refund', 'other'],
+      enum: [
+        'sale_payment',
+        'purchase_payment',
+        'scheme_payment',
+        'advance_payment',
+        'refund',
+        'other',
+      ],
       required: true,
-      index: true
+      index: true,
     },
 
     // Transaction Type
@@ -45,7 +52,7 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       enum: ['receipt', 'payment'], // receipt = money in, payment = money out
       required: true,
-      index: true
+      index: true,
     },
 
     // Reference Details
@@ -53,19 +60,19 @@ const paymentSchema = new mongoose.Schema(
       referenceType: {
         type: String,
         enum: ['sale', 'purchase', 'scheme_enrollment', 'order', 'none'],
-        default: 'none'
+        default: 'none',
       },
       referenceId: {
         type: mongoose.Schema.Types.ObjectId,
         refPath: 'reference.referenceModel',
-        default: null
+        default: null,
       },
       referenceModel: {
         type: String,
         enum: ['Sale', 'Purchase', 'SchemeEnrollment', 'Order', ''],
-        default: ''
+        default: '',
       },
-      referenceNumber: String
+      referenceNumber: String,
     },
 
     // Party Details (Customer or Supplier)
@@ -73,33 +80,33 @@ const paymentSchema = new mongoose.Schema(
       partyType: {
         type: String,
         enum: ['customer', 'supplier', 'other'],
-        required: true
+        required: true,
       },
       partyId: {
         type: mongoose.Schema.Types.ObjectId,
         refPath: 'party.partyModel',
         required: true,
-        index: true
+        index: true,
       },
       partyModel: {
         type: String,
         enum: ['Customer', 'Supplier'],
-        required: true
+        required: true,
       },
       partyName: {
         type: String,
-        required: true
+        required: true,
       },
       partyCode: String,
       phone: String,
-      email: String
+      email: String,
     },
 
     // Payment Amount
     amount: {
       type: Number,
       required: true,
-      min: 0
+      min: 0,
     },
 
     // Payment Mode
@@ -107,7 +114,7 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       enum: ['cash', 'card', 'upi', 'cheque', 'bank_transfer', 'wallet', 'other'],
       required: true,
-      index: true
+      index: true,
     },
 
     // Payment Details by Mode
@@ -115,24 +122,24 @@ const paymentSchema = new mongoose.Schema(
       // Cash
       cashDetails: {
         receivedAmount: Number,
-        returnAmount: Number
+        returnAmount: Number,
       },
 
       // Card
       cardDetails: {
         cardType: {
           type: String,
-          enum: ['credit', 'debit']
+          enum: ['credit', 'debit'],
         },
         cardNetwork: {
           type: String,
-          enum: ['visa', 'mastercard', 'rupay', 'amex', 'other']
+          enum: ['visa', 'mastercard', 'rupay', 'amex', 'other'],
         },
         last4Digits: String,
         authorizationCode: String,
         terminalId: String,
         merchantId: String,
-        bankName: String
+        bankName: String,
       },
 
       // UPI
@@ -141,17 +148,17 @@ const paymentSchema = new mongoose.Schema(
         transactionId: String,
         appName: {
           type: String,
-          enum: ['gpay', 'phonepe', 'paytm', 'bhim', 'other']
-        }
+          enum: ['gpay', 'phonepe', 'paytm', 'bhim', 'other'],
+        },
       },
 
       // Cheque
       chequeDetails: {
         chequeNumber: {
           type: String,
-          required: function() {
+          required() {
             return this.paymentMode === 'cheque';
-          }
+          },
         },
         chequeDate: Date,
         bankName: String,
@@ -161,10 +168,10 @@ const paymentSchema = new mongoose.Schema(
         chequeStatus: {
           type: String,
           enum: ['pending', 'cleared', 'bounced', 'cancelled'],
-          default: 'pending'
+          default: 'pending',
         },
         clearanceDate: Date,
-        bounceReason: String
+        bounceReason: String,
       },
 
       // Bank Transfer
@@ -178,19 +185,19 @@ const paymentSchema = new mongoose.Schema(
         referenceNumber: String,
         transferType: {
           type: String,
-          enum: ['neft', 'rtgs', 'imps', 'other']
-        }
+          enum: ['neft', 'rtgs', 'imps', 'other'],
+        },
       },
 
       // Wallet
       walletDetails: {
         walletProvider: {
           type: String,
-          enum: ['paytm', 'phonepe', 'mobikwik', 'other']
+          enum: ['paytm', 'phonepe', 'mobikwik', 'other'],
         },
         walletNumber: String,
-        transactionId: String
-      }
+        transactionId: String,
+      },
     },
 
     // Transaction Details
@@ -202,26 +209,26 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       enum: ['pending', 'completed', 'failed', 'cancelled', 'refunded'],
       default: 'pending',
-      index: true
+      index: true,
     },
 
     // Reconciliation
     reconciliation: {
       isReconciled: {
         type: Boolean,
-        default: false
+        default: false,
       },
       reconciledAt: Date,
       reconciledBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
       },
       reconciledWith: String, // Bank statement reference
       discrepancy: {
         type: Number,
-        default: 0
+        default: 0,
       },
-      notes: String
+      notes: String,
     },
 
     // Receipt Details
@@ -229,17 +236,17 @@ const paymentSchema = new mongoose.Schema(
       receiptNumber: String,
       receiptGenerated: {
         type: Boolean,
-        default: false
+        default: false,
       },
       receiptUrl: String,
       receiptSentAt: Date,
-      receiptSentTo: String // email or phone
+      receiptSentTo: String, // email or phone
     },
 
     // Notes
     notes: {
       type: String,
-      maxlength: 1000
+      maxlength: 1000,
     },
     internalNotes: String,
     tags: [String],
@@ -248,61 +255,61 @@ const paymentSchema = new mongoose.Schema(
     processedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: true,
     },
 
     // Approval (for high-value transactions)
     approval: {
       requiresApproval: {
         type: Boolean,
-        default: false
+        default: false,
       },
       approvalStatus: {
         type: String,
         enum: ['pending', 'approved', 'rejected'],
-        default: 'pending'
+        default: 'pending',
       },
       approvedBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
       },
       approvedAt: Date,
-      rejectionReason: String
+      rejectionReason: String,
     },
 
     // Refund Details (if this is a refund)
     refund: {
       isRefund: {
         type: Boolean,
-        default: false
+        default: false,
       },
       originalPaymentId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Payment'
+        ref: 'Payment',
       },
       refundReason: String,
       refundedBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      }
+        ref: 'User',
+      },
     },
 
     // Audit Trail
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: true,
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
     },
-    deletedAt: Date
+    deletedAt: Date,
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
   }
 );
 
@@ -317,33 +324,36 @@ paymentSchema.index({ transactionType: 1, paymentDate: -1 });
 
 // Virtuals
 paymentSchema.virtual('partyDetails', {
-  ref: function() {
+  ref() {
     return this.party.partyModel;
   },
   localField: 'party.partyId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 paymentSchema.virtual('referenceDetails', {
-  ref: function() {
+  ref() {
     return this.reference.referenceModel;
   },
   localField: 'reference.referenceId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 // Pre-save middleware
-paymentSchema.pre('save', function(next) {
+paymentSchema.pre('save', function (next) {
   // Auto-complete for cash payments
   if (this.paymentMode === 'cash' && this.status === 'pending') {
     this.status = 'completed';
   }
 
   // Mark as completed for UPI/Card payments with transaction ID
-  if ((this.paymentMode === 'upi' || this.paymentMode === 'card') && 
-      this.transactionId && this.status === 'pending') {
+  if (
+    (this.paymentMode === 'upi' || this.paymentMode === 'card') &&
+    this.transactionId &&
+    this.status === 'pending'
+  ) {
     this.status = 'completed';
   }
 
@@ -351,7 +361,7 @@ paymentSchema.pre('save', function(next) {
 });
 
 // Soft delete middleware
-paymentSchema.pre(/^find/, function(next) {
+paymentSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null });
   }
@@ -359,34 +369,34 @@ paymentSchema.pre(/^find/, function(next) {
 });
 
 // Instance Methods
-paymentSchema.methods.softDelete = function() {
+paymentSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   return this.save();
 };
 
-paymentSchema.methods.restore = function() {
+paymentSchema.methods.restore = function () {
   this.deletedAt = null;
   return this.save();
 };
 
-paymentSchema.methods.markAsCompleted = function() {
+paymentSchema.methods.markAsCompleted = function () {
   this.status = 'completed';
   return this.save();
 };
 
-paymentSchema.methods.markAsFailed = function(reason) {
+paymentSchema.methods.markAsFailed = function (reason) {
   this.status = 'failed';
   this.notes = reason || this.notes;
   return this.save();
 };
 
-paymentSchema.methods.cancel = function(reason) {
+paymentSchema.methods.cancel = function (reason) {
   this.status = 'cancelled';
   this.notes = reason || this.notes;
   return this.save();
 };
 
-paymentSchema.methods.reconcile = function(userId, reconciledWith, discrepancy = 0) {
+paymentSchema.methods.reconcile = function (userId, reconciledWith, discrepancy = 0) {
   this.reconciliation.isReconciled = true;
   this.reconciliation.reconciledAt = new Date();
   this.reconciliation.reconciledBy = userId;
@@ -395,13 +405,17 @@ paymentSchema.methods.reconcile = function(userId, reconciledWith, discrepancy =
   return this.save();
 };
 
-paymentSchema.methods.updateChequeStatus = function(status, clearanceDate = null, bounceReason = null) {
+paymentSchema.methods.updateChequeStatus = function (
+  status,
+  clearanceDate = null,
+  bounceReason = null
+) {
   if (this.paymentMode !== 'cheque') {
     throw new Error('Not a cheque payment');
   }
-  
+
   this.paymentDetails.chequeDetails.chequeStatus = status;
-  
+
   if (status === 'cleared') {
     this.paymentDetails.chequeDetails.clearanceDate = clearanceDate || new Date();
     this.status = 'completed';
@@ -409,11 +423,11 @@ paymentSchema.methods.updateChequeStatus = function(status, clearanceDate = null
     this.paymentDetails.chequeDetails.bounceReason = bounceReason;
     this.status = 'failed';
   }
-  
+
   return this.save();
 };
 
-paymentSchema.methods.generateReceipt = function(receiptUrl) {
+paymentSchema.methods.generateReceipt = function (receiptUrl) {
   this.receipt.receiptGenerated = true;
   this.receipt.receiptUrl = receiptUrl;
   if (!this.receipt.receiptNumber) {
@@ -422,20 +436,20 @@ paymentSchema.methods.generateReceipt = function(receiptUrl) {
   return this.save();
 };
 
-paymentSchema.methods.sendReceipt = function(sentTo) {
+paymentSchema.methods.sendReceipt = function (sentTo) {
   this.receipt.receiptSentAt = new Date();
   this.receipt.receiptSentTo = sentTo;
   return this.save();
 };
 
-paymentSchema.methods.approve = function(userId) {
+paymentSchema.methods.approve = function (userId) {
   this.approval.approvalStatus = 'approved';
   this.approval.approvedBy = userId;
   this.approval.approvedAt = new Date();
   return this.save();
 };
 
-paymentSchema.methods.reject = function(userId, reason) {
+paymentSchema.methods.reject = function (userId, reason) {
   this.approval.approvalStatus = 'rejected';
   this.approval.approvedBy = userId;
   this.approval.approvedAt = new Date();
@@ -445,79 +459,79 @@ paymentSchema.methods.reject = function(userId, reason) {
 };
 
 // Static Methods
-paymentSchema.statics.generatePaymentNumber = async function(shopId, prefix = 'PAY') {
+paymentSchema.statics.generatePaymentNumber = async function (shopId, prefix = 'PAY') {
   const currentYear = new Date().getFullYear().toString().slice(-2);
-  
+
   let number = 1;
   const lastPayment = await this.findOne({ shopId })
     .sort({ paymentNumber: -1 })
     .select('paymentNumber');
-  
+
   if (lastPayment && lastPayment.paymentNumber) {
     const lastNumber = parseInt(lastPayment.paymentNumber.split('-').pop());
     if (!isNaN(lastNumber)) {
       number = lastNumber + 1;
     }
   }
-  
+
   return `${prefix}-${currentYear}-${String(number).padStart(6, '0')}`;
 };
 
-paymentSchema.statics.findByShop = function(shopId, options = {}) {
+paymentSchema.statics.findByShop = function (shopId, options = {}) {
   return this.find({ shopId, deletedAt: null, ...options }).sort({ paymentDate: -1 });
 };
 
-paymentSchema.statics.findByParty = function(partyId, options = {}) {
-  return this.find({ 
-    'party.partyId': partyId, 
-    deletedAt: null, 
-    ...options 
+paymentSchema.statics.findByParty = function (partyId, options = {}) {
+  return this.find({
+    'party.partyId': partyId,
+    deletedAt: null,
+    ...options,
   }).sort({ paymentDate: -1 });
 };
 
-paymentSchema.statics.findByReference = function(referenceId, options = {}) {
-  return this.find({ 
-    'reference.referenceId': referenceId, 
-    deletedAt: null, 
-    ...options 
+paymentSchema.statics.findByReference = function (referenceId, options = {}) {
+  return this.find({
+    'reference.referenceId': referenceId,
+    deletedAt: null,
+    ...options,
   }).sort({ paymentDate: -1 });
 };
 
-paymentSchema.statics.findByDateRange = function(shopId, startDate, endDate) {
+paymentSchema.statics.findByDateRange = function (shopId, startDate, endDate) {
   return this.find({
     shopId,
     paymentDate: { $gte: startDate, $lte: endDate },
-    deletedAt: null
+    deletedAt: null,
   }).sort({ paymentDate: -1 });
 };
 
-paymentSchema.statics.findByPaymentMode = function(shopId, paymentMode) {
+paymentSchema.statics.findByPaymentMode = function (shopId, paymentMode) {
   return this.find({
     shopId,
     paymentMode,
-    deletedAt: null
+    deletedAt: null,
   }).sort({ paymentDate: -1 });
 };
 
-paymentSchema.statics.findPendingCheques = function(shopId) {
+paymentSchema.statics.findPendingCheques = function (shopId) {
   return this.find({
     shopId,
     paymentMode: 'cheque',
     'paymentDetails.chequeDetails.chequeStatus': 'pending',
-    deletedAt: null
+    deletedAt: null,
   }).sort({ paymentDate: -1 });
 };
 
-paymentSchema.statics.findUnreconciled = function(shopId) {
+paymentSchema.statics.findUnreconciled = function (shopId) {
   return this.find({
     shopId,
     'reconciliation.isReconciled': false,
     status: 'completed',
-    deletedAt: null
+    deletedAt: null,
   }).sort({ paymentDate: -1 });
 };
 
-paymentSchema.statics.getTodayCollection = async function(shopId) {
+paymentSchema.statics.getTodayCollection = async function (shopId) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
@@ -530,22 +544,22 @@ paymentSchema.statics.getTodayCollection = async function(shopId) {
         paymentDate: { $gte: today, $lt: tomorrow },
         transactionType: 'receipt',
         status: 'completed',
-        deletedAt: null
-      }
+        deletedAt: null,
+      },
     },
     {
       $group: {
         _id: '$paymentMode',
         totalAmount: { $sum: '$amount' },
-        count: { $sum: 1 }
-      }
-    }
+        count: { $sum: 1 },
+      },
+    },
   ]);
 
   return result;
 };
 
-paymentSchema.statics.getCollectionByDateRange = async function(shopId, startDate, endDate) {
+paymentSchema.statics.getCollectionByDateRange = async function (shopId, startDate, endDate) {
   const result = await this.aggregate([
     {
       $match: {
@@ -553,22 +567,22 @@ paymentSchema.statics.getCollectionByDateRange = async function(shopId, startDat
         paymentDate: { $gte: startDate, $lte: endDate },
         transactionType: 'receipt',
         status: 'completed',
-        deletedAt: null
-      }
+        deletedAt: null,
+      },
     },
     {
       $group: {
         _id: {
           mode: '$paymentMode',
-          date: { $dateToString: { format: '%Y-%m-%d', date: '$paymentDate' } }
+          date: { $dateToString: { format: '%Y-%m-%d', date: '$paymentDate' } },
         },
         totalAmount: { $sum: '$amount' },
-        count: { $sum: 1 }
-      }
+        count: { $sum: 1 },
+      },
     },
     {
-      $sort: { '_id.date': 1 }
-    }
+      $sort: { '_id.date': 1 },
+    },
   ]);
 
   return result;

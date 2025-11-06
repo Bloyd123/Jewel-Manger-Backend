@@ -120,7 +120,7 @@ function storeMetric(metric) {
   endpointStats.avgDuration = (endpointStats.totalDuration / endpointStats.count).toFixed(2);
   endpointStats.minDuration = Math.min(endpointStats.minDuration, metric.duration);
   endpointStats.maxDuration = Math.max(endpointStats.maxDuration, metric.duration);
-  
+
   if (metric.statusCode >= 400) {
     endpointStats.errors++;
   }
@@ -134,17 +134,13 @@ export const getMetrics = () => {
   const oneHourAgo = now - 60 * 60 * 1000;
 
   // Filter requests from last hour
-  const recentRequests = metrics.requests.filter(
-    (r) => new Date(r.timestamp).getTime() > oneHourAgo
-  );
+  const recentRequests = metrics.requests.filter(r => new Date(r.timestamp).getTime() > oneHourAgo);
 
   // Calculate statistics
   const totalRequests = recentRequests.length;
   const avgDuration =
     totalRequests > 0
-      ? (
-          recentRequests.reduce((sum, r) => sum + r.duration, 0) / totalRequests
-        ).toFixed(2)
+      ? (recentRequests.reduce((sum, r) => sum + r.duration, 0) / totalRequests).toFixed(2)
       : 0;
 
   const requestsPerMinute = totalRequests / 60;

@@ -33,13 +33,13 @@ class TokenManager {
           organizationId: payload.organizationId,
           role: payload.role,
           email: payload.email,
-          type: 'access'
+          type: 'access',
         },
         this.accessTokenSecret,
         {
           expiresIn,
           issuer: 'jewelry-erp',
-          audience: 'jewelry-erp-users'
+          audience: 'jewelry-erp-users',
         }
       );
 
@@ -66,13 +66,13 @@ class TokenManager {
           userId: payload.userId,
           organizationId: payload.organizationId,
           tokenId: crypto.randomBytes(16).toString('hex'),
-          type: 'refresh'
+          type: 'refresh',
         },
         this.refreshTokenSecret,
         {
           expiresIn,
           issuer: 'jewelry-erp',
-          audience: 'jewelry-erp-users'
+          audience: 'jewelry-erp-users',
         }
       );
 
@@ -97,7 +97,7 @@ class TokenManager {
         userId: user._id.toString(),
         organizationId: user.organizationId.toString(),
         role: user.role,
-        email: user.email
+        email: user.email,
       };
 
       // Generate tokens
@@ -116,7 +116,7 @@ class TokenManager {
         tokenId: decoded.tokenId,
         expiresAt,
         ipAddress,
-        userAgent
+        userAgent,
       });
 
       logger.info(`Token pair generated for user: ${user._id}`);
@@ -124,7 +124,7 @@ class TokenManager {
       return {
         accessToken,
         refreshToken,
-        expiresIn: this.accessTokenExpiry
+        expiresIn: this.accessTokenExpiry,
       };
     } catch (error) {
       logger.error('Error generating token pair:', error);
@@ -141,7 +141,7 @@ class TokenManager {
     try {
       const decoded = jwt.verify(token, this.accessTokenSecret, {
         issuer: 'jewelry-erp',
-        audience: 'jewelry-erp-users'
+        audience: 'jewelry-erp-users',
       });
 
       if (decoded.type !== 'access') {
@@ -157,7 +157,7 @@ class TokenManager {
         logger.warn('Invalid access token');
         throw new Error('Invalid access token');
       }
-      
+
       logger.error('Error verifying access token:', error);
       throw new Error('Token verification failed');
     }
@@ -172,7 +172,7 @@ class TokenManager {
     try {
       const decoded = jwt.verify(token, this.refreshTokenSecret, {
         issuer: 'jewelry-erp',
-        audience: 'jewelry-erp-users'
+        audience: 'jewelry-erp-users',
       });
 
       if (decoded.type !== 'refresh') {
@@ -188,7 +188,7 @@ class TokenManager {
         logger.warn('Invalid refresh token');
         throw new Error('Invalid refresh token');
       }
-      
+
       logger.error('Error verifying refresh token:', error);
       throw new Error('Token verification failed');
     }
@@ -210,7 +210,7 @@ class TokenManager {
       const storedToken = await RefreshToken.findOne({
         tokenId: decoded.tokenId,
         userId: decoded.userId,
-        isRevoked: false
+        isRevoked: false,
       });
 
       if (!storedToken) {
@@ -231,7 +231,7 @@ class TokenManager {
         userId: decoded.userId,
         organizationId: decoded.organizationId,
         role: decoded.role,
-        email: decoded.email
+        email: decoded.email,
       });
 
       // Optionally rotate refresh token (recommended for security)
@@ -243,9 +243,9 @@ class TokenManager {
         // Generate new refresh token
         const payload = {
           userId: decoded.userId,
-          organizationId: decoded.organizationId
+          organizationId: decoded.organizationId,
         };
-        
+
         newRefreshToken = this.generateRefreshToken(payload);
         const newDecoded = jwt.decode(newRefreshToken);
         const expiresAt = new Date(newDecoded.exp * 1000);
@@ -258,7 +258,7 @@ class TokenManager {
           tokenId: newDecoded.tokenId,
           expiresAt,
           ipAddress,
-          userAgent
+          userAgent,
         });
       }
 
@@ -267,7 +267,7 @@ class TokenManager {
       return {
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
-        expiresIn: this.accessTokenExpiry
+        expiresIn: this.accessTokenExpiry,
       };
     } catch (error) {
       logger.error('Error refreshing access token:', error);
@@ -283,13 +283,13 @@ class TokenManager {
   async revokeRefreshToken(refreshToken) {
     try {
       const decoded = jwt.decode(refreshToken);
-      
+
       if (!decoded || !decoded.tokenId) {
         throw new Error('Invalid refresh token');
       }
 
       const storedToken = await RefreshToken.findOne({
-        tokenId: decoded.tokenId
+        tokenId: decoded.tokenId,
       });
 
       if (storedToken) {
@@ -314,9 +314,9 @@ class TokenManager {
     try {
       const result = await RefreshToken.updateMany(
         { userId, isRevoked: false },
-        { 
+        {
           isRevoked: true,
-          revokedAt: new Date()
+          revokedAt: new Date(),
         }
       );
 
@@ -335,7 +335,7 @@ class TokenManager {
   async cleanExpiredTokens() {
     try {
       const result = await RefreshToken.deleteMany({
-        expiresAt: { $lt: new Date() }
+        expiresAt: { $lt: new Date() },
       });
 
       logger.info(`Cleaned ${result.deletedCount} expired refresh tokens`);
@@ -356,7 +356,7 @@ class TokenManager {
       return await RefreshToken.find({
         userId,
         isRevoked: false,
-        expiresAt: { $gt: new Date() }
+        expiresAt: { $gt: new Date() },
       }).sort({ createdAt: -1 });
     } catch (error) {
       logger.error('Error fetching user tokens:', error);
@@ -387,7 +387,7 @@ class TokenManager {
     try {
       const decoded = jwt.decode(token);
       if (!decoded || !decoded.exp) return true;
-      
+
       return Date.now() >= decoded.exp * 1000;
     } catch (error) {
       return true;
@@ -403,7 +403,7 @@ class TokenManager {
     try {
       const decoded = jwt.decode(token);
       if (!decoded || !decoded.exp) return null;
-      
+
       return new Date(decoded.exp * 1000);
     } catch (error) {
       return null;
@@ -417,11 +417,9 @@ class TokenManager {
    */
   generatePasswordResetToken(userId) {
     try {
-      const token = jwt.sign(
-        { userId, type: 'password_reset' },
-        this.accessTokenSecret,
-        { expiresIn: '1h' }
-      );
+      const token = jwt.sign({ userId, type: 'password_reset' }, this.accessTokenSecret, {
+        expiresIn: '1h',
+      });
 
       logger.debug(`Password reset token generated for user: ${userId}`);
       return token;
@@ -474,7 +472,7 @@ class TokenManager {
       } else if (error.name === 'JsonWebTokenError') {
         throw new Error('Invalid token');
       }
-      
+
       throw new Error('Token verification failed');
     }
   }

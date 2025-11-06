@@ -7,19 +7,19 @@ const userShopAccessSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'User ID is required'],
-      index: true
+      index: true,
     },
     shopId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'JewelryShop',
       required: [true, 'Shop ID is required'],
-      index: true
+      index: true,
     },
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
       required: [true, 'Organization ID is required'],
-      index: true
+      index: true,
     },
 
     // Role within the shop
@@ -27,7 +27,7 @@ const userShopAccessSchema = new mongoose.Schema(
       type: String,
       enum: ['admin', 'manager', 'staff', 'viewer', 'accountant'],
       default: 'staff',
-      required: true
+      required: true,
     },
 
     // Permissions
@@ -39,14 +39,14 @@ const userShopAccessSchema = new mongoose.Schema(
       canDeleteProducts: { type: Boolean, default: false },
       canImportProducts: { type: Boolean, default: false },
       canExportProducts: { type: Boolean, default: false },
-      
+
       // Purchase Management
       canViewPurchases: { type: Boolean, default: true },
       canCreatePurchases: { type: Boolean, default: false },
       canEditPurchases: { type: Boolean, default: false },
       canDeletePurchases: { type: Boolean, default: false },
       canApprovePurchases: { type: Boolean, default: false },
-      
+
       // Sales Management
       canViewSales: { type: Boolean, default: true },
       canCreateSales: { type: Boolean, default: false },
@@ -56,14 +56,14 @@ const userShopAccessSchema = new mongoose.Schema(
       canGenerateInvoices: { type: Boolean, default: false },
       canCancelInvoices: { type: Boolean, default: false },
       canApplyDiscounts: { type: Boolean, default: false },
-      
+
       // Order Management
       canManageOrders: { type: Boolean, default: false },
       canViewOrders: { type: Boolean, default: true },
       canCreateOrders: { type: Boolean, default: false },
       canEditOrders: { type: Boolean, default: false },
       canCancelOrders: { type: Boolean, default: false },
-      
+
       // Customer Management
       canManageCustomers: { type: Boolean, default: false },
       canViewCustomers: { type: Boolean, default: true },
@@ -71,18 +71,18 @@ const userShopAccessSchema = new mongoose.Schema(
       canEditCustomers: { type: Boolean, default: false },
       canDeleteCustomers: { type: Boolean, default: false },
       canViewCustomerHistory: { type: Boolean, default: true },
-      
+
       // Supplier Management
       canManageSuppliers: { type: Boolean, default: false },
       canViewSuppliers: { type: Boolean, default: true },
       canCreateSuppliers: { type: Boolean, default: false },
       canEditSuppliers: { type: Boolean, default: false },
       canDeleteSuppliers: { type: Boolean, default: false },
-      
+
       // Party Management (Customers + Suppliers)
       canManageParties: { type: Boolean, default: false },
       canViewPartyLedger: { type: Boolean, default: false },
-      
+
       // Financial & Billing
       canViewBilling: { type: Boolean, default: false },
       canViewFinancials: { type: Boolean, default: false },
@@ -91,21 +91,21 @@ const userShopAccessSchema = new mongoose.Schema(
       canReceivePayments: { type: Boolean, default: false },
       canMakePayments: { type: Boolean, default: false },
       canViewProfitLoss: { type: Boolean, default: false },
-      
+
       // Schemes & Offers
       canManageSchemes: { type: Boolean, default: false },
       canViewSchemes: { type: Boolean, default: true },
       canCreateSchemes: { type: Boolean, default: false },
       canEditSchemes: { type: Boolean, default: false },
       canDeleteSchemes: { type: Boolean, default: false },
-      
+
       // Reports & Analytics
       canViewReports: { type: Boolean, default: false },
       canGenerateReports: { type: Boolean, default: false },
       canExportReports: { type: Boolean, default: false },
       canViewAnalytics: { type: Boolean, default: false },
       canViewDashboard: { type: Boolean, default: true },
-      
+
       // User Management
       canManageUsers: { type: Boolean, default: false },
       canViewUsers: { type: Boolean, default: true },
@@ -113,109 +113,111 @@ const userShopAccessSchema = new mongoose.Schema(
       canEditUsers: { type: Boolean, default: false },
       canDeleteUsers: { type: Boolean, default: false },
       canAssignRoles: { type: Boolean, default: false },
-      
+
       // Shop Settings
       canManageShopSettings: { type: Boolean, default: false },
       canUpdateMetalRates: { type: Boolean, default: false },
       canManageTaxSettings: { type: Boolean, default: false },
-      
+
       // Advanced Features
       canManageRepairs: { type: Boolean, default: false },
       canManageCustomOrders: { type: Boolean, default: false },
       canManageHallmarking: { type: Boolean, default: false },
       canManageOldGold: { type: Boolean, default: false },
-      
+
       // System
       canViewAuditLog: { type: Boolean, default: false },
       canBackupData: { type: Boolean, default: false },
-      canRestoreData: { type: Boolean, default: false }
+      canRestoreData: { type: Boolean, default: false },
     },
 
     // Access Status
     isActive: {
       type: Boolean,
-      default: true
+      default: true,
     },
-    
+
     // Access Period (Optional - for temporary access)
     accessStartDate: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
     accessEndDate: {
       type: Date,
-      default: null
+      default: null,
     },
 
     // Assignment Details
     assignedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null
+      default: null,
     },
     assignedAt: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
-    
+
     // Last Access Tracking
     lastAccessedAt: {
       type: Date,
-      default: null
+      default: null,
     },
     lastAccessIP: {
       type: String,
-      default: null
+      default: null,
     },
-    
+
     // Revocation Details
     revokedAt: {
       type: Date,
-      default: null
+      default: null,
     },
     revokedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null
+      default: null,
     },
     revocationReason: {
       type: String,
-      trim: true
+      trim: true,
     },
 
     // Additional Settings
     canAccessOutsideBusinessHours: {
       type: Boolean,
-      default: false
+      default: false,
     },
-    allowedIPAddresses: [{
-      type: String,
-      trim: true
-    }],
-    
+    allowedIPAddresses: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
     // Notes
     notes: {
       type: String,
-      maxlength: 500
+      maxlength: 500,
     },
 
     // Audit Trail
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null
+      default: null,
     },
-    
+
     // Metadata
     deletedAt: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
   }
 );
 
@@ -232,38 +234,38 @@ userShopAccessSchema.virtual('user', {
   ref: 'User',
   localField: 'userId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 userShopAccessSchema.virtual('shop', {
   ref: 'JewelryShop',
   localField: 'shopId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 userShopAccessSchema.virtual('organization', {
   ref: 'Organization',
   localField: 'organizationId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
 // Virtual to check if access is expired
-userShopAccessSchema.virtual('isExpired').get(function() {
+userShopAccessSchema.virtual('isExpired').get(function () {
   if (!this.accessEndDate) return false;
   return new Date() > this.accessEndDate;
 });
 
 // Virtual to check if access is currently valid
-userShopAccessSchema.virtual('isValid').get(function() {
+userShopAccessSchema.virtual('isValid').get(function () {
   if (!this.isActive || this.deletedAt || this.revokedAt) return false;
   if (this.isExpired) return false;
   return true;
 });
 
 // Soft delete middleware
-userShopAccessSchema.pre(/^find/, function(next) {
+userShopAccessSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null, revokedAt: null });
   }
@@ -273,32 +275,32 @@ userShopAccessSchema.pre(/^find/, function(next) {
 // Instance Methods
 
 // Check if user has specific permission
-userShopAccessSchema.methods.hasPermission = function(permission) {
+userShopAccessSchema.methods.hasPermission = function (permission) {
   if (!this.isValid) return false;
   return this.permissions[permission] || false;
 };
 
 // Check if user has any of the specified permissions
-userShopAccessSchema.methods.hasAnyPermission = function(permissionArray) {
+userShopAccessSchema.methods.hasAnyPermission = function (permissionArray) {
   if (!this.isValid) return false;
   return permissionArray.some(permission => this.permissions[permission]);
 };
 
 // Check if user has all specified permissions
-userShopAccessSchema.methods.hasAllPermissions = function(permissionArray) {
+userShopAccessSchema.methods.hasAllPermissions = function (permissionArray) {
   if (!this.isValid) return false;
   return permissionArray.every(permission => this.permissions[permission]);
 };
 
 // Update last access
-userShopAccessSchema.methods.updateLastAccess = function(ipAddress = null) {
+userShopAccessSchema.methods.updateLastAccess = function (ipAddress = null) {
   this.lastAccessedAt = new Date();
   if (ipAddress) this.lastAccessIP = ipAddress;
   return this.save();
 };
 
 // Revoke access
-userShopAccessSchema.methods.revoke = function(revokedBy, reason = '') {
+userShopAccessSchema.methods.revoke = function (revokedBy, reason = '') {
   this.revokedAt = new Date();
   this.revokedBy = revokedBy;
   this.revocationReason = reason;
@@ -307,7 +309,7 @@ userShopAccessSchema.methods.revoke = function(revokedBy, reason = '') {
 };
 
 // Restore access
-userShopAccessSchema.methods.restoreAccess = function() {
+userShopAccessSchema.methods.restoreAccess = function () {
   this.revokedAt = null;
   this.revokedBy = null;
   this.revocationReason = null;
@@ -316,7 +318,7 @@ userShopAccessSchema.methods.restoreAccess = function() {
 };
 
 // Extend access period
-userShopAccessSchema.methods.extendAccess = function(days) {
+userShopAccessSchema.methods.extendAccess = function (days) {
   if (this.accessEndDate) {
     this.accessEndDate = new Date(this.accessEndDate.getTime() + days * 24 * 60 * 60 * 1000);
   } else {
@@ -326,37 +328,37 @@ userShopAccessSchema.methods.extendAccess = function(days) {
 };
 
 // Update permissions
-userShopAccessSchema.methods.updatePermissions = function(permissions) {
+userShopAccessSchema.methods.updatePermissions = function (permissions) {
   Object.assign(this.permissions, permissions);
   return this.save();
 };
 
 // Update role with default permissions
-userShopAccessSchema.methods.updateRole = function(newRole) {
+userShopAccessSchema.methods.updateRole = function (newRole) {
   this.role = newRole;
   this.permissions = this.constructor.getDefaultPermissions(newRole);
   return this.save();
 };
 
 // Soft delete
-userShopAccessSchema.methods.softDelete = function() {
+userShopAccessSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   this.isActive = false;
   return this.save();
 };
 
 // Restore
-userShopAccessSchema.methods.restore = function() {
+userShopAccessSchema.methods.restore = function () {
   this.deletedAt = null;
   this.isActive = true;
   return this.save();
 };
 
 // Get permission summary
-userShopAccessSchema.methods.getPermissionSummary = function() {
+userShopAccessSchema.methods.getPermissionSummary = function () {
   const granted = [];
   const denied = [];
-  
+
   Object.entries(this.permissions).forEach(([key, value]) => {
     if (value) {
       granted.push(key);
@@ -364,14 +366,14 @@ userShopAccessSchema.methods.getPermissionSummary = function() {
       denied.push(key);
     }
   });
-  
+
   return { granted, denied, total: granted.length };
 };
 
 // Static Methods
 
 // Get default permissions based on role
-userShopAccessSchema.statics.getDefaultPermissions = function(role) {
+userShopAccessSchema.statics.getDefaultPermissions = function (role) {
   const permissions = {
     admin: {
       // Full access to everything
@@ -444,7 +446,7 @@ userShopAccessSchema.statics.getDefaultPermissions = function(role) {
       canManageOldGold: true,
       canViewAuditLog: true,
       canBackupData: true,
-      canRestoreData: true
+      canRestoreData: true,
     },
     manager: {
       canViewInventory: true,
@@ -516,7 +518,7 @@ userShopAccessSchema.statics.getDefaultPermissions = function(role) {
       canManageOldGold: true,
       canViewAuditLog: false,
       canBackupData: false,
-      canRestoreData: false
+      canRestoreData: false,
     },
     staff: {
       canViewInventory: true,
@@ -588,7 +590,7 @@ userShopAccessSchema.statics.getDefaultPermissions = function(role) {
       canManageOldGold: false,
       canViewAuditLog: false,
       canBackupData: false,
-      canRestoreData: false
+      canRestoreData: false,
     },
     accountant: {
       canViewInventory: true,
@@ -660,7 +662,7 @@ userShopAccessSchema.statics.getDefaultPermissions = function(role) {
       canManageOldGold: false,
       canViewAuditLog: false,
       canBackupData: true,
-      canRestoreData: false
+      canRestoreData: false,
     },
     viewer: {
       canViewInventory: true,
@@ -732,100 +734,106 @@ userShopAccessSchema.statics.getDefaultPermissions = function(role) {
       canManageOldGold: false,
       canViewAuditLog: false,
       canBackupData: false,
-      canRestoreData: false
-    }
+      canRestoreData: false,
+    },
   };
 
   return permissions[role] || permissions.viewer;
 };
 
 // Find user's shop accesses
-userShopAccessSchema.statics.findByUser = function(userId, options = {}) {
-  return this.find({ 
+userShopAccessSchema.statics.findByUser = function (userId, options = {}) {
+  return this.find({
     userId,
     isActive: true,
     deletedAt: null,
     revokedAt: null,
-    ...options 
+    ...options,
   });
 };
 
 // Find shop's user accesses
-userShopAccessSchema.statics.findByShop = function(shopId, options = {}) {
-  return this.find({ 
+userShopAccessSchema.statics.findByShop = function (shopId, options = {}) {
+  return this.find({
     shopId,
     isActive: true,
     deletedAt: null,
     revokedAt: null,
-    ...options 
+    ...options,
   });
 };
 
 // Find by organization
-userShopAccessSchema.statics.findByOrganization = function(organizationId, options = {}) {
-  return this.find({ 
+userShopAccessSchema.statics.findByOrganization = function (organizationId, options = {}) {
+  return this.find({
     organizationId,
     deletedAt: null,
     revokedAt: null,
-    ...options 
+    ...options,
   });
 };
 
 // Find by role
-userShopAccessSchema.statics.findByRole = function(shopId, role) {
-  return this.find({ 
+userShopAccessSchema.statics.findByRole = function (shopId, role) {
+  return this.find({
     shopId,
     role,
     isActive: true,
     deletedAt: null,
-    revokedAt: null
+    revokedAt: null,
   });
 };
 
 // Find users with specific permission
-userShopAccessSchema.statics.findByPermission = function(shopId, permission) {
+userShopAccessSchema.statics.findByPermission = function (shopId, permission) {
   return this.find({
     shopId,
     [`permissions.${permission}`]: true,
     isActive: true,
     deletedAt: null,
-    revokedAt: null
+    revokedAt: null,
   });
 };
 
 // Find expired accesses
-userShopAccessSchema.statics.findExpired = function() {
+userShopAccessSchema.statics.findExpired = function () {
   return this.find({
     accessEndDate: { $lte: new Date() },
     isActive: true,
     deletedAt: null,
-    revokedAt: null
+    revokedAt: null,
   });
 };
 
 // Find revoked accesses
-userShopAccessSchema.statics.findRevoked = function(shopId = null) {
-  const query = { 
-    revokedAt: { $ne: null }
+userShopAccessSchema.statics.findRevoked = function (shopId = null) {
+  const query = {
+    revokedAt: { $ne: null },
   };
   if (shopId) query.shopId = shopId;
   return this.find(query).setOptions({ includeDeleted: true });
 };
 
 // Find deleted accesses
-userShopAccessSchema.statics.findDeleted = function(shopId = null) {
-  const query = { 
-    deletedAt: { $ne: null }
+userShopAccessSchema.statics.findDeleted = function (shopId = null) {
+  const query = {
+    deletedAt: { $ne: null },
   };
   if (shopId) query.shopId = shopId;
   return this.find(query).setOptions({ includeDeleted: true });
 };
 
 // Grant access to user
-userShopAccessSchema.statics.grantAccess = async function(userId, shopId, organizationId, role, assignedBy = null) {
+userShopAccessSchema.statics.grantAccess = async function (
+  userId,
+  shopId,
+  organizationId,
+  role,
+  assignedBy = null
+) {
   // Check if access already exists
   const existing = await this.findOne({ userId, shopId });
-  
+
   if (existing) {
     if (existing.deletedAt || existing.revokedAt) {
       // Restore and update
@@ -840,14 +848,14 @@ userShopAccessSchema.statics.grantAccess = async function(userId, shopId, organi
       existing.assignedAt = new Date();
       return existing.save();
     }
-    
+
     // Update existing active access
     existing.role = role;
     existing.permissions = this.getDefaultPermissions(role);
     existing.updatedBy = assignedBy;
     return existing.save();
   }
-  
+
   // Create new access
   return this.create({
     userId,
@@ -855,7 +863,7 @@ userShopAccessSchema.statics.grantAccess = async function(userId, shopId, organi
     organizationId,
     role,
     permissions: this.getDefaultPermissions(role),
-    assignedBy
+    assignedBy,
   });
 };
 

@@ -40,18 +40,8 @@ export const getPaginationData = (totalDocs, page = 1, limit = 10) => {
  * @param {Object} options - Pagination options
  * @returns {Promise<Object>} - Paginated results with metadata
  */
-export const paginate = async (
-  Model,
-  query = {},
-  options = {}
-) => {
-  const {
-    page = 1,
-    limit = 10,
-    sort = '-createdAt',
-    select = '',
-    populate = [],
-  } = options;
+export const paginate = async (Model, query = {}, options = {}) => {
+  const { page = 1, limit = 10, sort = '-createdAt', select = '', populate = [] } = options;
 
   // Get total count
   const totalDocs = await Model.countDocuments(query);
@@ -60,10 +50,7 @@ export const paginate = async (
   const pagination = getPaginationData(totalDocs, page, limit);
 
   // Build query
-  let dbQuery = Model.find(query)
-    .sort(sort)
-    .skip(pagination.skip)
-    .limit(pagination.limit);
+  let dbQuery = Model.find(query).sort(sort).skip(pagination.skip).limit(pagination.limit);
 
   // Select specific fields
   if (select) {
@@ -72,7 +59,7 @@ export const paginate = async (
 
   // Populate related documents
   if (populate.length > 0) {
-    populate.forEach((pop) => {
+    populate.forEach(pop => {
       dbQuery = dbQuery.populate(pop);
     });
   }
@@ -94,15 +81,8 @@ export const paginate = async (
  * @param {Object} options - Pagination options
  * @returns {Promise<Object>} - Paginated results with metadata
  */
-export const paginateAggregate = async (
-  Model,
-  pipeline = [],
-  options = {}
-) => {
-  const {
-    page = 1,
-    limit = 10,
-  } = options;
+export const paginateAggregate = async (Model, pipeline = [], options = {}) => {
+  const { page = 1, limit = 10 } = options;
 
   const pagination = getPaginationData(0, page, limit);
 
@@ -112,10 +92,7 @@ export const paginateAggregate = async (
     {
       $facet: {
         metadata: [{ $count: 'total' }],
-        data: [
-          { $skip: pagination.skip },
-          { $limit: pagination.limit },
-        ],
+        data: [{ $skip: pagination.skip }, { $limit: pagination.limit }],
       },
     },
   ];
@@ -142,7 +119,7 @@ export const paginateAggregate = async (
 export const getPageNumbers = (currentPage, totalPages, maxPages = 5) => {
   const pages = [];
   let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
-  let endPage = Math.min(totalPages, startPage + maxPages - 1);
+  const endPage = Math.min(totalPages, startPage + maxPages - 1);
 
   if (endPage - startPage + 1 < maxPages) {
     startPage = Math.max(1, endPage - maxPages + 1);
@@ -163,7 +140,7 @@ export const getPageNumbers = (currentPage, totalPages, maxPages = 5) => {
  * @returns {Object} - Pagination links
  */
 export const buildPaginationLinks = (baseUrl, pagination, queryParams = {}) => {
-  const buildUrl = (page) => {
+  const buildUrl = page => {
     const params = new URLSearchParams({
       ...queryParams,
       page,
@@ -180,4 +157,3 @@ export const buildPaginationLinks = (baseUrl, pagination, queryParams = {}) => {
     current: buildUrl(pagination.currentPage),
   };
 };
-

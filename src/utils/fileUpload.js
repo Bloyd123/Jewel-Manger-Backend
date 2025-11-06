@@ -67,7 +67,7 @@ export const uploadToImageKit = async (fileBuffer, fileName, folder = 'uploads')
     const result = await imagekit.upload({
       file: fileBuffer,
       fileName: `${Date.now()}-${fileName}`,
-      folder: folder,
+      folder,
       useUniqueFileName: true,
       tags: ['jewelry', 'product'],
     });
@@ -95,7 +95,7 @@ export const uploadToImageKit = async (fileBuffer, fileName, folder = 'uploads')
  */
 export const uploadMultipleToImageKit = async (files, folder = 'uploads') => {
   try {
-    const uploadPromises = files.map((file) =>
+    const uploadPromises = files.map(file =>
       uploadToImageKit(file.buffer, file.originalname, folder)
     );
 
@@ -111,7 +111,7 @@ export const uploadMultipleToImageKit = async (files, folder = 'uploads') => {
  * @param {String} fileId - ImageKit file ID
  * @returns {Promise<Boolean>}
  */
-export const deleteFromImageKit = async (fileId) => {
+export const deleteFromImageKit = async fileId => {
   try {
     await imagekit.deleteFile(fileId);
     return true;
@@ -125,9 +125,9 @@ export const deleteFromImageKit = async (fileId) => {
  * @param {Array} fileIds - Array of ImageKit file IDs
  * @returns {Promise<Boolean>}
  */
-export const deleteMultipleFromImageKit = async (fileIds) => {
+export const deleteMultipleFromImageKit = async fileIds => {
   try {
-    const deletePromises = fileIds.map((fileId) => deleteFromImageKit(fileId));
+    const deletePromises = fileIds.map(fileId => deleteFromImageKit(fileId));
     await Promise.all(deletePromises);
     return true;
   } catch (error) {
@@ -165,9 +165,9 @@ export const getOptimizedImageUrl = (url, transformations = {}) => {
 /**
  * Multer middleware exports
  */
-export const uploadSingle = (fieldName) => upload.single(fieldName);
+export const uploadSingle = fieldName => upload.single(fieldName);
 export const uploadMultiple = (fieldName, maxCount = 10) => upload.array(fieldName, maxCount);
-export const uploadFields = (fields) => upload.fields(fields);
+export const uploadFields = fields => upload.fields(fields);
 
 /**
  * Combined middleware for single file upload to ImageKit
@@ -181,11 +181,7 @@ export const uploadSingleImage = (fieldName, folder = 'uploads') => {
         return next();
       }
 
-      const uploadResult = await uploadToImageKit(
-        req.file.buffer,
-        req.file.originalname,
-        folder
-      );
+      const uploadResult = await uploadToImageKit(req.file.buffer, req.file.originalname, folder);
 
       req.uploadedImage = uploadResult;
       next();

@@ -1,9 +1,9 @@
 import morgan from 'morgan';
-import logger from '../utils/logger.js';
+import logger from '../../utils/logger.js';
 
 // Create a stream object with a 'write' function that will be used by morgan
 const stream = {
-  write: (message) => logger.http(message.trim()),
+  write: message => logger.http(message.trim()),
 };
 
 // Skip logging in test environment
@@ -13,17 +13,17 @@ const skip = () => {
 };
 
 // Custom token for user ID
-morgan.token('user-id', (req) => {
+morgan.token('user-id', req => {
   return req.user ? req.user._id || req.user.id : 'anonymous';
 });
 
 // Custom token for organization ID
-morgan.token('org-id', (req) => {
+morgan.token('org-id', req => {
   return req.user?.organizationId || 'N/A';
 });
 
 // Custom token for shop ID
-morgan.token('shop-id', (req) => {
+morgan.token('shop-id', req => {
   return req.shopId || req.params.shopId || 'N/A';
 });
 

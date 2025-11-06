@@ -45,21 +45,19 @@ const format = winston.format.combine(
 const consoleFormat = winston.format.combine(
   winston.format.colorize({ all: true }),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.printf(
-    (info) => {
-      const { timestamp, level, message, ...meta } = info;
-      let metaString = '';
-      
-      // Handle stack traces for errors
-      if (info.stack) {
-        metaString = `\n${info.stack}`;
-      } else if (Object.keys(meta).length > 0) {
-        metaString = `\n${JSON.stringify(meta, null, 2)}`;
-      }
-      
-      return `[${timestamp}] ${level}: ${message}${metaString}`;
+  winston.format.printf(info => {
+    const { timestamp, level, message, ...meta } = info;
+    let metaString = '';
+
+    // Handle stack traces for errors
+    if (info.stack) {
+      metaString = `\n${info.stack}`;
+    } else if (Object.keys(meta).length > 0) {
+      metaString = `\n${JSON.stringify(meta, null, 2)}`;
     }
-  )
+
+    return `[${timestamp}] ${level}: ${message}${metaString}`;
+  })
 );
 
 // Define transports
@@ -76,7 +74,7 @@ const transports = [
     zippedArchive: true,
     maxSize: '20m',
     maxFiles: '14d',
-    format: format,
+    format,
   }),
 
   // Daily rotate file for error logs only
@@ -87,7 +85,7 @@ const transports = [
     zippedArchive: true,
     maxSize: '20m',
     maxFiles: '30d',
-    format: format,
+    format,
   }),
 
   // Daily rotate file for HTTP requests
@@ -98,7 +96,7 @@ const transports = [
     zippedArchive: true,
     maxSize: '20m',
     maxFiles: '7d',
-    format: format,
+    format,
   }),
 
   // Daily rotate file for business operations (Sales, Purchases, etc.)
@@ -108,7 +106,7 @@ const transports = [
     zippedArchive: true,
     maxSize: '20m',
     maxFiles: '30d',
-    format: format,
+    format,
   }),
 ];
 
@@ -122,7 +120,7 @@ const logger = winston.createLogger({
 });
 
 // Create specialized loggers for different modules
-const createModuleLogger = (module) => {
+const createModuleLogger = module => {
   return {
     error: (message, meta = {}) => logger.error(message, { module, ...meta }),
     warn: (message, meta = {}) => logger.warn(message, { module, ...meta }),
@@ -134,7 +132,7 @@ const createModuleLogger = (module) => {
 
 // Business activity logger (for audit trail)
 const businessLogger = {
-  logSale: (data) => {
+  logSale: data => {
     logger.info('Sale Transaction', {
       type: 'SALE',
       userId: data.userId,
@@ -146,7 +144,7 @@ const businessLogger = {
     });
   },
 
-  logPurchase: (data) => {
+  logPurchase: data => {
     logger.info('Purchase Transaction', {
       type: 'PURCHASE',
       userId: data.userId,
@@ -158,7 +156,7 @@ const businessLogger = {
     });
   },
 
-  logPayment: (data) => {
+  logPayment: data => {
     logger.info('Payment Transaction', {
       type: 'PAYMENT',
       userId: data.userId,
@@ -170,7 +168,7 @@ const businessLogger = {
     });
   },
 
-  logInventoryChange: (data) => {
+  logInventoryChange: data => {
     logger.info('Inventory Change', {
       type: 'INVENTORY',
       userId: data.userId,
@@ -182,7 +180,7 @@ const businessLogger = {
     });
   },
 
-  logUserAccess: (data) => {
+  logUserAccess: data => {
     logger.info('User Access', {
       type: 'ACCESS',
       userId: data.userId,
@@ -193,7 +191,7 @@ const businessLogger = {
     });
   },
 
-  logMetalRateUpdate: (data) => {
+  logMetalRateUpdate: data => {
     logger.info('Metal Rate Update', {
       type: 'METAL_RATE',
       userId: data.userId,
@@ -205,7 +203,7 @@ const businessLogger = {
     });
   },
 
-  logSchemeActivity: (data) => {
+  logSchemeActivity: data => {
     logger.info('Scheme Activity', {
       type: 'SCHEME',
       userId: data.userId,
@@ -217,7 +215,7 @@ const businessLogger = {
     });
   },
 
-  logBackup: (data) => {
+  logBackup: data => {
     logger.info('Backup Activity', {
       type: 'BACKUP',
       userId: data.userId,
@@ -231,7 +229,7 @@ const businessLogger = {
 
 // Security logger
 const securityLogger = {
-  logFailedLogin: (data) => {
+  logFailedLogin: data => {
     logger.warn('Failed Login Attempt', {
       type: 'FAILED_LOGIN',
       email: data.email,
@@ -241,7 +239,7 @@ const securityLogger = {
     });
   },
 
-  logSuccessfulLogin: (data) => {
+  logSuccessfulLogin: data => {
     logger.info('Successful Login', {
       type: 'SUCCESSFUL_LOGIN',
       userId: data.userId,
@@ -251,7 +249,7 @@ const securityLogger = {
     });
   },
 
-  logPasswordChange: (data) => {
+  logPasswordChange: data => {
     logger.info('Password Changed', {
       type: 'PASSWORD_CHANGE',
       userId: data.userId,
@@ -260,7 +258,7 @@ const securityLogger = {
     });
   },
 
-  logSuspiciousActivity: (data) => {
+  logSuspiciousActivity: data => {
     logger.warn('Suspicious Activity Detected', {
       type: 'SUSPICIOUS_ACTIVITY',
       userId: data.userId,
@@ -270,7 +268,7 @@ const securityLogger = {
     });
   },
 
-  logPermissionDenied: (data) => {
+  logPermissionDenied: data => {
     logger.warn('Permission Denied', {
       type: 'PERMISSION_DENIED',
       userId: data.userId,
@@ -283,9 +281,4 @@ const securityLogger = {
 
 // Export logger and utilities
 export default logger;
-export { 
-  createModuleLogger, 
-  businessLogger, 
-  securityLogger 
-};
-
+export { createModuleLogger, businessLogger, securityLogger };

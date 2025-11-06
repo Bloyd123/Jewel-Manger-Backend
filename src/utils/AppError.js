@@ -14,12 +14,12 @@ class AppError extends Error {
    */
   constructor(message, statusCode = 500, isOperational = true, code = null) {
     super(message);
-    
+
     this.statusCode = statusCode;
     this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
     this.isOperational = isOperational;
     this.code = code;
-    
+
     // Capture stack trace
     Error.captureStackTrace(this, this.constructor);
   }
@@ -193,7 +193,10 @@ class InvalidPriceError extends AppError {
 
 // 429 - Rate Limit
 class TooManyRequestsError extends AppError {
-  constructor(message = 'Too many requests. Please try again later.', code = 'RATE_LIMIT_EXCEEDED') {
+  constructor(
+    message = 'Too many requests. Please try again later.',
+    code = 'RATE_LIMIT_EXCEEDED'
+  ) {
     super(message, 429, true, code);
   }
 }
@@ -219,7 +222,10 @@ class FileUploadError extends AppError {
 
 // Business Logic Errors (Jewelry Specific)
 class SubscriptionExpiredError extends AppError {
-  constructor(message = 'Your subscription has expired. Please renew to continue.', code = 'SUBSCRIPTION_EXPIRED') {
+  constructor(
+    message = 'Your subscription has expired. Please renew to continue.',
+    code = 'SUBSCRIPTION_EXPIRED'
+  ) {
     super(message, 403, true, code);
   }
 }
@@ -316,7 +322,7 @@ class ErrorFactory {
       PaymentProcessing: PaymentProcessingError,
       InvoiceAlreadyCancelled: InvoiceAlreadyCancelledError,
       InvalidDiscount: InvalidDiscountError,
-      ShopClosed: ShopClosedError
+      ShopClosed: ShopClosedError,
     };
 
     const ErrorClass = errorTypes[type] || AppError;
@@ -366,7 +372,7 @@ export {
   InvoiceAlreadyCancelledError,
   InvalidDiscountError,
   ShopClosedError,
-  ErrorFactory
+  ErrorFactory,
 };
 
 export default AppError;

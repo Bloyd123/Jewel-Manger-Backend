@@ -1,17 +1,19 @@
 import mongoose from 'mongoose';
 
-const shopSchema = new mongoose.Schema(
+const jewelryShopSchema = new mongoose.Schema(
   {
-    // Basic Shop Information
+    // ============================================
+    // BASIC SHOP INFORMATION
+    // ============================================
     name: {
       type: String,
       required: [true, 'Shop name is required'],
       trim: true,
-      maxlength: [100, 'Shop name cannot exceed 100 characters']
+      maxlength: [100, 'Shop name cannot exceed 100 characters'],
     },
     displayName: {
       type: String,
-      trim: true
+      trim: true,
     },
     code: {
       type: String,
@@ -19,326 +21,406 @@ const shopSchema = new mongoose.Schema(
       unique: true,
       uppercase: true,
       trim: true,
-      index: true
+      maxlength: [10, 'Shop code cannot exceed 10 characters'],
+      index: true,
     },
-    
-    // Organization Reference
+
+    // ============================================
+    // MULTI-TENANT & ORGANIZATION
+    // ============================================
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
       required: [true, 'Organization ID is required'],
-      index: true
+      index: true,
     },
-    
-    // Contact Information
+
+    // ============================================
+    // CONTACT INFORMATION
+    // ============================================
     email: {
       type: String,
       lowercase: true,
       trim: true,
-      match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        'Please provide a valid email'
-      ]
+      match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
     },
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
       trim: true,
-      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number']
+      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number'],
     },
     alternatePhone: {
       type: String,
       trim: true,
-      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number']
+      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit phone number'],
     },
     fax: {
       type: String,
-      trim: true
+      trim: true,
     },
-    whatsapp: {
+    whatsappNumber: {
       type: String,
       trim: true,
-      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit WhatsApp number']
+      match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit WhatsApp number'],
     },
-    
-    // Address
+
+    // ============================================
+    // ADDRESS
+    // ============================================
     address: {
       street: {
         type: String,
-        required: true,
-        trim: true
+        required: [true, 'Street address is required'],
+        trim: true,
       },
       landmark: {
         type: String,
-        trim: true
+        trim: true,
       },
       area: {
         type: String,
-        trim: true
+        trim: true,
       },
       city: {
         type: String,
-        required: true,
-        trim: true
+        required: [true, 'City is required'],
+        trim: true,
       },
       state: {
         type: String,
-        required: true,
-        trim: true
+        required: [true, 'State is required'],
+        trim: true,
       },
       country: {
         type: String,
         default: 'India',
-        trim: true
+        trim: true,
       },
       pincode: {
         type: String,
-        required: true,
-        match: [/^[0-9]{6}$/, 'Invalid pincode']
+        required: [true, 'Pincode is required'],
+        match: [/^[0-9]{6}$/, 'Invalid pincode'],
       },
       location: {
         type: {
           type: String,
           enum: ['Point'],
-          default: 'Point'
+          default: 'Point',
         },
         coordinates: {
           type: [Number],
-          default: [0, 0]
-        }
-      }
+          default: [0, 0],
+        },
+      },
     },
-    
-    // Business Information
+
+    // ============================================
+    // BUSINESS REGISTRATION
+    // ============================================
     gstNumber: {
       type: String,
       trim: true,
       uppercase: true,
-      match: [/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GST number']
+      sparse: true,
+      match: [/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GST number'],
     },
     panNumber: {
       type: String,
       trim: true,
       uppercase: true,
-      match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN number']
+      match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN number'],
     },
     tanNumber: {
       type: String,
       trim: true,
-      uppercase: true
+      uppercase: true,
+    },
+    udyamNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
+    fssaiNumber: {
+      type: String,
+      trim: true,
+    },
+    tradeLicenseNumber: {
+      type: String,
+      trim: true,
     },
     registrationNumber: {
       type: String,
-      trim: true
+      trim: true,
     },
+
+    // ============================================
+    // SHOP TYPE & CATEGORY
+    // ============================================
     shopType: {
       type: String,
-      enum: ['retail', 'wholesale', 'manufacturing', 'showroom', 'workshop'],
-      default: 'retail'
+      enum: ['retail', 'wholesale', 'manufacturing', 'showroom', 'workshop', 'warehouse', 'online'],
+      default: 'retail',
+    },
+    category: {
+      type: String,
+      enum: ['jewelry', 'gold', 'silver', 'diamond', 'gemstone', 'pearls', 'platinum', 'mixed'],
+      default: 'jewelry',
     },
     establishedYear: {
       type: Number,
       min: 1900,
-      max: new Date().getFullYear()
+      max: new Date().getFullYear(),
     },
-    
-    // Branding
+
+    // ============================================
+    // BRANDING & MEDIA
+    // ============================================
     logo: {
       type: String,
-      default: null
+      default: null,
     },
     favicon: {
       type: String,
-      default: null
+      default: null,
     },
     banner: {
       type: String,
-      default: null
+      default: null,
     },
-    
-    // Shop Manager/Owner
+    images: [
+      {
+        url: String,
+        caption: String,
+        isPrimary: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
+
+    // ============================================
+    // SHOP MANAGER/OWNER
+    // ============================================
     managerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
-      index: true
+      required: [true, 'Manager ID is required'],
+      index: true,
     },
-    
-    // Business Hours
+
+    // ============================================
+    // BUSINESS HOURS
+    // ============================================
     businessHours: {
       monday: {
         isOpen: { type: Boolean, default: true },
         openTime: { type: String, default: '10:00' },
-        closeTime: { type: String, default: '20:00' }
+        closeTime: { type: String, default: '20:00' },
       },
       tuesday: {
         isOpen: { type: Boolean, default: true },
         openTime: { type: String, default: '10:00' },
-        closeTime: { type: String, default: '20:00' }
+        closeTime: { type: String, default: '20:00' },
       },
       wednesday: {
         isOpen: { type: Boolean, default: true },
         openTime: { type: String, default: '10:00' },
-        closeTime: { type: String, default: '20:00' }
+        closeTime: { type: String, default: '20:00' },
       },
       thursday: {
         isOpen: { type: Boolean, default: true },
         openTime: { type: String, default: '10:00' },
-        closeTime: { type: String, default: '20:00' }
+        closeTime: { type: String, default: '20:00' },
       },
       friday: {
         isOpen: { type: Boolean, default: true },
         openTime: { type: String, default: '10:00' },
-        closeTime: { type: String, default: '20:00' }
+        closeTime: { type: String, default: '20:00' },
       },
       saturday: {
         isOpen: { type: Boolean, default: true },
         openTime: { type: String, default: '10:00' },
-        closeTime: { type: String, default: '20:00' }
+        closeTime: { type: String, default: '20:00' },
       },
       sunday: {
         isOpen: { type: Boolean, default: false },
         openTime: { type: String, default: '10:00' },
-        closeTime: { type: String, default: '18:00' }
-      }
+        closeTime: { type: String, default: '18:00' },
+      },
     },
-    
-    // Shop Settings
+    holidays: [
+      {
+        date: Date,
+        occasion: String,
+        isRecurring: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
+
+    // ============================================
+    // SHOP SETTINGS
+    // ============================================
     settings: {
       // Regional Settings
       currency: {
         type: String,
         default: 'INR',
-        enum: ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR']
+        enum: ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR'],
       },
       language: {
         type: String,
         default: 'en',
-        enum: ['en', 'hi', 'mr', 'gu', 'ta', 'te']
+        enum: ['en', 'hi', 'mr', 'gu', 'ta', 'te'],
       },
       timezone: {
         type: String,
-        default: 'Asia/Kolkata'
+        default: 'Asia/Kolkata',
       },
-      
+
       // Weight & Measurement Settings
       defaultWeightUnit: {
         type: String,
         enum: ['gram', 'kg', 'tola', 'ounce', 'carat'],
-        default: 'gram'
+        default: 'gram',
       },
       defaultPurityUnit: {
         type: String,
         enum: ['karat', 'percentage', 'purity_916', 'purity_999'],
-        default: 'karat'
+        default: 'karat',
       },
-      
+      enableStoneWeight: {
+        type: Boolean,
+        default: true,
+      },
+      enableNetWeight: {
+        type: Boolean,
+        default: true,
+      },
+
       // Pricing Settings
       enableMakingCharges: {
         type: Boolean,
-        default: true
+        default: true,
       },
       makingChargesType: {
         type: String,
-        enum: ['per_gram', 'percentage', 'fixed', 'per_piece'],
-        default: 'per_gram'
+        enum: ['per_gram', 'percentage', 'fixed', 'flat', 'per_piece'],
+        default: 'per_gram',
       },
       defaultMakingCharges: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
       },
-      
+
       // Metal Rates (Current rates)
       metalRates: {
-        gold24k: { type: Number, default: 0 },
-        gold22k: { type: Number, default: 0 },
-        gold18k: { type: Number, default: 0 },
-        silver: { type: Number, default: 0 },
-        platinum: { type: Number, default: 0 },
-        lastUpdated: { type: Date, default: Date.now },
+        gold: {
+          rate24K: { type: Number, default: 0 },
+          rate22K: { type: Number, default: 0 },
+          rate18K: { type: Number, default: 0 },
+          lastUpdated: { type: Date, default: Date.now },
+        },
+        silver: {
+          rate999: { type: Number, default: 0 },
+          rate925: { type: Number, default: 0 },
+          lastUpdated: { type: Date, default: Date.now },
+        },
+        platinum: {
+          rate: { type: Number, default: 0 },
+          lastUpdated: { type: Date, default: Date.now },
+        },
         updatedBy: {
           type: mongoose.Schema.Types.ObjectId,
           ref: 'User',
-          default: null
-        }
+          default: null,
+        },
       },
-      
+
       // Stone Settings
       enableStoneManagement: {
         type: Boolean,
-        default: true
+        default: true,
       },
       stoneChargesType: {
         type: String,
         enum: ['per_piece', 'per_carat', 'fixed'],
-        default: 'per_piece'
+        default: 'per_piece',
       },
-      
+
       // Wastage Settings
       enableWastage: {
         type: Boolean,
-        default: true
+        default: true,
       },
       wastageType: {
         type: String,
         enum: ['percentage', 'fixed_gram'],
-        default: 'percentage'
+        default: 'percentage',
       },
       defaultWastage: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
+        max: 100,
       },
-      
+
       // Invoice Settings
       invoicePrefix: {
         type: String,
-        default: 'INV'
+        default: 'INV',
       },
       invoiceStartNumber: {
         type: Number,
-        default: 1
+        default: 1,
+        min: 1,
       },
       currentInvoiceNumber: {
         type: Number,
-        default: 1
+        default: 1,
       },
-      
+
       // Estimate/Quotation Settings
       estimatePrefix: {
         type: String,
-        default: 'EST'
+        default: 'EST',
       },
       estimateStartNumber: {
         type: Number,
-        default: 1
+        default: 1,
       },
-      
+      quotationPrefix: {
+        type: String,
+        default: 'QUO',
+      },
+
       // Purchase Settings
       purchasePrefix: {
         type: String,
-        default: 'PUR'
+        default: 'PUR',
       },
       purchaseStartNumber: {
         type: Number,
-        default: 1
+        default: 1,
       },
-      
+
       // Order Settings
       orderPrefix: {
         type: String,
-        default: 'ORD'
+        default: 'ORD',
       },
       orderStartNumber: {
         type: Number,
-        default: 1
+        default: 1,
       },
-      
+
       // Tax Settings
       enableGST: {
         type: Boolean,
-        default: true
+        default: true,
       },
       gstRates: {
         gold: { type: Number, default: 3 },
@@ -347,68 +429,69 @@ const shopSchema = new mongoose.Schema(
         platinum: { type: Number, default: 3 },
         gemstone: { type: Number, default: 3 },
         makingCharges: { type: Number, default: 18 },
-        stoneCharges: { type: Number, default: 18 }
+        stoneCharges: { type: Number, default: 18 },
+        other: { type: Number, default: 18 },
       },
-      
+
       // Discount Settings
       allowDiscounts: {
         type: Boolean,
-        default: true
+        default: true,
       },
       maxDiscountPercentage: {
         type: Number,
         default: 10,
         min: 0,
-        max: 100
+        max: 100,
       },
-      
+
       // Hallmarking Settings
       enableHallmarking: {
         type: Boolean,
-        default: false
+        default: false,
       },
       hallmarkingCenter: {
         type: String,
-        trim: true
+        trim: true,
       },
       huidPrefix: {
         type: String,
-        trim: true
+        trim: true,
       },
-      
+
       // Old Gold Exchange Settings
       enableOldGoldExchange: {
         type: Boolean,
-        default: true
+        default: true,
       },
       oldGoldDeductionPercentage: {
         type: Number,
         default: 0,
         min: 0,
-        max: 100
+        max: 100,
       },
-      
+
       // Repair Settings
       enableRepairManagement: {
         type: Boolean,
-        default: false
+        default: false,
       },
       repairPrefix: {
         type: String,
-        default: 'REP'
+        default: 'REP',
       },
-      
+
       // Barcode Settings
       enableBarcode: {
         type: Boolean,
-        default: false
+        default: false,
       },
       barcodeType: {
         type: String,
         enum: ['CODE128', 'CODE39', 'EAN13', 'QR'],
-        default: 'CODE128'
+        default: 'CODE128',
       },
-      
+
       // Printing Settings
       printSettings: {
         headerText: String,
@@ -420,165 +503,258 @@ const shopSchema = new mongoose.Schema(
         paperSize: {
           type: String,
           enum: ['A4', 'A5', 'thermal_80mm', 'thermal_58mm'],
-          default: 'A4'
-        }
+          default: 'A4',
+        },
       },
-      
+
+      // Inventory Settings
+      enableLowStockAlerts: {
+        type: Boolean,
+        default: true,
+      },
+      lowStockThreshold: {
+        type: Number,
+        default: 5,
+      },
+      enableBatchTracking: {
+        type: Boolean,
+        default: false,
+      },
+      enableSerialNumberTracking: {
+        type: Boolean,
+        default: true,
+      },
+
+      // Payment Settings
+      acceptedPaymentModes: {
+        cash: { type: Boolean, default: true },
+        card: { type: Boolean, default: true },
+        upi: { type: Boolean, default: true },
+        netBanking: { type: Boolean, default: true },
+        cheque: { type: Boolean, default: true },
+        emi: { type: Boolean, default: false },
+        goldExchange: { type: Boolean, default: true },
+        silverExchange: { type: Boolean, default: true },
+      },
+
       // Notification Settings
       notifications: {
         lowStockAlert: { type: Boolean, default: true },
-        lowStockThreshold: { type: Number, default: 10 },
         expiryAlert: { type: Boolean, default: false },
         expiryAlertDays: { type: Number, default: 30 },
         smsNotifications: { type: Boolean, default: false },
         emailNotifications: { type: Boolean, default: true },
-        whatsappNotifications: { type: Boolean, default: false }
+        whatsappNotifications: { type: Boolean, default: false },
       },
-      
-      // Scheme Management
+
+      // Feature Flags
       enableSchemes: {
         type: Boolean,
-        default: false
+        default: false,
       },
-      
+      enableCustomOrderManagement: {
+        type: Boolean,
+        default: false,
+      },
+      enableHallmarkingTracking: {
+        type: Boolean,
+        default: false,
+      },
+      enableOldGoldPurchase: {
+        type: Boolean,
+        default: true,
+      },
+
       // Multi-currency Support
       enableMultiCurrency: {
         type: Boolean,
-        default: false
+        default: false,
       },
-      acceptedCurrencies: [{
-        type: String,
-        enum: ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR']
-      }]
+      acceptedCurrencies: [
+        {
+          type: String,
+          enum: ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR'],
+        },
+      ],
     },
-    
-    // Banking Details
-    bankDetails: [{
-      bankName: {
-        type: String,
-        required: true,
-        trim: true
+
+    // ============================================
+    // BANKING DETAILS
+    // ============================================
+    bankDetails: [
+      {
+        bankName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        accountNumber: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        ifscCode: {
+          type: String,
+          required: true,
+          trim: true,
+          uppercase: true,
+        },
+        accountHolderName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        branchName: {
+          type: String,
+          trim: true,
+        },
+        accountType: {
+          type: String,
+          enum: ['savings', 'current', 'overdraft'],
+          default: 'current',
+        },
+        isPrimary: {
+          type: Boolean,
+          default: false,
+        },
       },
-      accountNumber: {
-        type: String,
-        required: true,
-        trim: true
+    ],
+
+    // ============================================
+    // UPI DETAILS
+    // ============================================
+    upiDetails: [
+      {
+        upiId: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        upiName: {
+          type: String,
+          trim: true,
+        },
+        provider: {
+          type: String,
+          enum: ['googlepay', 'phonepe', 'paytm', 'bhim', 'other'],
+          default: 'other',
+        },
+        qrCode: {
+          type: String,
+        },
+        isActive: {
+          type: Boolean,
+          default: true,
+        },
+        isPrimary: {
+          type: Boolean,
+          default: false,
+        },
       },
-      ifscCode: {
-        type: String,
-        required: true,
-        trim: true,
-        uppercase: true
-      },
-      accountHolderName: {
-        type: String,
-        required: true,
-        trim: true
-      },
-      branchName: {
-        type: String,
-        trim: true
-      },
-      accountType: {
-        type: String,
-        enum: ['savings', 'current', 'overdraft'],
-        default: 'current'
-      },
-      isPrimary: {
-        type: Boolean,
-        default: false
-      }
-    }],
-    
-    // UPI Details
-    upiDetails: [{
-      upiId: {
-        type: String,
-        trim: true
-      },
-      upiName: {
-        type: String,
-        trim: true
-      },
-      qrCode: {
-        type: String
-      },
-      isActive: {
-        type: Boolean,
-        default: true
-      }
-    }],
-    
-    // Compliance & Certifications
+    ],
+
+    // ============================================
+    // COMPLIANCE & CERTIFICATIONS
+    // ============================================
     compliance: {
       bis: {
         certified: { type: Boolean, default: false },
         certificateNumber: String,
-        expiryDate: Date
+        expiryDate: Date,
       },
       hallmarking: {
         certified: { type: Boolean, default: false },
         certificateNumber: String,
+        licenseNumber: String,
         hallmarkingCenter: String,
-        expiryDate: Date
+        hallmarkingCenterId: String,
+        expiryDate: Date,
       },
       iso: {
         certified: { type: Boolean, default: false },
         certificateNumber: String,
-        expiryDate: Date
+        expiryDate: Date,
       },
       fssai: {
         certified: { type: Boolean, default: false },
         licenseNumber: String,
-        expiryDate: Date
-      }
+        expiryDate: Date,
+      },
     },
-    
-    // Shop Statistics
+
+    // ============================================
+    // WAREHOUSE/STORAGE INFO
+    // ============================================
+    warehouseDetails: {
+      hasWarehouse: {
+        type: Boolean,
+        default: false,
+      },
+      warehouseAddress: String,
+      warehouseCapacity: {
+        type: Number,
+        default: 0,
+      },
+      warehouseUnit: {
+        type: String,
+        enum: ['sqft', 'sqm'],
+        default: 'sqft',
+      },
+    },
+
+    // ============================================
+    // SHOP STATISTICS
+    // ============================================
     statistics: {
       totalProducts: {
         type: Number,
-        default: 0
+        default: 0,
       },
       totalInventoryValue: {
         type: Number,
-        default: 0
+        default: 0,
       },
       totalSales: {
         type: Number,
-        default: 0
+        default: 0,
       },
       totalPurchases: {
         type: Number,
-        default: 0
+        default: 0,
       },
       totalCustomers: {
         type: Number,
-        default: 0
+        default: 0,
       },
       totalSuppliers: {
         type: Number,
-        default: 0
+        default: 0,
       },
       totalStaff: {
         type: Number,
-        default: 0
+        default: 0,
       },
       lastSaleDate: {
         type: Date,
-        default: null
+        default: null,
       },
       lastPurchaseDate: {
         type: Date,
-        default: null
+        default: null,
+      },
+      averageSaleValue: {
+        type: Number,
+        default: 0,
       },
       lastUpdated: {
         type: Date,
-        default: Date.now
-      }
+        default: Date.now,
+      },
     },
-    
-    // Features Enabled
+
+    // ============================================
+    // FEATURES ENABLED
+    // ============================================
     features: {
       inventoryManagement: { type: Boolean, default: true },
       purchaseManagement: { type: Boolean, default: true },
@@ -594,399 +770,596 @@ const shopSchema = new mongoose.Schema(
       oldGoldExchange: { type: Boolean, default: true },
       barcodeScanning: { type: Boolean, default: false },
       reports: { type: Boolean, default: true },
-      analytics: { type: Boolean, default: false }
+      analytics: { type: Boolean, default: false },
     },
-    
-    // Social Media & Website
+
+    // ============================================
+    // SOCIAL MEDIA & WEBSITE
+    // ============================================
     socialMedia: {
       facebook: String,
       instagram: String,
       twitter: String,
       youtube: String,
-      linkedin: String
+      linkedin: String,
     },
     website: {
       type: String,
       trim: true,
-      match: [/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/, 'Invalid website URL']
+      match: [
+        /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/,
+        'Invalid website URL',
+      ],
     },
-    
-    // Shop Status
+
+    // ============================================
+    // SHOP STATUS
+    // ============================================
     isActive: {
       type: Boolean,
-      default: true
+      default: true,
     },
     isVerified: {
       type: Boolean,
-      default: false
+      default: false,
     },
     verifiedAt: {
       type: Date,
-      default: null
+      default: null,
     },
     verifiedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null
+      default: null,
     },
-    
-    // Temporary Closure
+
+    // ============================================
+    // TEMPORARY CLOSURE
+    // ============================================
     temporaryClosure: {
       isClosed: {
         type: Boolean,
-        default: false
+        default: false,
       },
       reason: String,
       closedFrom: Date,
-      closedUntil: Date
+      closedUntil: Date,
     },
-    
-    // Audit Trail
+
+    // ============================================
+    // OPENING/CLOSING DETAILS
+    // ============================================
+    openingDate: {
+      type: Date,
+      default: Date.now,
+    },
+    closingDate: {
+      type: Date,
+      default: null,
+    },
+
+    // ============================================
+    // AUDIT TRAIL
+    // ============================================
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null
+      default: null,
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      default: null
+      default: null,
     },
-    
-    // Metadata
+
+    // ============================================
+    // METADATA
+    // ============================================
     tags: [String],
     notes: {
       type: String,
-      maxlength: 1000
+      maxlength: 1000,
     },
     deletedAt: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
   }
 );
 
-// Indexes
-shopSchema.index({ code: 1 }, { unique: true });
-shopSchema.index({ organizationId: 1 });
-shopSchema.index({ managerId: 1 });
-shopSchema.index({ isActive: 1 });
-shopSchema.index({ organizationId: 1, isActive: 1 });
-shopSchema.index({ 'address.city': 1 });
-shopSchema.index({ 'address.state': 1 });
-shopSchema.index({ 'address.pincode': 1 });
-shopSchema.index({ 'address.location': '2dsphere' });
-shopSchema.index({ gstNumber: 1 }, { sparse: true });
-shopSchema.index({ createdAt: -1 });
+// ============================================
+// INDEXES
+// ============================================
+jewelryShopSchema.index({ code: 1 }, { unique: true });
+jewelryShopSchema.index({ organizationId: 1 });
+jewelryShopSchema.index({ managerId: 1 });
+jewelryShopSchema.index({ isActive: 1 });
+jewelryShopSchema.index({ organizationId: 1, isActive: 1 });
+jewelryShopSchema.index({ organizationId: 1, code: 1 }, { unique: true });
+jewelryShopSchema.index({ 'address.city': 1 });
+jewelryShopSchema.index({ 'address.state': 1 });
+jewelryShopSchema.index({ 'address.pincode': 1 });
+jewelryShopSchema.index({ 'address.location': '2dsphere' });
+jewelryShopSchema.index({ gstNumber: 1 }, { sparse: true });
+jewelryShopSchema.index({ shopType: 1 });
+jewelryShopSchema.index({ category: 1 });
+jewelryShopSchema.index({ createdAt: -1 });
 
-// Virtuals
-shopSchema.virtual('organization', {
+// ============================================
+// VIRTUALS
+// ============================================
+jewelryShopSchema.virtual('organization', {
   ref: 'Organization',
   localField: 'organizationId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
-shopSchema.virtual('manager', {
+jewelryShopSchema.virtual('manager', {
   ref: 'User',
   localField: 'managerId',
   foreignField: '_id',
-  justOne: true
+  justOne: true,
 });
 
-shopSchema.virtual('staff', {
+jewelryShopSchema.virtual('staff', {
   ref: 'UserShopAccess',
   localField: '_id',
-  foreignField: 'shopId'
+  foreignField: 'shopId',
 });
 
-shopSchema.virtual('products', {
+jewelryShopSchema.virtual('products', {
   ref: 'Product',
   localField: '_id',
-  foreignField: 'shopId'
+  foreignField: 'shopId',
 });
 
-shopSchema.virtual('customers', {
+jewelryShopSchema.virtual('customers', {
   ref: 'Party',
   localField: '_id',
   foreignField: 'shopId',
-  match: { partyType: 'customer' }
+  match: { partyType: 'customer' },
 });
 
-shopSchema.virtual('suppliers', {
+jewelryShopSchema.virtual('suppliers', {
   ref: 'Party',
   localField: '_id',
   foreignField: 'shopId',
-  match: { partyType: 'supplier' }
+  match: { partyType: 'supplier' },
 });
 
-shopSchema.virtual('sales', {
+jewelryShopSchema.virtual('sales', {
   ref: 'Sale',
   localField: '_id',
-  foreignField: 'shopId'
+  foreignField: 'shopId',
 });
 
-shopSchema.virtual('purchases', {
+jewelryShopSchema.virtual('purchases', {
   ref: 'Purchase',
   localField: '_id',
-  foreignField: 'shopId'
+  foreignField: 'shopId',
 });
 
-// Virtual to check if shop is currently open
-shopSchema.virtual('isCurrentlyOpen').get(function() {
+jewelryShopSchema.virtual('fullAddress').get(function () {
+  const addr = this.address;
+  return `${addr.street}, ${addr.area ? addr.area + ', ' : ''}${addr.landmark ? addr.landmark + ', ' : ''}${addr.city}, ${addr.state} - ${addr.pincode}`;
+});
+
+jewelryShopSchema.virtual('isCurrentlyOpen').get(function () {
   if (this.temporaryClosure?.isClosed) return false;
-  
+
   const now = new Date();
-  const day = now.toLocaleDateString('en-US', { weekday: 'lowercase' });
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
   const currentTime = now.toTimeString().slice(0, 5);
-  
-  const todayHours = this.businessHours[day];
+
+  // Check if it's a holiday
+  const today = now.toISOString().split('T')[0];
+  const isHoliday = this.holidays?.some(holiday => {
+    const holidayDate = holiday.date.toISOString().split('T')[0];
+    return holidayDate === today;
+  });
+
+  if (isHoliday) return false;
+
+  const todayHours = this.businessHours[dayName];
   if (!todayHours?.isOpen) return false;
-  
+
   return currentTime >= todayHours.openTime && currentTime <= todayHours.closeTime;
 });
 
+// ============================================
+// MIDDLEWARE
+// ============================================
+
 // Soft delete middleware
-shopSchema.pre(/^find/, function(next) {
+jewelryShopSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null });
   }
   next();
 });
 
-// Ensure only one primary bank account
-shopSchema.pre('save', function(next) {
+// Ensure only one primary (bank, UPI, image)
+jewelryShopSchema.pre('save', function (next) {
+  // Primary bank account
   if (this.bankDetails && this.bankDetails.length > 0) {
-    const primaryAccounts = this.bankDetails.filter(bank => bank.isPrimary);
-    if (primaryAccounts.length > 1) {
+    const primaryBanks = this.bankDetails.filter(bank => bank.isPrimary);
+    if (primaryBanks.length > 1) {
       this.bankDetails.forEach((bank, index) => {
         if (index > 0 && bank.isPrimary) {
           bank.isPrimary = false;
         }
       });
-    } else if (primaryAccounts.length === 0) {
+    } else if (primaryBanks.length === 0) {
       this.bankDetails[0].isPrimary = true;
     }
   }
+
+  // Primary UPI
+  if (this.upiDetails && this.upiDetails.length > 0) {
+    const primaryUpis = this.upiDetails.filter(upi => upi.isPrimary);
+    if (primaryUpis.length > 1) {
+      this.upiDetails.forEach((upi, index) => {
+        if (index > 0 && upi.isPrimary) {
+          upi.isPrimary = false;
+        }
+      });
+    } else if (primaryUpis.length === 0) {
+      this.upiDetails[0].isPrimary = true;
+    }
+  }
+
+  // Primary image
+  if (this.images && this.images.length > 0) {
+    const primaryImages = this.images.filter(img => img.isPrimary);
+    if (primaryImages.length > 1) {
+      this.images.forEach((img, index) => {
+        if (index > 0 && img.isPrimary) {
+          img.isPrimary = false;
+        }
+      });
+    } else if (primaryImages.length === 0) {
+      this.images[0].isPrimary = true;
+    }
+  }
+
   next();
 });
 
-// Instance Methods
+// ============================================
+// INSTANCE METHODS
+// ============================================
 
 // Get primary bank account
-shopSchema.methods.getPrimaryBank = function() {
+jewelryShopSchema.methods.getPrimaryBank = function () {
   return this.bankDetails.find(bank => bank.isPrimary);
 };
 
 // Get active UPI
-shopSchema.methods.getActiveUPI = function() {
+jewelryShopSchema.methods.getActiveUPI = function () {
   return this.upiDetails.filter(upi => upi.isActive);
 };
 
+// Get primary UPI
+jewelryShopSchema.methods.getPrimaryUPI = function () {
+  return this.upiDetails.find(upi => upi.isPrimary);
+};
+
+// Get primary image
+jewelryShopSchema.methods.getPrimaryImage = function () {
+  const primary = this.images.find(img => img.isPrimary);
+  return primary || (this.images.length > 0 ? this.images[0] : null);
+};
+
 // Update metal rates
-shopSchema.methods.updateMetalRates = function(rates, userId) {
-  Object.assign(this.settings.metalRates, rates);
-  this.settings.metalRates.lastUpdated = new Date();
+jewelryShopSchema.methods.updateMetalRates = function (rates, userId) {
+  if (rates.gold) {
+    Object.assign(this.settings.metalRates.gold, rates.gold);
+    this.settings.metalRates.gold.lastUpdated = new Date();
+  }
+  if (rates.silver) {
+    Object.assign(this.settings.metalRates.silver, rates.silver);
+    this.settings.metalRates.silver.lastUpdated = new Date();
+  }
+  if (rates.platinum) {
+    Object.assign(this.settings.metalRates.platinum, rates.platinum);
+    this.settings.metalRates.platinum.lastUpdated = new Date();
+  }
   this.settings.metalRates.updatedBy = userId;
   return this.save();
 };
 
+// Update gold rate
+jewelryShopSchema.methods.updateGoldRate = function (rate24K, rate22K, rate18K) {
+  this.settings.metalRates.gold = {
+    rate24K,
+    rate22K,
+    rate18K,
+    lastUpdated: new Date(),
+  };
+  return this.save();
+};
+
+// Update silver rate
+jewelryShopSchema.methods.updateSilverRate = function (rate999, rate925) {
+  this.settings.metalRates.silver = {
+    rate999,
+    rate925,
+    lastUpdated: new Date(),
+  };
+  return this.save();
+};
+
+// Update platinum rate
+jewelryShopSchema.methods.updatePlatinumRate = function (rate) {
+  this.settings.metalRates.platinum = {
+    rate,
+    lastUpdated: new Date(),
+  };
+  return this.save();
+};
+
 // Generate next invoice number
-shopSchema.methods.getNextInvoiceNumber = function() {
-  const invoiceNumber = `${this.settings.invoicePrefix}${String(this.settings.currentInvoiceNumber).padStart(5, '0')}`;
+jewelryShopSchema.methods.getNextInvoiceNumber = function () {
+  const invoiceNumber = `${this.settings.invoicePrefix}-${String(this.settings.currentInvoiceNumber).padStart(6, '0')}`;
   this.settings.currentInvoiceNumber += 1;
   return invoiceNumber;
 };
 
 // Check if shop is open on a specific day
-shopSchema.methods.isOpenOn = function(day) {
+jewelryShopSchema.methods.isOpenOn = function (day) {
   const dayLower = day.toLowerCase();
   return this.businessHours[dayLower]?.isOpen || false;
 };
 
 // Get business hours for a specific day
-shopSchema.methods.getBusinessHours = function(day) {
+jewelryShopSchema.methods.getBusinessHours = function (day) {
   const dayLower = day.toLowerCase();
   return this.businessHours[dayLower];
 };
 
+// Get today's business hours
+jewelryShopSchema.methods.getTodayHours = function () {
+  const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  return this.businessHours[dayName];
+};
+
 // Update statistics
-shopSchema.methods.updateStatistics = async function() {
+jewelryShopSchema.methods.updateStatistics = async function () {
   const Product = mongoose.model('Product');
   const Party = mongoose.model('Party');
   const UserShopAccess = mongoose.model('UserShopAccess');
-  
+  const Sale = mongoose.model('Sale');
+  const Purchase = mongoose.model('Purchase');
+
+  // Count products
   this.statistics.totalProducts = await Product.countDocuments({
     shopId: this._id,
-    deletedAt: null
+    deletedAt: null,
   });
-  
+
+  // Calculate total inventory value
+  const products = await Product.find({ shopId: this._id, deletedAt: null });
+  this.statistics.totalInventoryValue = products.reduce(
+    (sum, product) => sum + ((product.sellingPrice || 0) * (product.quantity || 1)),
+    0
+  );
+
+  // Customer count
   this.statistics.totalCustomers = await Party.countDocuments({
     shopId: this._id,
     partyType: 'customer',
-    deletedAt: null
+    deletedAt: null,
   });
-  
+
+  // Supplier count
   this.statistics.totalSuppliers = await Party.countDocuments({
     shopId: this._id,
     partyType: 'supplier',
-    deletedAt: null
+    deletedAt: null,
   });
-  
+
+  // Staff count
   this.statistics.totalStaff = await UserShopAccess.countDocuments({
     shopId: this._id,
     isActive: true,
-    deletedAt: null
+    deletedAt: null,
   });
-  
+
+  // Sales statistics
+  const sales = await Sale.find({ shopId: this._id, status: 'completed' }).sort({ createdAt: -1 });
+  this.statistics.totalSales = sales.length;
+  if (sales.length > 0) {
+    this.statistics.lastSaleDate = sales[0].createdAt;
+    const totalSalesValue = sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+    this.statistics.averageSaleValue = totalSalesValue / sales.length;
+  }
+
+  // Purchase statistics
+  const purchases = await Purchase.find({ shopId: this._id, status: 'completed' }).sort({ createdAt: -1 });
+  this.statistics.totalPurchases = purchases.length;
+  if (purchases.length > 0) {
+    this.statistics.lastPurchaseDate = purchases[0].createdAt;
+  }
+
   this.statistics.lastUpdated = new Date();
   return this.save();
 };
 
 // Soft delete
-shopSchema.methods.softDelete = function() {
+jewelryShopSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   this.isActive = false;
+  this.closingDate = new Date();
   return this.save();
 };
 
 // Restore
-shopSchema.methods.restore = function() {
+jewelryShopSchema.methods.restore = function () {
   this.deletedAt = null;
   this.isActive = true;
+  this.closingDate = null;
   return this.save();
 };
 
 // Close shop temporarily
-shopSchema.methods.closeTemporarily = function(reason, from, until) {
+jewelryShopSchema.methods.closeTemporarily = function (reason, from, until) {
   this.temporaryClosure = {
     isClosed: true,
     reason,
     closedFrom: from || new Date(),
-    closedUntil: until
+    closedUntil: until,
   };
   return this.save();
 };
 
 // Reopen shop
-shopSchema.methods.reopenShop = function() {
+jewelryShopSchema.methods.reopenShop = function () {
   this.temporaryClosure = {
     isClosed: false,
     reason: null,
     closedFrom: null,
-    closedUntil: null
+    closedUntil: null,
   };
   return this.save();
 };
 
 // Check if feature is enabled
-shopSchema.methods.hasFeature = function(featureName) {
+jewelryShopSchema.methods.hasFeature = function (featureName) {
   return this.features[featureName] || false;
 };
 
-// Static Methods
+// ============================================
+// STATIC METHODS
+// ============================================
 
 // Generate unique shop code
-shopSchema.statics.generateCode = async function(name, organizationId) {
+jewelryShopSchema.statics.generateCode = async function (name, organizationId) {
   const orgShops = await this.countDocuments({ organizationId });
   let code = name
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, '')
     .substring(0, 4);
-  
+
   if (code.length < 2) code = 'SHOP';
-  
+
   let uniqueCode = `${code}${String(orgShops + 1).padStart(3, '0')}`;
   let counter = 1;
-  
+
   while (await this.findOne({ code: uniqueCode })) {
     uniqueCode = `${code}${String(orgShops + counter).padStart(3, '0')}`;
     counter++;
   }
-  
+
   return uniqueCode;
 };
 
 // Find active shops
-shopSchema.statics.findActive = function(organizationId = null) {
+jewelryShopSchema.statics.findActive = function (organizationId = null) {
   const query = { isActive: true, deletedAt: null };
   if (organizationId) query.organizationId = organizationId;
   return this.find(query);
 };
 
 // Find by organization
-shopSchema.statics.findByOrganization = function(organizationId, options = {}) {
+jewelryShopSchema.statics.findByOrganization = function (organizationId, options = {}) {
   return this.find({
     organizationId,
     deletedAt: null,
-    ...options
+    ...options,
   });
 };
 
 // Find by manager
-shopSchema.statics.findByManager = function(managerId) {
+jewelryShopSchema.statics.findByManager = function (managerId) {
   return this.find({
     managerId,
     isActive: true,
-    deletedAt: null
+    deletedAt: null,
   });
 };
 
 // Find by city
-shopSchema.statics.findByCity = function(city) {
-  return this.find({
+jewelryShopSchema.statics.findByCity = function (city, organizationId = null) {
+  const query = {
     'address.city': new RegExp(city, 'i'),
     isActive: true,
-    deletedAt: null
-  });
+    deletedAt: null,
+  };
+  if (organizationId) query.organizationId = organizationId;
+  return this.find(query);
 };
 
 // Find by state
-shopSchema.statics.findByState = function(state) {
-  return this.find({
+jewelryShopSchema.statics.findByState = function (state, organizationId = null) {
+  const query = {
     'address.state': new RegExp(state, 'i'),
     isActive: true,
-    deletedAt: null
-  });
+    deletedAt: null,
+  };
+  if (organizationId) query.organizationId = organizationId;
+  return this.find(query);
 };
 
-// Find nearby shops
-shopSchema.statics.findNearby = function(longitude, latitude, maxDistance = 10000) {
+// Find by shop type
+jewelryShopSchema.statics.findByType = function (shopType, organizationId = null) {
+  const query = {
+    shopType,
+    isActive: true,
+    deletedAt: null,
+  };
+  if (organizationId) query.organizationId = organizationId;
+  return this.find(query);
+};
+
+// Find by category
+jewelryShopSchema.statics.findByCategory = function (category, organizationId = null) {
+  const query = {
+    category,
+    isActive: true,
+    deletedAt: null,
+  };
+  if (organizationId) query.organizationId = organizationId;
+  return this.find(query);
+};
+
+// Find nearby shops (geospatial query)
+jewelryShopSchema.statics.findNearby = function (longitude, latitude, maxDistance = 10000) {
   return this.find({
     'address.location': {
       $near: {
         $geometry: {
           type: 'Point',
-          coordinates: [longitude, latitude]
+          coordinates: [longitude, latitude],
         },
-        $maxDistance: maxDistance
-      }
+        $maxDistance: maxDistance,
+      },
     },
     isActive: true,
-    deletedAt: null
+    deletedAt: null,
   });
 };
 
 // Find deleted shops
-shopSchema.statics.findDeleted = function(organizationId = null) {
+jewelryShopSchema.statics.findDeleted = function (organizationId = null) {
   const query = { deletedAt: { $ne: null } };
   if (organizationId) query.organizationId = organizationId;
   return this.find(query).setOptions({ includeDeleted: true });
 };
 
 // Find temporarily closed shops
-shopSchema.statics.findTemporarilyClosed = function(organizationId = null) {
+jewelryShopSchema.statics.findTemporarilyClosed = function (organizationId = null) {
   const query = {
     'temporaryClosure.isClosed': true,
-    deletedAt: null
+    deletedAt: null,
   };
   if (organizationId) query.organizationId = organizationId;
   return this.find(query);
 };
 
-export default mongoose.model('JewelryShop', shopSchema);
+export default mongoose.model('JewelryShop', jewelryShopSchema);

@@ -25,7 +25,7 @@ export {
   Scheme,
   MetalRate,
   Payment,
-  Order
+  Order,
 };
 
 // Default export as object
@@ -41,5 +41,5 @@ export default {
   Scheme,
   MetalRate,
   Payment,
-  Order
+  Order,
 };
