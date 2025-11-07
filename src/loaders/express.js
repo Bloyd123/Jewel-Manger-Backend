@@ -8,6 +8,7 @@ import requestLogger from '../api/middlewares/requestLogger.js';
 import errorLogger from '../api/middlewares/errorLogger.js';
 import { notFound } from '../api/middlewares/errorHandler.js';
 import errorHandler from '../api/middlewares/errorHandler.js';
+import authRoutes from '../api/auth/auth.routes.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -143,7 +144,7 @@ app.use((req, res, next) => {
   // =====================================
 
   // Import and use routes here
-  // app.use('/api/v1/auth', authRoutes);
+  app.use('/api/v1/auth', authRoutes);
   // app.use('/api/v1/users', userRoutes);
   // app.use('/api/v1/shops', shopRoutes);
   // ... more routes

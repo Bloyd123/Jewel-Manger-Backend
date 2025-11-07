@@ -1,6 +1,6 @@
 // ============================================================================
 // FILE: models/User.js
-// User Model - Fixed (Permissions moved to UserShopAccess)
+// User Model - Activity Logs Removed (Now separate model)
 // ============================================================================
 
 import mongoose from 'mongoose';
@@ -195,27 +195,6 @@ const userSchema = new mongoose.Schema(
       },
     },
 
-    // Activity Tracking (Last 50 activities)
-    activityLog: [
-      {
-        action: {
-          type: String,
-          required: true,
-        },
-        module: {
-          type: String,
-          required: true,
-        },
-        description: String,
-        timestamp: {
-          type: Date,
-          default: Date.now,
-        },
-        ipAddress: String,
-        metadata: mongoose.Schema.Types.Mixed,
-      },
-    ],
-
     // Tracking fields
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -277,17 +256,16 @@ userSchema.virtual('shopAccesses', {
   foreignField: 'userId',
 });
 
+// Virtual to get activity logs (from ActivityLog model)
+userSchema.virtual('activityLogs', {
+  ref: 'ActivityLog',
+  localField: '_id',
+  foreignField: 'userId',
+});
+
 // ============================================================================
 // MIDDLEWARES
 // ============================================================================
-
-// Limit activity log to last 50 entries
-userSchema.pre('save', function (next) {
-  if (this.activityLog && this.activityLog.length > 50) {
-    this.activityLog = this.activityLog.slice(-50);
-  }
-  next();
-});
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -358,7 +336,7 @@ userSchema.methods.getShopPermissions = async function (shopId) {
 userSchema.methods.hasPermission = async function (shopId, permission) {
   // Super admin has all permissions
   if (this.role === 'super_admin') return true;
-  
+
   const access = await this.getShopAccess(shopId);
   return access ? access.hasPermission(permission) : false;
 };
@@ -384,13 +362,13 @@ userSchema.methods.getAccessibleShops = async function () {
     deletedAt: null,
     revokedAt: null,
   }).select('shopId');
-  return accesses.map(access => access.shopId);
+  return accesses.map((access) => access.shopId);
 };
 
 // Check if user is admin for any shop or specific shop
 userSchema.methods.isShopAdmin = async function (shopId = null) {
   const UserShopAccess = mongoose.model('UserShopAccess');
-  
+
   if (shopId) {
     const access = await UserShopAccess.findOne({
       userId: this._id,
@@ -402,7 +380,7 @@ userSchema.methods.isShopAdmin = async function (shopId = null) {
     });
     return !!access;
   }
-  
+
   const count = await UserShopAccess.countDocuments({
     userId: this._id,
     role: 'admin',
@@ -419,16 +397,43 @@ userSchema.methods.getShopRole = async function (shopId) {
   return access ? access.role : null;
 };
 
-// Log user activity
-userSchema.methods.logActivity = function (action, module, description = '', metadata = {}) {
-  this.activityLog.push({
-    action,
-    module,
-    description,
-    metadata,
-    timestamp: new Date(),
-  });
-  return this.save();
+// Log user activity (now saves to ActivityLog model)
+userSchema.methods.logActivity = async function (
+  action,
+  module,
+  description = '',
+  metadata = {},
+  ipAddress = null
+) {
+  try {
+    const ActivityLog = mongoose.model('ActivityLog');
+    return await ActivityLog.create({
+      userId: this._id,
+      organizationId: this.organizationId,
+      shopId: this.primaryShop,
+      action,
+      module,
+      description,
+      metadata,
+      ipAddress,
+      level: 'info',
+      status: 'success',
+    });
+  } catch (error) {
+    console.error('Failed to log activity:', error);
+    return null;
+  }
+};
+
+// Get user's recent activity logs (from ActivityLog model)
+userSchema.methods.getActivityLogs = async function (limit = 50, options = {}) {
+  try {
+    const ActivityLog = mongoose.model('ActivityLog');
+    return await ActivityLog.findByUser(this._id, { limit, ...options });
+  } catch (error) {
+    console.error('Failed to fetch activity logs:', error);
+    return [];
+  }
 };
 
 // Soft delete user
@@ -504,8 +509,8 @@ userSchema.statics.findByShop = async function (shopId) {
     deletedAt: null,
     revokedAt: null,
   }).select('userId');
-  
-  const userIds = accesses.map(access => access.userId);
+
+  const userIds = accesses.map((access) => access.userId);
   return this.find({
     _id: { $in: userIds },
     isActive: true,
@@ -547,8 +552,8 @@ userSchema.statics.findByPermission = async function (shopId, permission) {
     deletedAt: null,
     revokedAt: null,
   }).select('userId');
-  
-  const userIds = accesses.map(access => access.userId);
+
+  const userIds = accesses.map((access) => access.userId);
   return this.find({
     _id: { $in: userIds },
     isActive: true,

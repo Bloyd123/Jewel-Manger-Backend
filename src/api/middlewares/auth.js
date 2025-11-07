@@ -4,10 +4,10 @@
 // ============================================================================
 
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
-import Organization from '../models/Organization.js';
-import cache from '../utils/cache.js';
-import { sendUnauthorized, sendForbidden } from '../utils/sendResponse.js';
+import User from '../../models/User.js';
+import Organization from '../../models/Organization.js';
+import cache from '../../utils/cache.js';
+import { sendUnauthorized, sendForbidden } from '../../utils/sendResponse.js';
 
 /**
  * Authenticate User Middleware
