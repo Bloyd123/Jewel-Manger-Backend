@@ -568,7 +568,7 @@ purchaseSchema.methods.cancel = function () {
 
 // Static Methods
 purchaseSchema.statics.generatePurchaseNumber = async function (shopId, prefix = 'PUR') {
-  const shop = await mongoose.model('JewelryShop').findById(shopId);
+  const _shop = await mongoose.model('JewelryShop').findById(shopId);
   const currentYear = new Date().getFullYear().toString().slice(-2);
 
   let number = 1;

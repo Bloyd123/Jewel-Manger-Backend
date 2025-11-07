@@ -64,18 +64,35 @@ export const registerValidation = [
     .trim()
     .matches(/^[0-9]{10}$/)
     .withMessage('Phone number must be a valid 10-digit number'),
-
   body('organizationId')
+    .if((value, { req }) => req.body.role === 'super_admin')
+    .isEmpty()
+    .withMessage('Super admin should not have organization ID')
+    .bail()
+    .if((value, { req }) => req.body.role !== 'super_admin')
     .notEmpty()
     .withMessage('Organization ID is required')
     .isMongoId()
     .withMessage('Invalid organization ID format'),
 
   body('role')
-    .optional()
+    .notEmpty()
+    .withMessage('Role is required')
     .isIn(['super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'])
     .withMessage('Invalid role'),
 
+  body('primaryShop')
+    .if((value, { req }) => ['super_admin', 'org_admin'].includes(req.body.role))
+    .isEmpty()
+    .withMessage('Super admin and org admin should not have primary shop')
+    .bail()
+    .if((value, { req }) =>
+      ['shop_admin', 'manager', 'staff', 'accountant', 'user'].includes(req.body.role)
+    )
+    .notEmpty()
+    .withMessage('Primary shop is required for shop-level users')
+    .isMongoId()
+    .withMessage('Invalid shop ID format'),
   body('department')
     .optional()
     .isIn([

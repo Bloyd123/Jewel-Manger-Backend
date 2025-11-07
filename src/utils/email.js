@@ -41,7 +41,7 @@ class EmailService {
       this.transporter = nodemailer.createTransport(emailConfig);
 
       // Verify transporter configuration
-      this.transporter.verify((error, success) => {
+      this.transporter.verify((error, _success) => {
         if (error) {
           logger.error('❌ Email transporter verification failed:', error);
           this.initialized = false;
@@ -447,7 +447,7 @@ class EmailService {
 const emailService = new EmailService();
 
 // Export convenience function
-export const sendEmail = (options) => emailService.sendEmail(options);
+export const sendEmail = options => emailService.sendEmail(options);
 
 // Export email service class
 export default emailService;

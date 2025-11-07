@@ -3,10 +3,9 @@
 // Rate Limiting Middleware
 // ============================================================================
 
-import rateLimit from 'express-rate-limit';
+import rateLimit,{ ipKeyGenerator }  from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import redis from '../../config/redis.js';
-
 
 import { sendTooManyRequests } from '../../utils/sendResponse.js';
 
@@ -42,7 +41,7 @@ export const rateLimiter = (options = {}) => {
     keyGenerator:
       keyGenerator ||
       (req => {
-        return req.user ? `user:${req.user._id}` : req.ip;
+        return req.user ? `user:${req.user._id}` : ipKeyGenerator(req);
       }),
 
     // Custom skip function
@@ -88,8 +87,8 @@ export const loginRateLimiter = rateLimiter({
   message: 'Too many login attempts, please try again after 15 minutes',
   skipSuccessfulRequests: false,
   keyGenerator: req => {
-    // Rate limit by IP and email combination
-    return req.body.email ? `login:${req.ip}:${req.body.email}` : `login:${req.ip}`;
+    const ip = ipKeyGenerator(req);
+    return req.body.email ? `login:${ip}:${req.body.email}` : `login:${ip}`;
   },
 });
 
@@ -102,7 +101,7 @@ export const passwordResetRateLimiter = rateLimiter({
   max: 3,
   message: 'Too many password reset requests, please try again later',
   keyGenerator: req => {
-    return req.body.email ? `pwd-reset:${req.body.email}` : `pwd-reset:${req.ip}`;
+    return req.body.email ? `pwd-reset:${req.body.email}` : `pwd-reset:${ipKeyGenerator(req)}`;
   },
 });
 
@@ -115,8 +114,8 @@ export const apiRateLimiter = rateLimiter({
   max: 100,
   message: 'Too many API requests, please slow down',
   keyGenerator: req => {
-    // Rate limit by user if authenticated, else by IP
-    return req.user ? `api:user:${req.user._id}` : `api:ip:${req.ip}`;
+    const ip = ipKeyGenerator(req);
+    return req.user ? `api:user:${req.user._id}` : `api:ip:${ip}`;
   },
 });
 
@@ -129,7 +128,7 @@ export const uploadRateLimiter = rateLimiter({
   max: 20,
   message: 'Too many file uploads, please try again later',
   keyGenerator: req => {
-    return req.user ? `upload:${req.user._id}` : `upload:${req.ip}`;
+    return req.user ? `upload:${req.user._id}` : `upload:${ipKeyGenerator(req)}`;
   },
 });
 
@@ -142,7 +141,7 @@ export const notificationRateLimiter = rateLimiter({
   max: 10,
   message: 'Too many notification requests, please try again later',
   keyGenerator: req => {
-    return req.user ? `notification:${req.user._id}` : `notification:${req.ip}`;
+    return req.user ? `notification:${req.user._id}` : `notification:${ipKeyGenerator(req)}`;
   },
 });
 
@@ -166,7 +165,7 @@ export const reportRateLimiter = rateLimiter({
   max: 20,
   message: 'Too many report generation requests, please try again later',
   keyGenerator: req => {
-    return req.user ? `report:${req.user._id}` : `report:${req.ip}`;
+    return req.user ? `report:${req.user._id}` : `report:${ipKeyGenerator(req)}`;
   },
 });
 
@@ -179,7 +178,7 @@ export const createUpdateRateLimiter = rateLimiter({
   max: 30,
   message: 'Too many create/update requests, please slow down',
   keyGenerator: req => {
-    return req.user ? `crud:${req.user._id}` : `crud:${req.ip}`;
+    return req.user ? `crud:${req.user._id}` : `crud:${ipKeyGenerator(req)}`;
   },
 });
 
@@ -192,7 +191,7 @@ export const deleteRateLimiter = rateLimiter({
   max: 10,
   message: 'Too many delete requests, please slow down',
   keyGenerator: req => {
-    return req.user ? `delete:${req.user._id}` : `delete:${req.ip}`;
+    return req.user ? `delete:${req.user._id}` : `delete:${ipKeyGenerator(req)}`;
   },
 });
 
@@ -204,7 +203,8 @@ export const ipRateLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: 'Too many requests from this IP',
-  keyGenerator: req => req.ip,
+  keyGenerator: req => ipKeyGenerator(req),
+
 });
 
 /**
@@ -254,9 +254,8 @@ export const planBasedRateLimiter = (baseMax = 100) => {
 export const createRateLimiterWithWhitelist = (whitelist = [], options = {}) => {
   return rateLimiter({
     ...options,
-    skip: req => {
-      return whitelist.includes(req.ip);
-    },
+skip: req => whitelist.includes(ipKeyGenerator(req)),
+
   });
 };
 

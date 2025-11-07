@@ -1,22 +1,12 @@
 import authService from './auth.service.js';
 import eventLogger from '../../utils/eventLogger.js';
 import catchAsync from '../../utils/catchAsync.js';
-import {
-  sendSuccess,
-  sendCreated,
-  sendBadRequest,
-  sendUnauthorized,
-  sendNotFound,
-  sendInternalError,
-} from '../../utils/sendResponse.js';
+import { sendSuccess, sendCreated } from '../../utils/sendResponse.js';
 import {
   ValidationError,
   InvalidCredentialsError,
   UnauthorizedError,
   UserNotFoundError,
-  OrganizationNotFoundError,
-  DuplicateEmailError,
-  DuplicateUsernameError,
   TokenExpiredError,
   InvalidTokenError,
 } from '../../utils/AppError.js';
@@ -25,24 +15,26 @@ import {
 // 1. REGISTER NEW USER
 // ========================================
 export const register = catchAsync(async (req, res) => {
-  const {
-    username,
-    email,
-    password,
-    firstName,
-    lastName,
-    phone,
-    organizationId,
-    role = 'user',
-    department,
-  } = req.body;
+  const { username, email, password, firstName, _lastName, organizationId, role, _primaryShop } =
+    req.body;
 
   // Validate required fields
-  if (!username || !email || !password || !firstName || !organizationId) {
+  if (!username || !email || !password || !firstName) {
     throw new ValidationError('Please provide all required fields');
   }
 
-  const result = await authService.registerUser(req.body, req.ip, req.headers['user-agent']);
+  // Validate organizationId for non-super admin users
+  if (role !== 'super_admin' && !organizationId) {
+    throw new ValidationError('Organization ID is required for non-super admin users');
+  }
+
+  // Pass currentUser (req.user) to service - will be null for public registration
+  const result = await authService.registerUser(
+    req.body,
+    req.ip,
+    req.headers['user-agent'],
+    req.user || null
+  );
 
   return sendCreated(res, 'Registration successful. Please verify your email.', result);
 });

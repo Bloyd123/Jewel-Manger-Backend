@@ -3,11 +3,7 @@ module.exports = {
     node: true,
     es2021: true,
   },
-  extends: [
-    'eslint:recommended',
-    'plugin:node/recommended',
-    'prettier',
-  ],
+  extends: ['eslint:recommended', 'plugin:node/recommended', 'prettier'],
   plugins: ['prettier'],
   parserOptions: {
     ecmaVersion: 2021,
@@ -21,10 +17,13 @@ module.exports = {
     'no-console': 'off', // Changed from 'warn' to 'off'
 
     // Unused variables - Allow with underscore prefix
-    'no-unused-vars': ['error', { 
-      argsIgnorePattern: '^_',
-      varsIgnorePattern: '^_'
-    }],
+    'no-unused-vars': [
+      'error',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      },
+    ],
 
     // Allow process.exit in server files
     'no-process-exit': 'off',

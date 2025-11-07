@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import User from '../../models/User.js';
 import Organization from '../../models/Organization.js';
+import UserShopAccess from '../../models/UserShopAccess.js';
 import tokenManager from '../../utils/tokenManager.js';
 import eventLogger from '../../utils/eventLogger.js';
 import cache from '../../utils/cache.js';
@@ -24,7 +25,8 @@ class AuthService {
   // ========================================
   // USER REGISTRATION
   // ========================================
-  async registerUser(userData, ipAddress, userAgent) {
+  async registerUser(userData, ipAddress, userAgent, currentUser = null) {
+    // ✅ STEP 1: Destructure userData FIRST
     const {
       username,
       email,
@@ -34,19 +36,22 @@ class AuthService {
       phone,
       organizationId,
       role = 'user',
+      primaryShop,
       department,
     } = userData;
 
-    // Check if organization exists and is active
-    const organization = await Organization.findById(organizationId);
-    if (!organization || !organization.isActive) {
-      throw new OrganizationNotFoundError('Organization not found or inactive');
+    // ✅ STEP 2: Validate organization (skip for super_admin)
+    if (role !== 'super_admin') {
+      const organization = await Organization.findById(organizationId);
+      if (!organization || !organization.isActive) {
+        throw new OrganizationNotFoundError('Organization not found or inactive');
+      }
     }
 
-    // Check if user already exists
+    // ✅ STEP 3: Check if user already exists
     const existingUser = await User.findOne({
       $or: [{ email }, { username }],
-      organizationId,
+      ...(role !== 'super_admin' && { organizationId }),
     });
 
     if (existingUser) {
@@ -56,7 +61,7 @@ class AuthService {
       throw new DuplicateUsernameError();
     }
 
-    // Create user
+    // ✅ STEP 4: Create User
     const user = await User.create({
       username,
       email,
@@ -64,13 +69,28 @@ class AuthService {
       firstName,
       lastName,
       phone,
-      organizationId,
+      organizationId: role === 'super_admin' ? null : organizationId,
       role,
+      primaryShop: primaryShop || null,
       department,
+      createdBy: currentUser?._id || null,
       isActive: true,
     });
 
-    // Generate email verification token
+    // ✅ STEP 5: Create UserShopAccess (if shop-level user)
+    if (primaryShop) {
+      await UserShopAccess.create({
+        userId: user._id,
+        shopId: primaryShop,
+        organizationId,
+        role: role === 'shop_admin' ? 'admin' : role === 'manager' ? 'manager' : 'staff',
+        permissions: this.getDefaultPermissions(role),
+        isActive: true,
+        grantedBy: currentUser?._id || null,
+      });
+    }
+
+    // ✅ STEP 6: Generate email verification token
     const verificationToken = tokenManager.generateEmailVerificationToken(user._id, user.email);
 
     // Save verification token (hashed)
@@ -81,15 +101,25 @@ class AuthService {
     user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
     await user.save();
 
-    // Send verification email (non-blocking)
+    // ✅ STEP 7: Send verification email (non-blocking)
     this.sendVerificationEmail(user, verificationToken).catch(err => {
       console.error('Email sending failed:', err);
     });
 
-    // Generate token pair
+    // ✅ STEP 8: Generate token pair
     const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
 
-    // Log activity
+    // ✅ STEP 9: Log Activity
+    if (currentUser) {
+      await currentUser.logActivity(
+        'user_created',
+        'user_management',
+        `Created new user: ${user.username} with role: ${role}`,
+        { newUserId: user._id, role, organizationId, primaryShop }
+      );
+    }
+
+    // Log registration
     await eventLogger.logAuth(user._id, user.organizationId, 'register', 'success', ipAddress, {
       email: user.email,
       role: user.role,
@@ -102,6 +132,68 @@ class AuthService {
       user: user.toJSON(),
       ...tokens,
     };
+  }
+
+  // ============================================
+  // HELPER: Default Permissions Based on Role
+  // ============================================
+  getDefaultPermissions(role) {
+    switch (role) {
+      case 'shop_admin':
+        return {
+          inventory: { view: true, create: true, edit: true, delete: true },
+          sales: { view: true, create: true, edit: true, delete: true },
+          purchase: { view: true, create: true, edit: true, delete: true },
+          parties: { view: true, create: true, edit: true, delete: true },
+          reports: { view: true, create: true, edit: true, delete: true },
+          settings: { view: true, create: true, edit: true, delete: false },
+          users: { view: true, create: true, edit: true, delete: false },
+        };
+
+      case 'manager':
+        return {
+          inventory: { view: true, create: true, edit: true, delete: false },
+          sales: { view: true, create: true, edit: true, delete: false },
+          purchase: { view: true, create: true, edit: false, delete: false },
+          parties: { view: true, create: true, edit: true, delete: false },
+          reports: { view: true, create: false, edit: false, delete: false },
+          settings: { view: true, create: false, edit: false, delete: false },
+          users: { view: true, create: false, edit: false, delete: false },
+        };
+
+      case 'staff':
+        return {
+          inventory: { view: true, create: false, edit: false, delete: false },
+          sales: { view: true, create: true, edit: false, delete: false },
+          purchase: { view: false, create: false, edit: false, delete: false },
+          parties: { view: true, create: false, edit: false, delete: false },
+          reports: { view: false, create: false, edit: false, delete: false },
+          settings: { view: false, create: false, edit: false, delete: false },
+          users: { view: false, create: false, edit: false, delete: false },
+        };
+
+      case 'accountant':
+        return {
+          inventory: { view: true, create: false, edit: false, delete: false },
+          sales: { view: true, create: false, edit: true, delete: false },
+          purchase: { view: true, create: false, edit: true, delete: false },
+          parties: { view: true, create: true, edit: true, delete: false },
+          reports: { view: true, create: true, edit: false, delete: false },
+          settings: { view: true, create: false, edit: false, delete: false },
+          users: { view: false, create: false, edit: false, delete: false },
+        };
+
+      default: // 'user' role
+        return {
+          inventory: { view: true, create: false, edit: false, delete: false },
+          sales: { view: true, create: false, edit: false, delete: false },
+          purchase: { view: false, create: false, edit: false, delete: false },
+          parties: { view: true, create: false, edit: false, delete: false },
+          reports: { view: false, create: false, edit: false, delete: false },
+          settings: { view: false, create: false, edit: false, delete: false },
+          users: { view: false, create: false, edit: false, delete: false },
+        };
+    }
   }
 
   // ========================================

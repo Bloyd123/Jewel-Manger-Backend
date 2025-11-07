@@ -27,13 +27,12 @@ const sendErrorDev = (err, req, res) => {
 
   // Rendered Website Error
   console.error('ERROR 💥', err);
-return res.status(err.statusCode).json({
-  success: false,
-  status: err.status,
-  message: err.message,
-  stack: err.stack,
-});
-
+  return res.status(err.statusCode).json({
+    success: false,
+    status: err.status,
+    message: err.message,
+    stack: err.stack,
+  });
 };
 
 /**
@@ -75,23 +74,21 @@ const sendErrorProd = (err, req, res) => {
 
   // Rendered Website Error
   if (err.isOperational) {
-return res.status(err.statusCode).json({
-  success: false,
-  status: err.status,
-  message: err.message,
-  stack: err.stack,
-});
-
+    return res.status(err.statusCode).json({
+      success: false,
+      status: err.status,
+      message: err.message,
+      stack: err.stack,
+    });
   }
 
   // Programming or unknown error
   console.error('ERROR 💥', err);
-return res.status(500).json({
-  success: false,
-  status: 'error',
-  message: 'Please try again later.',
-});
-
+  return res.status(500).json({
+    success: false,
+    status: 'error',
+    message: 'Please try again later.',
+  });
 };
 
 /**
@@ -228,7 +225,7 @@ const handleRateLimitError = () => {
 /**
  * Handle Syntax Error (Invalid JSON)
  */
-const handleSyntaxError = err => {
+const handleSyntaxError = _err => {
   return new AppError('Invalid JSON format in request body', 400, true, 'INVALID_JSON');
 };
 
@@ -257,7 +254,7 @@ const handlePaymentError = err => {
  * Main Error Handler Middleware
  * This should be the last middleware in the chain
  */
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, _next) => {
   // Set default values
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';

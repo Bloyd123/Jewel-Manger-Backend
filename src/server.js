@@ -35,10 +35,12 @@ const startServer = async () => {
       logger.info(`🏥 Health check: http://${HOST}:${PORT}/health`);
       logger.info(`📊 API endpoint: http://${HOST}:${PORT}/api`);
       logger.info('='.repeat(50));
+      
     });
 
     // Handle unhandled promise rejections
     handleUnhandledRejection(server);
+
 
     // Handle SIGTERM
     handleSIGTERM(server);

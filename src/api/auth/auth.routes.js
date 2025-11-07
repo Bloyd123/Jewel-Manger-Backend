@@ -3,6 +3,9 @@ import authController from './auth.controller.js';
 import authValidation from './auth.validation.js';
 import { authenticate } from '../middlewares/auth.js';
 import { rateLimiter } from '../middlewares/rateLimiter.js';
+// Add these imports at the top
+import { checkRegistrationPermission } from '../middlewares/checkRegistrationPermission.js';
+import { allowOnlyIfNoSuperAdmin } from '../middlewares/allowOnlyIfNoSuperAdmin.js';
 
 const router = express.Router();
 
@@ -21,9 +24,20 @@ const router = express.Router();
  * @access  Public
  */
 router.post(
-  '/register',
-  rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }), // 5 requests per 15 minutes
+  '/register/super-admin',
+  rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),
   authValidation.registerValidation,
+  allowOnlyIfNoSuperAdmin,
+  authController.register
+);
+
+// 2. Protected registration (all other users)
+router.post(
+  '/register',
+  authenticate,
+  rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),
+  authValidation.registerValidation,
+  checkRegistrationPermission,
   authController.register
 );
 

@@ -875,9 +875,9 @@ const jewelryShopSchema = new mongoose.Schema(
 // ============================================
 // INDEXES
 // ============================================
-jewelryShopSchema.index({ code: 1 }, { unique: true });
-jewelryShopSchema.index({ organizationId: 1 });
-jewelryShopSchema.index({ managerId: 1 });
+// jewelryShopSchema.index({ code: 1 }, { unique: true });
+// jewelryShopSchema.index({ organizationId: 1 });
+// jewelryShopSchema.index({ managerId: 1 });
 jewelryShopSchema.index({ isActive: 1 });
 jewelryShopSchema.index({ organizationId: 1, isActive: 1 });
 jewelryShopSchema.index({ organizationId: 1, code: 1 }, { unique: true });
@@ -885,7 +885,7 @@ jewelryShopSchema.index({ 'address.city': 1 });
 jewelryShopSchema.index({ 'address.state': 1 });
 jewelryShopSchema.index({ 'address.pincode': 1 });
 jewelryShopSchema.index({ 'address.location': '2dsphere' });
-jewelryShopSchema.index({ gstNumber: 1 }, { sparse: true });
+// jewelryShopSchema.index({ gstNumber: 1 }, { sparse: true });
 jewelryShopSchema.index({ shopType: 1 });
 jewelryShopSchema.index({ category: 1 });
 jewelryShopSchema.index({ createdAt: -1 });
@@ -1146,7 +1146,7 @@ jewelryShopSchema.methods.updateStatistics = async function () {
   // Calculate total inventory value
   const products = await Product.find({ shopId: this._id, deletedAt: null });
   this.statistics.totalInventoryValue = products.reduce(
-    (sum, product) => sum + ((product.sellingPrice || 0) * (product.quantity || 1)),
+    (sum, product) => sum + (product.sellingPrice || 0) * (product.quantity || 1),
     0
   );
 
@@ -1181,7 +1181,9 @@ jewelryShopSchema.methods.updateStatistics = async function () {
   }
 
   // Purchase statistics
-  const purchases = await Purchase.find({ shopId: this._id, status: 'completed' }).sort({ createdAt: -1 });
+  const purchases = await Purchase.find({ shopId: this._id, status: 'completed' }).sort({
+    createdAt: -1,
+  });
   this.statistics.totalPurchases = purchases.length;
   if (purchases.length > 0) {
     this.statistics.lastPurchaseDate = purchases[0].createdAt;

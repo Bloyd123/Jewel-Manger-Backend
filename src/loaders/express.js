@@ -32,7 +32,7 @@ const loadExpressApp = app => {
 
   // CORS Configuration
   const corsOptions = {
-    origin: function (origin, callback) {
+    origin(origin, callback) {
       const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
         'http://localhost:3000',
         'http://localhost:3001',
@@ -52,24 +52,23 @@ const loadExpressApp = app => {
   app.use(cors(corsOptions));
 
   // Prevent MongoDB injection attacks
-// Simple protection from MongoDB injection
-app.use((req, res, next) => {
-  const clean = obj => {
-    if (!obj) return;
-    for (let key in obj) {
-      if (key.startsWith('$') || key.includes('.')) {
-        delete obj[key];
+  // Simple protection from MongoDB injection
+  app.use((req, res, next) => {
+    const clean = obj => {
+      if (!obj) return;
+      for (const key in obj) {
+        if (key.startsWith('$') || key.includes('.')) {
+          delete obj[key];
+        }
       }
-    }
-  };
+    };
 
-  clean(req.body);
-  clean(req.query);
-  clean(req.params);
+    clean(req.body);
+    clean(req.query);
+    clean(req.params);
 
-  next();
-});
-
+    next();
+  });
 
   // Rate Limiting
   const limiter = rateLimit({
@@ -108,16 +107,15 @@ app.use((req, res, next) => {
   // HEALTH CHECK ROUTE
   // =====================================
   app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Welcome to Jewelry ERP API',
-    endpoints: {
-      health: '/health',
-      api: '/api'
-    }
+    res.status(200).json({
+      success: true,
+      message: 'Welcome to Jewelry ERP API',
+      endpoints: {
+        health: '/health',
+        api: '/api',
+      },
+    });
   });
-});
-
 
   app.get('/health', (req, res) => {
     res.status(200).json({

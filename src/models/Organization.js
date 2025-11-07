@@ -489,14 +489,14 @@ const organizationSchema = new mongoose.Schema(
 );
 
 // Indexes
-organizationSchema.index({ slug: 1 }, { unique: true });
+// organizationSchema.index({ slug: 1 }, { unique: true });
 organizationSchema.index({ email: 1 });
 organizationSchema.index({ isActive: 1 });
 organizationSchema.index({ 'subscription.status': 1 });
 organizationSchema.index({ 'subscription.plan': 1 });
-organizationSchema.index({ ownerId: 1 });
-organizationSchema.index({ gstNumber: 1 }, { sparse: true });
-organizationSchema.index({ panNumber: 1 }, { sparse: true });
+// organizationSchema.index({ ownerId: 1 });
+// organizationSchema.index({ gstNumber: 1 }, { sparse: true });
+// organizationSchema.index({ panNumber: 1 }, { sparse: true });
 organizationSchema.index({ 'address.location': '2dsphere' });
 
 // Virtual for total shops

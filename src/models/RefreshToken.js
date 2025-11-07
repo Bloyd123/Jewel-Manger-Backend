@@ -58,7 +58,7 @@ const refreshTokenSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: [true, 'Expiry date is required'],
-      index: true,
+      // index: true,
     },
 
     // Session Information
@@ -125,10 +125,10 @@ const refreshTokenSchema = new mongoose.Schema(
 
 // Compound indexes for efficient queries
 refreshTokenSchema.index({ userId: 1, isRevoked: 1 });
-refreshTokenSchema.index({ userId: 1, expiresAt: 1 });
+// refreshTokenSchema.index({ userId: 1, expiresAt: 1 });
 refreshTokenSchema.index({ organizationId: 1, isRevoked: 1 });
 refreshTokenSchema.index({ tokenId: 1, isRevoked: 1 });
-refreshTokenSchema.index({ expiresAt: 1 }); // For cleanup jobs
+// refreshTokenSchema.index({ expiresAt: 1 }); // For cleanup jobs
 
 // TTL Index - Automatically delete expired tokens after 30 days
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
@@ -313,7 +313,10 @@ refreshTokenSchema.statics.revokeAllUserTokens = async function (userId, reason 
  * @param {String} reason - Revocation reason
  * @returns {Promise<Object>}
  */
-refreshTokenSchema.statics.revokeOrgTokens = async function (organizationId, reason = 'Organization deactivated') {
+refreshTokenSchema.statics.revokeOrgTokens = async function (
+  organizationId,
+  reason = 'Organization deactivated'
+) {
   const result = await this.updateMany(
     { organizationId, isRevoked: false },
     {

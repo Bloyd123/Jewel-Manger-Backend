@@ -54,7 +54,10 @@ const userSchema = new mongoose.Schema(
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
-      required: [true, 'Organization ID is required'],
+      required: function () {
+        return this.role !== 'super_admin'; // Conditional
+      },
+      default: null,
       index: true,
     },
 
@@ -226,7 +229,7 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ organizationId: 1, email: 1 });
 userSchema.index({ organizationId: 1, role: 1 });
 userSchema.index({ organizationId: 1, isActive: 1 });
-userSchema.index({ employeeId: 1 }, { unique: true, sparse: true });
+// userSchema.index({ employeeId: 1 }, { unique: true, sparse: true });
 userSchema.index({ primaryShop: 1 });
 userSchema.index({ email: 1, isActive: 1 });
 
@@ -362,7 +365,7 @@ userSchema.methods.getAccessibleShops = async function () {
     deletedAt: null,
     revokedAt: null,
   }).select('shopId');
-  return accesses.map((access) => access.shopId);
+  return accesses.map(access => access.shopId);
 };
 
 // Check if user is admin for any shop or specific shop
@@ -510,7 +513,7 @@ userSchema.statics.findByShop = async function (shopId) {
     revokedAt: null,
   }).select('userId');
 
-  const userIds = accesses.map((access) => access.userId);
+  const userIds = accesses.map(access => access.userId);
   return this.find({
     _id: { $in: userIds },
     isActive: true,
@@ -553,7 +556,7 @@ userSchema.statics.findByPermission = async function (shopId, permission) {
     revokedAt: null,
   }).select('userId');
 
-  const userIds = accesses.map((access) => access.userId);
+  const userIds = accesses.map(access => access.userId);
   return this.find({
     _id: { $in: userIds },
     isActive: true,
