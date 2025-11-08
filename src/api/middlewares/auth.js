@@ -1,6 +1,7 @@
 // ============================================================================
 // FILE: middlewares/auth.js
 // Authentication Middleware
+// ✅ FIXED: Now supports super admin with NULL organizationId
 // ============================================================================
 
 import jwt from 'jsonwebtoken';
@@ -12,6 +13,7 @@ import { sendUnauthorized, sendForbidden } from '../../utils/sendResponse.js';
 /**
  * Authenticate User Middleware
  * Verifies JWT token and attaches user to request
+ * ✅ FIXED: Supports super admin with NULL organizationId
  */
 export const authenticate = async (req, res, next) => {
   try {
@@ -53,7 +55,20 @@ export const authenticate = async (req, res, next) => {
       return sendUnauthorized(res, 'Your account has been deactivated');
     }
 
-    // Check organization status
+    // ✅ FIX: Skip organization check for super admin
+    if (user.role === 'super_admin') {
+      // Super admin doesn't need organization validation
+      req.user = user;
+      req.token = decoded.tokenId;
+      req.organization = null; // ✅ Super admin has no organization
+      return next();
+    }
+
+    // ✅ For non-super admin users: Check organization status
+    if (!user.organizationId) {
+      return sendUnauthorized(res, 'User organization not found');
+    }
+
     const organization = await Organization.findById(user.organizationId);
     if (!organization || !organization.isActive) {
       return sendUnauthorized(res, 'Organization is inactive');
@@ -102,6 +117,7 @@ export const authorize = (...allowedRoles) => {
 /**
  * Check Shop Access
  * Verifies user has access to a specific shop
+ * ✅ FIXED: Super admin automatically has access to all shops
  */
 export const checkShopAccess = (shopIdParam = 'shopId') => {
   return async (req, res, next) => {
@@ -112,8 +128,9 @@ export const checkShopAccess = (shopIdParam = 'shopId') => {
         return sendForbidden(res, 'Shop ID is required');
       }
 
-      // Super admin and org admin have access to all shops
+      // ✅ Super admin and org admin have access to all shops
       if (req.user.role === 'super_admin' || req.user.role === 'org_admin') {
+        req.shopId = shopId;
         return next();
       }
 
@@ -139,6 +156,7 @@ export const checkShopAccess = (shopIdParam = 'shopId') => {
 /**
  * Check Specific Permission
  * Verifies user has a specific permission for a shop
+ * ✅ FIXED: Super admin has all permissions
  */
 export const checkPermission = (permission, shopIdParam = 'shopId') => {
   return async (req, res, next) => {
@@ -149,8 +167,9 @@ export const checkPermission = (permission, shopIdParam = 'shopId') => {
         return sendForbidden(res, 'Shop ID is required');
       }
 
-      // Super admin has all permissions
+      // ✅ Super admin has all permissions
       if (req.user.role === 'super_admin') {
+        req.shopId = shopId;
         return next();
       }
 
@@ -226,9 +245,15 @@ export const requireEmailVerification = (req, res, next) => {
 /**
  * Check Organization Feature
  * Verifies if organization has access to a specific feature
+ * ✅ FIXED: Super admin bypasses feature checks
  */
 export const requireFeature = featureName => {
   return async (req, res, next) => {
+    // ✅ Super admin has access to all features
+    if (req.user.role === 'super_admin') {
+      return next();
+    }
+
     if (!req.organization) {
       return sendForbidden(res, 'Organization information not found');
     }
@@ -246,10 +271,20 @@ export const requireFeature = featureName => {
 
 /**
  * Check if user is organization owner
+ * ✅ FIXED: Super admin bypasses owner check
  */
 export const isOrganizationOwner = (req, res, next) => {
-  if (!req.user || !req.organization) {
+  if (!req.user) {
     return sendUnauthorized(res, 'Authentication required');
+  }
+
+  // ✅ Super admin can perform all organization owner actions
+  if (req.user.role === 'super_admin') {
+    return next();
+  }
+
+  if (!req.organization) {
+    return sendForbidden(res, 'Organization information not found');
   }
 
   if (req.user._id.toString() !== req.organization.ownerId.toString()) {

@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 /**
  * RefreshToken Schema
  * Stores refresh tokens for JWT authentication
+ * ✅ FIXED: organizationId is now OPTIONAL (supports super admin with NULL organizationId)
  */
 const refreshTokenSchema = new mongoose.Schema(
   {
@@ -14,11 +15,12 @@ const refreshTokenSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Organization Reference (Multi-tenant)
+    // ✅ FIXED: Organization Reference (Multi-tenant) - NOW OPTIONAL
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
-      required: [true, 'Organization ID is required'],
+      required: false,  // ✅ Changed from true to false (super admin support)
+      default: null,    // ✅ Added default null
       index: true,
     },
 
@@ -58,7 +60,6 @@ const refreshTokenSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: [true, 'Expiry date is required'],
-      // index: true,
     },
 
     // Session Information
@@ -125,10 +126,8 @@ const refreshTokenSchema = new mongoose.Schema(
 
 // Compound indexes for efficient queries
 refreshTokenSchema.index({ userId: 1, isRevoked: 1 });
-// refreshTokenSchema.index({ userId: 1, expiresAt: 1 });
 refreshTokenSchema.index({ organizationId: 1, isRevoked: 1 });
 refreshTokenSchema.index({ tokenId: 1, isRevoked: 1 });
-// refreshTokenSchema.index({ expiresAt: 1 }); // For cleanup jobs
 
 // TTL Index - Automatically delete expired tokens after 30 days
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
@@ -188,8 +187,6 @@ refreshTokenSchema.pre(/^find/, function (next) {
 
 /**
  * Revoke the refresh token
- * @param {String} reason - Reason for revocation
- * @returns {Promise<RefreshToken>}
  */
 refreshTokenSchema.methods.revoke = function (reason = 'Manual revocation') {
   this.isRevoked = true;
@@ -200,8 +197,6 @@ refreshTokenSchema.methods.revoke = function (reason = 'Manual revocation') {
 
 /**
  * Update last used timestamp and IP
- * @param {String} ipAddress - User's IP address
- * @returns {Promise<RefreshToken>}
  */
 refreshTokenSchema.methods.updateLastUsed = function (ipAddress = null) {
   this.lastUsedAt = new Date();
@@ -214,8 +209,6 @@ refreshTokenSchema.methods.updateLastUsed = function (ipAddress = null) {
 
 /**
  * Check if token belongs to user
- * @param {String} userId - User ID to check
- * @returns {Boolean}
  */
 refreshTokenSchema.methods.belongsTo = function (userId) {
   return this.userId.toString() === userId.toString();
@@ -223,7 +216,6 @@ refreshTokenSchema.methods.belongsTo = function (userId) {
 
 /**
  * Get token info (sanitized)
- * @returns {Object}
  */
 refreshTokenSchema.methods.getInfo = function () {
   return {
@@ -246,8 +238,6 @@ refreshTokenSchema.methods.getInfo = function () {
 
 /**
  * Find valid token by token string
- * @param {String} token - Token string
- * @returns {Promise<RefreshToken>}
  */
 refreshTokenSchema.statics.findValidToken = function (token) {
   return this.findOne({
@@ -259,8 +249,6 @@ refreshTokenSchema.statics.findValidToken = function (token) {
 
 /**
  * Find valid token by token ID
- * @param {String} tokenId - Token ID
- * @returns {Promise<RefreshToken>}
  */
 refreshTokenSchema.statics.findValidTokenById = function (tokenId) {
   return this.findOne({
@@ -272,8 +260,6 @@ refreshTokenSchema.statics.findValidTokenById = function (tokenId) {
 
 /**
  * Get all valid tokens for a user
- * @param {String} userId - User ID
- * @returns {Promise<Array>}
  */
 refreshTokenSchema.statics.findUserTokens = function (userId) {
   return this.find({
@@ -285,9 +271,6 @@ refreshTokenSchema.statics.findUserTokens = function (userId) {
 
 /**
  * Revoke all tokens for a user
- * @param {String} userId - User ID
- * @param {String} reason - Revocation reason
- * @returns {Promise<Object>}
  */
 refreshTokenSchema.statics.revokeAllUserTokens = async function (userId, reason = 'Logout all') {
   const result = await this.updateMany(
@@ -309,14 +292,21 @@ refreshTokenSchema.statics.revokeAllUserTokens = async function (userId, reason 
 
 /**
  * Revoke all tokens for an organization
- * @param {String} organizationId - Organization ID
- * @param {String} reason - Revocation reason
- * @returns {Promise<Object>}
+ * ✅ FIXED: Now handles NULL organizationId (skips super admin tokens)
  */
 refreshTokenSchema.statics.revokeOrgTokens = async function (
   organizationId,
   reason = 'Organization deactivated'
 ) {
+  // ✅ Skip if organizationId is null (super admin)
+  if (!organizationId) {
+    return {
+      modifiedCount: 0,
+      success: false,
+      message: 'Cannot revoke tokens without organizationId',
+    };
+  }
+
   const result = await this.updateMany(
     { organizationId, isRevoked: false },
     {
@@ -336,8 +326,6 @@ refreshTokenSchema.statics.revokeOrgTokens = async function (
 
 /**
  * Clean up expired tokens (for scheduled jobs)
- * @param {Number} olderThanDays - Delete tokens older than X days (default: 30)
- * @returns {Promise<Object>}
  */
 refreshTokenSchema.statics.cleanExpiredTokens = async function (olderThanDays = 30) {
   const cutoffDate = new Date();
@@ -355,8 +343,6 @@ refreshTokenSchema.statics.cleanExpiredTokens = async function (olderThanDays = 
 
 /**
  * Get token statistics for a user
- * @param {String} userId - User ID
- * @returns {Promise<Object>}
  */
 refreshTokenSchema.statics.getUserStats = async function (userId) {
   const total = await this.countDocuments({ userId });
@@ -381,10 +367,18 @@ refreshTokenSchema.statics.getUserStats = async function (userId) {
 
 /**
  * Get organization token statistics
- * @param {String} organizationId - Organization ID
- * @returns {Promise<Object>}
+ * ✅ FIXED: Now handles NULL organizationId
  */
 refreshTokenSchema.statics.getOrgStats = async function (organizationId) {
+  // ✅ Return empty stats for null organizationId
+  if (!organizationId) {
+    return {
+      total: 0,
+      active: 0,
+      activeUsers: 0,
+    };
+  }
+
   const total = await this.countDocuments({ organizationId });
   const active = await this.countDocuments({
     organizationId,
@@ -406,8 +400,6 @@ refreshTokenSchema.statics.getOrgStats = async function (organizationId) {
 
 /**
  * Find tokens by IP address
- * @param {String} ipAddress - IP address
- * @returns {Promise<Array>}
  */
 refreshTokenSchema.statics.findByIP = function (ipAddress) {
   return this.find({
@@ -419,8 +411,6 @@ refreshTokenSchema.statics.findByIP = function (ipAddress) {
 
 /**
  * Find suspicious activity (multiple IPs for same user)
- * @param {String} userId - User ID
- * @returns {Promise<Array>}
  */
 refreshTokenSchema.statics.findSuspiciousActivity = async function (userId) {
   const tokens = await this.find({
@@ -448,8 +438,6 @@ refreshTokenSchema.statics.findSuspiciousActivity = async function (userId) {
 
 /**
  * Parse user agent string to extract device info
- * @param {String} userAgent - User agent string
- * @returns {Object} Device information
  */
 function parseUserAgent(userAgent) {
   if (!userAgent) {
