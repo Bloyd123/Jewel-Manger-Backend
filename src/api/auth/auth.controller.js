@@ -15,7 +15,7 @@ import {
 // 1. REGISTER NEW USER
 // ========================================
 export const register = catchAsync(async (req, res) => {
-  const { username, email, password, firstName, _lastName, organizationId, role, _primaryShop } =
+  const { username, email, password, firstName, lastName, organizationId, role, primaryShop } =
     req.body;
 
   // Validate required fields
@@ -23,10 +23,18 @@ export const register = catchAsync(async (req, res) => {
     throw new ValidationError('Please provide all required fields');
   }
 
-  // Validate organizationId for non-super admin users
-  if (role !== 'super_admin' && !organizationId) {
-    throw new ValidationError('Organization ID is required for non-super admin users');
-  }
+// Role-based validation (express-validator already handles this, but double-check)
+if (role === 'super_admin' && (organizationId || primaryShop)) {
+  throw new ValidationError('Super admin cannot have organization or shop assignments');
+}
+
+if (role === 'org_admin' && !organizationId) {
+  throw new ValidationError('Organization ID is required for org admin');
+}
+
+if (['shop_admin', 'manager', 'staff', 'accountant', 'user'].includes(role) && !primaryShop) {
+  throw new ValidationError('Primary shop is required for shop-level users');
+}
 
   // Pass currentUser (req.user) to service - will be null for public registration
   const result = await authService.registerUser(

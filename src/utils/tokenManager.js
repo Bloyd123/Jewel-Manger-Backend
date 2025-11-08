@@ -10,10 +10,12 @@ import logger from './logger.js';
 
 class TokenManager {
   constructor() {
-    this.accessTokenSecret = process.env.JWT_ACCESS_SECRET || 'your-access-secret-key';
-    this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
-    this.accessTokenExpiry = process.env.JWT_ACCESS_EXPIRY || '15m'; // 15 minutes
-    this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRY || '7d'; // 7 days
+    this.accessTokenSecret = process.env.JWT_ACCESS_SECRET ;
+    this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET;
+    this.accessTokenExpiry = process.env.JWT_ACCESS_EXPIRY; 
+    this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRY; 
+
+      console.log('JWT_ACCESS_SECRET Loaded:', !!this.accessTokenSecret);
   }
 
   /**
@@ -95,7 +97,7 @@ class TokenManager {
     try {
       const payload = {
         userId: user._id.toString(),
-        organizationId: user.organizationId.toString(),
+     organizationId: user.organizationId ? user.organizationId.toString() : null,
         role: user.role,
         email: user.email,
       };

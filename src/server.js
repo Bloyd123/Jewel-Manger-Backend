@@ -1,4 +1,7 @@
 import dotenv from 'dotenv';
+dotenv.config();
+
+
 import createApp from './app.js';
 import logger from './utils/logger.js';
 import {
@@ -8,7 +11,6 @@ import {
 } from './api/middlewares/errorHandler.js';
 
 // Load environment variables
-dotenv.config();
 
 // Handle uncaught exceptions (MUST be at the top)
 handleUncaughtException();

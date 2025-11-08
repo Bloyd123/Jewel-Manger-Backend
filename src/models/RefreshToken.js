@@ -14,13 +14,14 @@ const refreshTokenSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Organization Reference (Multi-tenant)
-    organizationId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Organization',
-      required: [true, 'Organization ID is required'],
-      index: true,
-    },
+// Organization Reference (Multi-tenant)
+organizationId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Organization',
+  required: false,           // ✅ Changed to false
+  default: null,             // ✅ Added default
+  index: true,
+},
 
     // Token Information
     token: {
@@ -126,7 +127,11 @@ const refreshTokenSchema = new mongoose.Schema(
 // Compound indexes for efficient queries
 refreshTokenSchema.index({ userId: 1, isRevoked: 1 });
 // refreshTokenSchema.index({ userId: 1, expiresAt: 1 });
-refreshTokenSchema.index({ organizationId: 1, isRevoked: 1 });
+// Only index organizationId if it exists (sparse index for super_admins)
+refreshTokenSchema.index(
+  { organizationId: 1, isRevoked: 1 }, 
+  { sparse: true }  // ✅ Skip null values
+);
 refreshTokenSchema.index({ tokenId: 1, isRevoked: 1 });
 // refreshTokenSchema.index({ expiresAt: 1 }); // For cleanup jobs
 
@@ -317,6 +322,10 @@ refreshTokenSchema.statics.revokeOrgTokens = async function (
   organizationId,
   reason = 'Organization deactivated'
 ) {
+  if (!organizationId) {
+    return { modifiedCount: 0, success: false, error: 'Organization ID required' };
+  }
+  
   const result = await this.updateMany(
     { organizationId, isRevoked: false },
     {

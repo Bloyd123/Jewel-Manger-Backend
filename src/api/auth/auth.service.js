@@ -40,13 +40,22 @@ class AuthService {
       department,
     } = userData;
 
-    // ✅ STEP 2: Validate organization (skip for super_admin)
-    if (role !== 'super_admin') {
-      const organization = await Organization.findById(organizationId);
-      if (!organization || !organization.isActive) {
-        throw new OrganizationNotFoundError('Organization not found or inactive');
-      }
-    }
+// ✅ STEP 2: Validate organization (skip for super_admin only)
+if (role !== 'super_admin') {
+  if (!organizationId) {
+    throw new ValidationError('Organization ID is required for non-super admin users');
+  }
+  
+  const organization = await Organization.findById(organizationId);
+  if (!organization || !organization.isActive) {
+    throw new OrganizationNotFoundError('Organization not found or inactive');
+  }
+  
+  // For org_admin, verify they're being created by super_admin
+  if (role === 'org_admin' && currentUser?.role !== 'super_admin') {
+    throw new ValidationError('Only super admin can create org admins');
+  }
+}
 
     // ✅ STEP 3: Check if user already exists
     const existingUser = await User.findOne({
