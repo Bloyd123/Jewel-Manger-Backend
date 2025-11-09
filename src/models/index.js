@@ -11,6 +11,9 @@ import Scheme from './Scheme.js';
 import MetalRate from './MetalRate.js';
 import Payment from './Payment.js';
 import Order from './Order.js';
+import Customer from './Customer.js';
+import Product from './Product.js';
+import ActivityLog from './ActivityLog.js';
 
 // Named exports
 export {
@@ -26,6 +29,9 @@ export {
   MetalRate,
   Payment,
   Order,
+    Customer,
+  Product,
+  ActivityLog,
 };
 
 // Default export as object
@@ -42,4 +48,7 @@ export default {
   MetalRate,
   Payment,
   Order,
+  Customer,
+  Product,
+  ActivityLog,
 };
