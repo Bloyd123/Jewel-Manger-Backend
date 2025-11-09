@@ -57,18 +57,21 @@ if (role !== 'super_admin') {
   }
 }
 
-    // ✅ STEP 3: Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }],
-      ...(role !== 'super_admin' && { organizationId }),
-    });
+// ✅ STEP 3: Check GLOBAL uniqueness
+const existingUser = await User.findOne({
+  $or: [{ email }, { username }]
+});
 
-    if (existingUser) {
-      if (existingUser.email === email) {
-        throw new DuplicateEmailError();
-      }
-      throw new DuplicateUsernameError();
-    }
+if (existingUser) {
+  if (existingUser.email === email) {
+    throw new DuplicateEmailError(
+      `Email "${email}" is already registered. Please use a different email.`
+    );
+  }
+  throw new DuplicateUsernameError(
+    `Username "${username}" is already taken. Please choose a different username.`
+  );
+}
 
     // ✅ STEP 4: Create User
     const user = await User.create({
@@ -119,14 +122,17 @@ if (role !== 'super_admin') {
     const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
 
     // ✅ STEP 9: Log Activity
-    if (currentUser) {
-      await currentUser.logActivity(
-        'user_created',
-        'user_management',
-        `Created new user: ${user.username} with role: ${role}`,
-        { newUserId: user._id, role, organizationId, primaryShop }
-      );
-    }
+// ✅ STEP 9: Log Activity
+if (currentUser) {
+  await eventLogger.logUserManagement(
+    currentUser._id,
+    organizationId || null,
+    'user_created',
+    user._id,
+    `Created new user: ${user.username} with role: ${role}`,
+    { role, organizationId, primaryShop, createdBy: currentUser._id }
+  );
+}
 
     // Log registration
     await eventLogger.logAuth(user._id, user.organizationId, 'register', 'success', ipAddress, {

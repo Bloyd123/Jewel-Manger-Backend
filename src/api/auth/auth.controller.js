@@ -22,7 +22,16 @@ export const register = catchAsync(async (req, res) => {
   if (!username || !email || !password || !firstName) {
     throw new ValidationError('Please provide all required fields');
   }
-
+  // ============================================
+  // NEW: Extra Super Admin Safety Check
+  // ============================================
+  if (role === 'super_admin') {
+    if (organizationId || primaryShop) {
+      throw new ValidationError(
+        'Super admin cannot have organization or shop assignments'
+      );
+    }
+  }
 // Role-based validation (express-validator already handles this, but double-check)
 if (role === 'super_admin' && (organizationId || primaryShop)) {
   throw new ValidationError('Super admin cannot have organization or shop assignments');

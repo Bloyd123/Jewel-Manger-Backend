@@ -4,6 +4,7 @@
 // ============================================================================
 
 import JewelryShop from '../../models/Shop.js';
+import Organization from '../../models/Organization.js';
 
 /**
  * Middleware to check if current user has permission to register a new user
@@ -12,6 +13,27 @@ import JewelryShop from '../../models/Shop.js';
 export const checkRegistrationPermission = async (req, res, next) => {
   const { role, organizationId, primaryShop } = req.body;
   const currentUser = req.user; // Logged-in user who is registering
+
+    // ============================================
+  // NEW: Validate Organization First
+  // ============================================
+    if (role !== 'super_admin' && organizationId) {
+    const organization = await Organization.findById(organizationId);
+    
+    if (!organization) {
+      return res.status(404).json({
+        success: false,
+        message: 'Organization not found',
+      });
+    }
+
+    if (!organization.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Organization is inactive',
+      });
+    }
+  }
 
   // ============================================
   // RULE 1: Super Admin
