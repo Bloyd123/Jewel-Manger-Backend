@@ -92,7 +92,17 @@ export const login = catchAsync(async (req, res) => {
 export const logout = catchAsync(async (req, res) => {
   const { refreshToken } = req.body;
 
-  await authService.logoutUser(req.user._id, req.user.organizationId, refreshToken, req.ip);
+   // Extract access token from Authorization header
+  const authHeader = req.headers.authorization;
+  const accessToken = authHeader?.split(' ')[1] || null;
+
+  await authService.logoutUser(
+    req.user._id,
+    req.user.organizationId,
+    refreshToken,
+    accessToken, // 🆕 Pass access token
+    req.ip
+  );
 
   return sendSuccess(res, 200, 'Logout successful');
 });

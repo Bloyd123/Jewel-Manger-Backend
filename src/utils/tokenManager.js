@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import RefreshToken from '../models/RefreshToken.js';
 import logger from './logger.js';
+import cache from './cache.js'; 
 
 /**
  * Token Manager Utility
@@ -276,7 +277,55 @@ class TokenManager {
       throw error;
     }
   }
+ /**
+   * Blacklist access token in cache
+   * @param {String} accessToken - Access token to blacklist
+   * @returns {Boolean} Success status
+   */
+  async blacklistAccessToken(accessToken) {
+    try {
+      const decoded = jwt.decode(accessToken);
 
+      if (!decoded || !decoded.exp) {
+        logger.warn('Cannot blacklist invalid access token');
+        return false;
+      }
+
+      // Calculate remaining TTL (time until token expires)
+      const ttl = decoded.exp - Math.floor(Date.now() / 1000);
+
+      // Only blacklist if token hasn't expired yet
+      if (ttl > 0) {
+        // Store in cache with TTL matching token expiry
+        await cache.set(`blacklist:${accessToken}`, true, ttl);
+        logger.info(`Access token blacklisted for user: ${decoded.userId}`);
+        return true;
+      }
+
+      logger.debug('Access token already expired, no need to blacklist');
+      return false;
+    } catch (error) {
+      logger.error('Error blacklisting access token:', error);
+      throw error;
+    }
+  }
+  // ============================================================================
+  // 🆕 NEW METHOD: Check if Access Token is Blacklisted
+  // ============================================================================
+  /**
+   * Check if access token is blacklisted
+   * @param {String} accessToken - Access token to check
+   * @returns {Boolean} True if blacklisted
+   */
+  async isAccessTokenBlacklisted(accessToken) {
+    try {
+      const isBlacklisted = await cache.get(`blacklist:${accessToken}`);
+      return !!isBlacklisted;
+    } catch (error) {
+      logger.error('Error checking access token blacklist:', error);
+      return false;
+    }
+  }
   /**
    * Revoke refresh token
    * @param {String} refreshToken - Refresh token to revoke

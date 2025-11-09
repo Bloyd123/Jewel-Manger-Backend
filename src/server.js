@@ -12,9 +12,9 @@ import {
 handleUncaughtException();
 
 // Server configuration
-const PORT = process.env.PORT || 5000;
-const HOST = process.env.HOST || '0.0.0.0';
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const PORT = process.env.PORT ;
+const HOST = process.env.HOST;
+const NODE_ENV = process.env.NODE_ENV;
 
 /**
  * Start Server

@@ -35,7 +35,7 @@ router.post(
 router.post(
   '/register',
   authenticate,
-  rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),
+  rateLimiter({ max: 100, windowMs: 15 * 60 * 1000 }),
   authValidation.registerValidation,
   checkRegistrationPermission,
   authController.register

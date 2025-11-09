@@ -231,16 +231,23 @@ if (currentUser) {
       throw new UnauthorizedError('Your account has been deactivated');
     }
 
-    // Check if organization is active
-    const organization = await Organization.findById(user.organizationId);
-    if (!organization || !organization.isActive) {
-      throw new UnauthorizedError('Organization is inactive');
-    }
+// Check if organization is active (skip for super_admin)
+if (user.role !== 'super_admin') {
+  const organization = await Organization.findById(user.organizationId);
+  if (!organization || !organization.isActive) {
+    throw new UnauthorizedError('Organization is inactive');
+  }
+
+  // Check subscription status
+  if (!organization.isSubscriptionActive()) {
+    throw new UnauthorizedError('Organization subscription has expired');
+  }
+}
 
     // Check subscription status
-    if (!organization.isSubscriptionActive()) {
-      throw new UnauthorizedError('Organization subscription has expired');
-    }
+    // if (!organization.isSubscriptionActive()) {
+    //   throw new UnauthorizedError('Organization subscription has expired');
+    // }
 
     // Generate token pair
     const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
@@ -265,14 +272,22 @@ if (currentUser) {
   // ========================================
   // USER LOGOUT
   // ========================================
-  async logoutUser(userId, organizationId, refreshToken, ipAddress) {
+async logoutUser(userId, organizationId, refreshToken, accessToken, ipAddress) {
     if (refreshToken) {
       try {
         await tokenManager.revokeRefreshToken(refreshToken);
       } catch (error) {
-        console.error('Token revocation failed:', error);
+        console.error('Refresh token revocation failed:', error);
       }
     }
+  // 2. 🆕 Blacklist access token
+  if (accessToken) {
+    try {
+      await tokenManager.blacklistAccessToken(accessToken);
+    } catch (error) {
+      console.error('Access token blacklisting failed:', error);
+    }
+  }
 
     // Clear user cache
     cache.del(cache.userKey(userId));
