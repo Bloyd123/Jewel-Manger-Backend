@@ -3,7 +3,7 @@ import { body, param, validationResult } from 'express-validator';
 // ========================================
 // VALIDATION HELPER
 // ========================================
-import { ValidationError } from '../utils/AppError.js';
+import { ValidationError } from '../../utils/AppError.js';
 
 export const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -12,7 +12,7 @@ export const validate = (req, res, next) => {
       field: err.path,
       message: err.msg,
     }));
-    
+
     // Throw ValidationError - will be caught by errorHandler
     const error = new ValidationError('Validation failed');
     error.errors = formattedErrors; // Attach validation errors

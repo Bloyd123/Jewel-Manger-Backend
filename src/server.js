@@ -12,7 +12,7 @@ import {
 handleUncaughtException();
 
 // Server configuration
-const PORT = process.env.PORT ;
+const PORT = process.env.PORT;
 const HOST = process.env.HOST;
 const NODE_ENV = process.env.NODE_ENV;
 
@@ -33,12 +33,10 @@ const startServer = async () => {
       logger.info(`🏥 Health check: http://${HOST}:${PORT}/health`);
       logger.info(`📊 API endpoint: http://${HOST}:${PORT}/api`);
       logger.info('='.repeat(50));
-      
     });
 
     // Handle unhandled promise rejections
     handleUnhandledRejection(server);
-
 
     // Handle SIGTERM
     handleSIGTERM(server);

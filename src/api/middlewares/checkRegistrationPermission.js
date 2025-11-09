@@ -14,12 +14,12 @@ export const checkRegistrationPermission = async (req, res, next) => {
   const { role, organizationId, primaryShop } = req.body;
   const currentUser = req.user; // Logged-in user who is registering
 
-    // ============================================
+  // ============================================
   // NEW: Validate Organization First
   // ============================================
-    if (role !== 'super_admin' && organizationId) {
+  if (role !== 'super_admin' && organizationId) {
     const organization = await Organization.findById(organizationId);
-    
+
     if (!organization) {
       return res.status(404).json({
         success: false,

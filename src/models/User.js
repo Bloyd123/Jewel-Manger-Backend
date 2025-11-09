@@ -54,7 +54,7 @@ const userSchema = new mongoose.Schema(
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
-      required: function () {
+      required() {
         return this.role !== 'super_admin'; // Conditional
       },
       default: null,

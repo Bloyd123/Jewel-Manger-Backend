@@ -53,19 +53,19 @@ export const authenticate = async (req, res, next) => {
       return sendUnauthorized(res, 'Your account has been deactivated');
     }
 
-// Check organization status (skip for super_admin)
-let organization = null;
-if (user.role !== 'super_admin') {
-  organization = await Organization.findById(user.organizationId);
-  if (!organization || !organization.isActive) {
-    return sendUnauthorized(res, 'Organization is inactive');
-  }
+    // Check organization status (skip for super_admin)
+    let organization = null;
+    if (user.role !== 'super_admin') {
+      organization = await Organization.findById(user.organizationId);
+      if (!organization || !organization.isActive) {
+        return sendUnauthorized(res, 'Organization is inactive');
+      }
 
-  // Check subscription
-  if (!organization.isSubscriptionActive() && !organization.isTrialActive()) {
-    return sendUnauthorized(res, 'Organization subscription has expired');
-  }
-}
+      // Check subscription
+      if (!organization.isSubscriptionActive() && !organization.isTrialActive()) {
+        return sendUnauthorized(res, 'Organization subscription has expired');
+      }
+    }
 
     // Attach user and token info to request
     req.user = user;

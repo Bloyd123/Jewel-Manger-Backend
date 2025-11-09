@@ -3,7 +3,7 @@
 // Rate Limiting Middleware
 // ============================================================================
 
-import rateLimit,{ ipKeyGenerator }  from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import redis from '../../config/redis.js';
 
@@ -204,7 +204,6 @@ export const ipRateLimiter = rateLimiter({
   max: 100,
   message: 'Too many requests from this IP',
   keyGenerator: req => ipKeyGenerator(req),
-
 });
 
 /**
@@ -254,8 +253,7 @@ export const planBasedRateLimiter = (baseMax = 100) => {
 export const createRateLimiterWithWhitelist = (whitelist = [], options = {}) => {
   return rateLimiter({
     ...options,
-skip: req => whitelist.includes(ipKeyGenerator(req)),
-
+    skip: req => whitelist.includes(ipKeyGenerator(req)),
   });
 };
 

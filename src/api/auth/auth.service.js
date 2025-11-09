@@ -40,38 +40,38 @@ class AuthService {
       department,
     } = userData;
 
-// ✅ STEP 2: Validate organization (skip for super_admin only)
-if (role !== 'super_admin') {
-  if (!organizationId) {
-    throw new ValidationError('Organization ID is required for non-super admin users');
-  }
-  
-  const organization = await Organization.findById(organizationId);
-  if (!organization || !organization.isActive) {
-    throw new OrganizationNotFoundError('Organization not found or inactive');
-  }
-  
-  // For org_admin, verify they're being created by super_admin
-  if (role === 'org_admin' && currentUser?.role !== 'super_admin') {
-    throw new ValidationError('Only super admin can create org admins');
-  }
-}
+    // ✅ STEP 2: Validate organization (skip for super_admin only)
+    if (role !== 'super_admin') {
+      if (!organizationId) {
+        throw new ValidationError('Organization ID is required for non-super admin users');
+      }
 
-// ✅ STEP 3: Check GLOBAL uniqueness
-const existingUser = await User.findOne({
-  $or: [{ email }, { username }]
-});
+      const organization = await Organization.findById(organizationId);
+      if (!organization || !organization.isActive) {
+        throw new OrganizationNotFoundError('Organization not found or inactive');
+      }
 
-if (existingUser) {
-  if (existingUser.email === email) {
-    throw new DuplicateEmailError(
-      `Email "${email}" is already registered. Please use a different email.`
-    );
-  }
-  throw new DuplicateUsernameError(
-    `Username "${username}" is already taken. Please choose a different username.`
-  );
-}
+      // For org_admin, verify they're being created by super_admin
+      if (role === 'org_admin' && currentUser?.role !== 'super_admin') {
+        throw new ValidationError('Only super admin can create org admins');
+      }
+    }
+
+    // ✅ STEP 3: Check GLOBAL uniqueness
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }],
+    });
+
+    if (existingUser) {
+      if (existingUser.email === email) {
+        throw new DuplicateEmailError(
+          `Email "${email}" is already registered. Please use a different email.`
+        );
+      }
+      throw new DuplicateUsernameError(
+        `Username "${username}" is already taken. Please choose a different username.`
+      );
+    }
 
     // ✅ STEP 4: Create User
     const user = await User.create({
@@ -122,17 +122,17 @@ if (existingUser) {
     const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
 
     // ✅ STEP 9: Log Activity
-// ✅ STEP 9: Log Activity
-if (currentUser) {
-  await eventLogger.logUserManagement(
-    currentUser._id,
-    organizationId || null,
-    'user_created',
-    user._id,
-    `Created new user: ${user.username} with role: ${role}`,
-    { role, organizationId, primaryShop, createdBy: currentUser._id }
-  );
-}
+    // ✅ STEP 9: Log Activity
+    if (currentUser) {
+      await eventLogger.logUserManagement(
+        currentUser._id,
+        organizationId || null,
+        'user_created',
+        user._id,
+        `Created new user: ${user.username} with role: ${role}`,
+        { role, organizationId, primaryShop, createdBy: currentUser._id }
+      );
+    }
 
     // Log registration
     await eventLogger.logAuth(user._id, user.organizationId, 'register', 'success', ipAddress, {
@@ -231,18 +231,18 @@ if (currentUser) {
       throw new UnauthorizedError('Your account has been deactivated');
     }
 
-// Check if organization is active (skip for super_admin)
-if (user.role !== 'super_admin') {
-  const organization = await Organization.findById(user.organizationId);
-  if (!organization || !organization.isActive) {
-    throw new UnauthorizedError('Organization is inactive');
-  }
+    // Check if organization is active (skip for super_admin)
+    if (user.role !== 'super_admin') {
+      const organization = await Organization.findById(user.organizationId);
+      if (!organization || !organization.isActive) {
+        throw new UnauthorizedError('Organization is inactive');
+      }
 
-  // Check subscription status
-  if (!organization.isSubscriptionActive()) {
-    throw new UnauthorizedError('Organization subscription has expired');
-  }
-}
+      // Check subscription status
+      if (!organization.isSubscriptionActive()) {
+        throw new UnauthorizedError('Organization subscription has expired');
+      }
+    }
 
     // Check subscription status
     // if (!organization.isSubscriptionActive()) {
@@ -272,7 +272,7 @@ if (user.role !== 'super_admin') {
   // ========================================
   // USER LOGOUT
   // ========================================
-async logoutUser(userId, organizationId, refreshToken, accessToken, ipAddress) {
+  async logoutUser(userId, organizationId, refreshToken, accessToken, ipAddress) {
     if (refreshToken) {
       try {
         await tokenManager.revokeRefreshToken(refreshToken);
@@ -280,14 +280,14 @@ async logoutUser(userId, organizationId, refreshToken, accessToken, ipAddress) {
         console.error('Refresh token revocation failed:', error);
       }
     }
-  // 2. 🆕 Blacklist access token
-  if (accessToken) {
-    try {
-      await tokenManager.blacklistAccessToken(accessToken);
-    } catch (error) {
-      console.error('Access token blacklisting failed:', error);
+    // 2. 🆕 Blacklist access token
+    if (accessToken) {
+      try {
+        await tokenManager.blacklistAccessToken(accessToken);
+      } catch (error) {
+        console.error('Access token blacklisting failed:', error);
+      }
     }
-  }
 
     // Clear user cache
     cache.del(cache.userKey(userId));
