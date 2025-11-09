@@ -15,8 +15,6 @@ class TokenManager {
     this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET;
     this.accessTokenExpiry = process.env.JWT_ACCESS_EXPIRY; 
     this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRY; 
-
-      console.log('JWT_ACCESS_SECRET Loaded:', !!this.accessTokenSecret);
   }
 
   /**
@@ -50,7 +48,7 @@ class TokenManager {
       return token;
     } catch (error) {
       logger.error('Error generating access token:', error);
-      throw new Error('Failed to generate access token');
+      throw new InternalServerError('Failed to generate access token'); 
     }
   }
 
@@ -83,7 +81,7 @@ class TokenManager {
       return token;
     } catch (error) {
       logger.error('Error generating refresh token:', error);
-      throw new Error('Failed to generate refresh token');
+     throw new InternalServerError('Failed to generate refresh token'); 
     }
   }
 
@@ -131,7 +129,7 @@ class TokenManager {
       };
     } catch (error) {
       logger.error('Error generating token pair:', error);
-      throw new Error('Failed to generate token pair');
+ throw new InternalServerError('Failed to generate token pair'); 
     }
   }
 
@@ -148,21 +146,21 @@ class TokenManager {
       });
 
       if (decoded.type !== 'access') {
-        throw new Error('Invalid token type');
+         throw new InvalidTokenError('Invalid token type'); 
       }
 
       return decoded;
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
         logger.debug('Access token expired');
-        throw new Error('Access token expired');
+     throw new TokenExpiredError()
       } else if (error.name === 'JsonWebTokenError') {
         logger.warn('Invalid access token');
-        throw new Error('Invalid access token');
+    throw new InvalidTokenError(); 
       }
 
       logger.error('Error verifying access token:', error);
-      throw new Error('Token verification failed');
+  throw new InvalidTokenError('Token verification failed');
     }
   }
 
@@ -217,13 +215,13 @@ class TokenManager {
       });
 
       if (!storedToken) {
-        throw new Error('Invalid or revoked refresh token');
+    throw new InvalidTokenError('Invalid or revoked refresh token');
       }
 
       // Check if token is expired
       if (storedToken.expiresAt < new Date()) {
         await storedToken.revoke();
-        throw new Error('Refresh token expired');
+        throw new TokenExpiredError('Refresh token expired');
       }
 
       // Update last used info
@@ -336,7 +334,7 @@ class TokenManager {
       const decoded = jwt.decode(refreshToken);
 
       if (!decoded || !decoded.tokenId) {
-        throw new Error('Invalid refresh token');
+    throw new InvalidTokenError('Invalid refresh token')
       }
 
       const storedToken = await RefreshToken.findOne({
@@ -476,7 +474,7 @@ class TokenManager {
       return token;
     } catch (error) {
       logger.error('Error generating password reset token:', error);
-      throw new Error('Failed to generate password reset token');
+    throw new InternalServerError('Failed to generate password reset token'); // ✅
     }
   }
 
@@ -513,18 +511,18 @@ class TokenManager {
       const decoded = jwt.verify(token, this.accessTokenSecret);
 
       if (decoded.type !== expectedType) {
-        throw new Error('Invalid token type');
+   throw new InvalidTokenError('Invalid token type');
       }
 
       return decoded;
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
-        throw new Error('Token expired');
+       throw new TokenExpiredError();
       } else if (error.name === 'JsonWebTokenError') {
-        throw new Error('Invalid token');
+        throw new InvalidTokenError();
       }
 
-      throw new Error('Token verification failed');
+ throw new InternalServerError('Token verification failed'); 
     }
   }
 }

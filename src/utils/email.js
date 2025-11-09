@@ -92,13 +92,22 @@ class EmailService {
 
       // Validate required fields
       if (!to) {
-        throw new Error('Recipient email (to) is required');
+        return {
+          success: false,
+          message: 'Recipient email (to) is required',
+        };
       }
       if (!subject) {
-        throw new Error('Email subject is required');
+        return {
+          success: false,
+          message: 'Email subject is required',
+        };
       }
       if (!text && !html) {
-        throw new Error('Email content (text or html) is required');
+        return {
+          success: false,
+          message: 'Email content (text or html) is required',
+        };
       }
 
       // Prepare email message
@@ -130,7 +139,11 @@ class EmailService {
       };
     } catch (error) {
       logger.error('❌ Failed to send email:', error);
-      throw new Error(`Email sending failed: ${error.message}`);
+      return {
+        success: false,
+        message: `Email sending failed: ${error.message}`,
+        error: error.message,
+      };
     }
   }
 

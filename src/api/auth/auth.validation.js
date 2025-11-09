@@ -3,17 +3,20 @@ import { body, param, validationResult } from 'express-validator';
 // ========================================
 // VALIDATION HELPER
 // ========================================
+import { ValidationError } from '../utils/AppError.js';
+
 export const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array().map(err => ({
-        field: err.path,
-        message: err.msg,
-      })),
-    });
+    const formattedErrors = errors.array().map(err => ({
+      field: err.path,
+      message: err.msg,
+    }));
+    
+    // Throw ValidationError - will be caught by errorHandler
+    const error = new ValidationError('Validation failed');
+    error.errors = formattedErrors; // Attach validation errors
+    throw error;
   }
   next();
 };
