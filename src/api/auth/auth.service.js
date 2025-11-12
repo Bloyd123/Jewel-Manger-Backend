@@ -237,11 +237,11 @@ class AuthService {
       if (!organization || !organization.isActive) {
         throw new UnauthorizedError('Organization is inactive');
       }
-
-      // Check subscription status
-      if (!organization.isSubscriptionActive()) {
-        throw new UnauthorizedError('Organization subscription has expired');
-      }
+// !important
+      // // Check subscription status
+      // if (!organization.isSubscriptionActive()) {
+      //   throw new UnauthorizedError('Organization subscription has expired');
+      // }
     }
 
     // Check subscription status

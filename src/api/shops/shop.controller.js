@@ -6,7 +6,7 @@
 import { validationResult } from 'express-validator';
 import * as shopService from './shop.service.js';
 import AppError from '../../utils/AppError.js';
-import { catchAsync } from '../../middlewares/errorHandler.js';
+import { catchAsync } from '../middlewares/errorHandler.js';
 
 // ============================================================================
 // VALIDATION ERROR HANDLER

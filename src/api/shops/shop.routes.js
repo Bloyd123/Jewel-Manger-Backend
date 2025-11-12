@@ -6,8 +6,8 @@
 import express from 'express';
 import * as shopController from './shop.controller.js';
 import * as shopValidation from './shop.validation.js';
-import { authenticate } from '../../middlewares/auth.js';
-import { checkShopAccess } from '../../middlewares/checkShopAccess.js';
+import { authenticate } from '../middlewares/auth.js';
+import { checkShopAccess } from '../middlewares/checkShopAccess.js';
 
 const router = express.Router();
 

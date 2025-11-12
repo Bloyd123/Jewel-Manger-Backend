@@ -9,7 +9,7 @@ import errorLogger from '../api/middlewares/errorLogger.js';
 import { notFound } from '../api/middlewares/errorHandler.js';
 import errorHandler from '../api/middlewares/errorHandler.js';
 import authRoutes from '../api/auth/auth.routes.js';
-import shopRoutes from './api/shops/shop.routes.js';
+import shopRoutes from '../api/shops/shop.routes.js';
 import logger from '../utils/logger.js';
 
 /**

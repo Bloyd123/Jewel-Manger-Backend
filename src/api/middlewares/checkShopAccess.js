@@ -4,9 +4,9 @@
 // ============================================================================
 
 import mongoose from 'mongoose';
-import UserShopAccess from '../models/UserShopAccess.js';
-import JewelryShop from '../models/Shop.js';
-import AppError from '../utils/AppError.js';
+import UserShopAccess from '../../models/UserShopAccess.js';
+import JewelryShop from '../../models/Shop.js';
+import AppError from '../../utils/AppError.js';
 import { catchAsync } from './errorHandler.js';
 
 // ============================================================================
