@@ -1,6 +1,6 @@
 // ============================================================================
 // FILE: middlewares/auth.js
-// Authentication Middleware
+// Authentication Middleware (CLEANED - Removed duplicate shop access functions)
 // ============================================================================
 
 import jwt from 'jsonwebtoken';
@@ -87,6 +87,9 @@ export const authenticate = async (req, res, next) => {
 /**
  * Authorize by Role
  * Checks if user has required role
+ * 
+ * NOTE: This is deprecated - use restrictTo from restrictTo.js instead
+ * Kept for backward compatibility
  */
 export const authorize = (...allowedRoles) => {
   return (req, res, next) => {
@@ -102,84 +105,10 @@ export const authorize = (...allowedRoles) => {
   };
 };
 
-/**
- * Check Shop Access
- * Verifies user has access to a specific shop
- */
-export const checkShopAccess = (shopIdParam = 'shopId') => {
-  return async (req, res, next) => {
-    try {
-      const shopId = req.params[shopIdParam] || req.body.shopId || req.query.shopId;
-
-      if (!shopId) {
-        return sendForbidden(res, 'Shop ID is required');
-      }
-
-      // Super admin and org admin have access to all shops
-      if (req.user.role === 'super_admin' || req.user.role === 'org_admin') {
-        return next();
-      }
-
-      // Check if user has access to this shop
-      const hasAccess = req.user.shopAccess?.some(
-        access => access.shopId.toString() === shopId.toString()
-      );
-
-      if (!hasAccess) {
-        return sendForbidden(res, 'You do not have access to this shop');
-      }
-
-      // Attach shop ID to request
-      req.shopId = shopId;
-
-      next();
-    } catch (error) {
-      return sendForbidden(res, 'Shop access verification failed');
-    }
-  };
-};
-
-/**
- * Check Specific Permission
- * Verifies user has a specific permission for a shop
- */
-export const checkPermission = (permission, shopIdParam = 'shopId') => {
-  return async (req, res, next) => {
-    try {
-      const shopId = req.params[shopIdParam] || req.body.shopId || req.query.shopId;
-
-      if (!shopId) {
-        return sendForbidden(res, 'Shop ID is required');
-      }
-
-      // Super admin has all permissions
-      if (req.user.role === 'super_admin') {
-        return next();
-      }
-
-      // Get shop access
-      const shopAccess = req.user.shopAccess?.find(
-        access => access.shopId.toString() === shopId.toString()
-      );
-
-      if (!shopAccess) {
-        return sendForbidden(res, 'You do not have access to this shop');
-      }
-
-      // Check specific permission
-      if (!shopAccess.permissions[permission]) {
-        return sendForbidden(res, `You do not have ${permission} permission for this shop`);
-      }
-
-      // Attach shop ID to request
-      req.shopId = shopId;
-
-      next();
-    } catch (error) {
-      return sendForbidden(res, 'Permission verification failed');
-    }
-  };
-};
+// ============================================================================
+// REMOVED: checkShopAccess - Use the one from checkShopAccess.js instead
+// REMOVED: checkPermission - Use the one from checkShopAccess.js instead
+// ============================================================================
 
 /**
  * Optional Authentication
@@ -265,8 +194,6 @@ export const isOrganizationOwner = (req, res, next) => {
 export default {
   authenticate,
   authorize,
-  checkShopAccess,
-  checkPermission,
   optionalAuth,
   requireEmailVerification,
   requireFeature,

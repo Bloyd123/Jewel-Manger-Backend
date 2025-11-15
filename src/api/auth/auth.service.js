@@ -91,15 +91,17 @@ class AuthService {
 
     // ✅ STEP 5: Create UserShopAccess (if shop-level user)
     if (primaryShop) {
+       const defaultPermissions = this.getDefaultPermissionsForShopAccess(role);
       await UserShopAccess.create({
         userId: user._id,
         shopId: primaryShop,
         organizationId,
-        role: role === 'shop_admin' ? 'admin' : role === 'manager' ? 'manager' : 'staff',
-        permissions: this.getDefaultPermissions(role),
+        role: role,
+          permissions: defaultPermissions,
         isActive: true,
         grantedBy: currentUser?._id || null,
       });
+       console.log('✅ UserShopAccess created for', user.email, 'with role', role);
     }
 
     // ✅ STEP 6: Generate email verification token
@@ -152,65 +154,124 @@ class AuthService {
   // ============================================
   // HELPER: Default Permissions Based on Role
   // ============================================
-  getDefaultPermissions(role) {
-    switch (role) {
-      case 'shop_admin':
-        return {
-          inventory: { view: true, create: true, edit: true, delete: true },
-          sales: { view: true, create: true, edit: true, delete: true },
-          purchase: { view: true, create: true, edit: true, delete: true },
-          parties: { view: true, create: true, edit: true, delete: true },
-          reports: { view: true, create: true, edit: true, delete: true },
-          settings: { view: true, create: true, edit: true, delete: false },
-          users: { view: true, create: true, edit: true, delete: false },
-        };
+  getDefaultPermissionsForShopAccess(role) {
+  switch (role) {
+    case 'shop_admin':
+      return {
+        canManageSales: true,
+        canManagePurchases: true,
+        canManageInventory: true,
+        canManageParties: true,
+        canManageExpenses: true,
+        canManageSchemes: true,
+        canManageOrders: true,
+        canManageReports: true,
+        canManageSettings: true,
+        canManageUsers: true,
+        canManageShopSettings: true,
+        canViewReports: true,
+        canExportData: true,
+        canDeleteRecords: true,
+        canApproveTransactions: true,
+        canManageGoldRate: true,
+        canManageMetalRates: true,
+        canAccessPOS: true,
+        canManageBilling: true,
+      };
 
-      case 'manager':
-        return {
-          inventory: { view: true, create: true, edit: true, delete: false },
-          sales: { view: true, create: true, edit: true, delete: false },
-          purchase: { view: true, create: true, edit: false, delete: false },
-          parties: { view: true, create: true, edit: true, delete: false },
-          reports: { view: true, create: false, edit: false, delete: false },
-          settings: { view: true, create: false, edit: false, delete: false },
-          users: { view: true, create: false, edit: false, delete: false },
-        };
+    case 'manager':
+      return {
+        canManageSales: true,
+        canManagePurchases: true,
+        canManageInventory: true,
+        canManageParties: true,
+        canManageExpenses: true,
+        canManageSchemes: false,
+        canManageOrders: true,
+        canManageReports: true,
+        canManageSettings: false,
+        canManageUsers: false,
+        canManageShopSettings: false,
+        canViewReports: true,
+        canExportData: true,
+        canDeleteRecords: false,
+        canApproveTransactions: true,
+        canManageGoldRate: false,
+        canManageMetalRates: false,
+        canAccessPOS: true,
+        canManageBilling: true,
+      };
 
-      case 'staff':
-        return {
-          inventory: { view: true, create: false, edit: false, delete: false },
-          sales: { view: true, create: true, edit: false, delete: false },
-          purchase: { view: false, create: false, edit: false, delete: false },
-          parties: { view: true, create: false, edit: false, delete: false },
-          reports: { view: false, create: false, edit: false, delete: false },
-          settings: { view: false, create: false, edit: false, delete: false },
-          users: { view: false, create: false, edit: false, delete: false },
-        };
+    case 'staff':
+      return {
+        canManageSales: true,
+        canManagePurchases: false,
+        canManageInventory: false,
+        canManageParties: false,
+        canManageExpenses: false,
+        canManageSchemes: false,
+        canManageOrders: false,
+        canManageReports: false,
+        canManageSettings: false,
+        canManageUsers: false,
+        canManageShopSettings: false,
+        canViewReports: false,
+        canExportData: false,
+        canDeleteRecords: false,
+        canApproveTransactions: false,
+        canManageGoldRate: false,
+        canManageMetalRates: false,
+        canAccessPOS: true,
+        canManageBilling: false,
+      };
 
-      case 'accountant':
-        return {
-          inventory: { view: true, create: false, edit: false, delete: false },
-          sales: { view: true, create: false, edit: true, delete: false },
-          purchase: { view: true, create: false, edit: true, delete: false },
-          parties: { view: true, create: true, edit: true, delete: false },
-          reports: { view: true, create: true, edit: false, delete: false },
-          settings: { view: true, create: false, edit: false, delete: false },
-          users: { view: false, create: false, edit: false, delete: false },
-        };
+    case 'accountant':
+      return {
+        canManageSales: true,
+        canManagePurchases: true,
+        canManageInventory: false,
+        canManageParties: true,
+        canManageExpenses: true,
+        canManageSchemes: false,
+        canManageOrders: false,
+        canManageReports: true,
+        canManageSettings: false,
+        canManageUsers: false,
+        canManageShopSettings: false,
+        canViewReports: true,
+        canExportData: true,
+        canDeleteRecords: false,
+        canApproveTransactions: false,
+        canManageGoldRate: false,
+        canManageMetalRates: false,
+        canAccessPOS: false,
+        canManageBilling: true,
+      };
 
-      default: // 'user' role
-        return {
-          inventory: { view: true, create: false, edit: false, delete: false },
-          sales: { view: true, create: false, edit: false, delete: false },
-          purchase: { view: false, create: false, edit: false, delete: false },
-          parties: { view: true, create: false, edit: false, delete: false },
-          reports: { view: false, create: false, edit: false, delete: false },
-          settings: { view: false, create: false, edit: false, delete: false },
-          users: { view: false, create: false, edit: false, delete: false },
-        };
-    }
+    default: // 'user' role
+      return {
+        canManageSales: false,
+        canManagePurchases: false,
+        canManageInventory: false,
+        canManageParties: false,
+        canManageExpenses: false,
+        canManageSchemes: false,
+        canManageOrders: false,
+        canManageReports: false,
+        canManageSettings: false,
+        canManageUsers: false,
+        canManageShopSettings: false,
+        canViewReports: false,
+        canExportData: false,
+        canDeleteRecords: false,
+        canApproveTransactions: false,
+        canManageGoldRate: false,
+        canManageMetalRates: false,
+        canAccessPOS: false,
+        canManageBilling: false,
+      };
   }
-
+}
   // ========================================
   // USER LOGIN
   // ========================================

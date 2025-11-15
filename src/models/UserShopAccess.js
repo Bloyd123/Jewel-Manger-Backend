@@ -25,7 +25,7 @@ const userShopAccessSchema = new mongoose.Schema(
     // Role within the shop
     role: {
       type: String,
-      enum: ['admin', 'manager', 'staff', 'viewer', 'accountant'],
+      enum: ['admin','shop_admin', 'manager', 'staff', 'viewer', 'accountant'],
       default: 'staff',
       required: true,
     },
@@ -129,6 +129,20 @@ const userShopAccessSchema = new mongoose.Schema(
       canViewAuditLog: { type: Boolean, default: false },
       canBackupData: { type: Boolean, default: false },
       canRestoreData: { type: Boolean, default: false },
+            // Composite/High-Level Permissions
+      canManageInventory: { type: Boolean, default: false },
+      canManageSales: { type: Boolean, default: false },
+      canManagePurchases: { type: Boolean, default: false },
+      canManageExpenses: { type: Boolean, default: false },
+      canManageReports: { type: Boolean, default: false },
+      canManageSettings: { type: Boolean, default: false },
+      
+      // Additional System Permissions
+      canExportData: { type: Boolean, default: false },
+      canDeleteRecords: { type: Boolean, default: false },
+      canManageMetalRates: { type: Boolean, default: false },  
+      canAccessPOS: { type: Boolean, default: false },
+      canManageBilling: { type: Boolean, default: false },
     },
 
     // Access Status
@@ -375,7 +389,7 @@ userShopAccessSchema.methods.getPermissionSummary = function () {
 // Get default permissions based on role
 userShopAccessSchema.statics.getDefaultPermissions = function (role) {
   const permissions = {
-    admin: {
+    shop_admin: {
       // Full access to everything
       canViewInventory: true,
       canEditInventory: true,
@@ -447,6 +461,17 @@ userShopAccessSchema.statics.getDefaultPermissions = function (role) {
       canViewAuditLog: true,
       canBackupData: true,
       canRestoreData: true,
+      canManageInventory: true,
+      canManageSales: true,
+      canManagePurchases: true,
+      canManageExpenses: true,
+      canManageReports: true,
+      canManageSettings: true,
+      canExportData: true,
+      canDeleteRecords: true,
+      canManageGoldRate: true,
+      canAccessPOS: true,
+      canManageBilling: true,
     },
     manager: {
       canViewInventory: true,
@@ -519,6 +544,17 @@ userShopAccessSchema.statics.getDefaultPermissions = function (role) {
       canViewAuditLog: false,
       canBackupData: false,
       canRestoreData: false,
+         canManageInventory: true,
+      canManageSales: true,
+      canManagePurchases: true,
+      canManageExpenses: true,
+      canManageReports: true,
+      canManageSettings: false,
+      canExportData: true,
+      canDeleteRecords: false,
+      canManageGoldRate: true,
+      canAccessPOS: true,
+      canManageBilling: true,
     },
     staff: {
       canViewInventory: true,
@@ -591,6 +627,17 @@ userShopAccessSchema.statics.getDefaultPermissions = function (role) {
       canViewAuditLog: false,
       canBackupData: false,
       canRestoreData: false,
+            canManageInventory: false,
+      canManageSales: true,
+      canManagePurchases: false,
+      canManageExpenses: false,
+      canManageReports: false,
+      canManageSettings: false,
+      canExportData: false,
+      canDeleteRecords: false,
+      canManageGoldRate: false,
+      canAccessPOS: true,
+      canManageBilling: false,
     },
     accountant: {
       canViewInventory: true,
@@ -663,6 +710,17 @@ userShopAccessSchema.statics.getDefaultPermissions = function (role) {
       canViewAuditLog: false,
       canBackupData: true,
       canRestoreData: false,
+            canManageInventory: false,
+      canManageSales: false,
+      canManagePurchases: true,
+      canManageExpenses: true,
+      canManageReports: true,
+      canManageSettings: false,
+      canExportData: true,
+      canDeleteRecords: false,
+      canManageGoldRate: false,
+      canAccessPOS: false,
+      canManageBilling: true,
     },
     viewer: {
       canViewInventory: true,
@@ -735,6 +793,17 @@ userShopAccessSchema.statics.getDefaultPermissions = function (role) {
       canViewAuditLog: false,
       canBackupData: false,
       canRestoreData: false,
+          canManageInventory: false,
+      canManageSales: false,
+      canManagePurchases: false,
+      canManageExpenses: false,
+      canManageReports: false,
+      canManageSettings: false,
+      canExportData: false,
+      canDeleteRecords: false,
+      canManageGoldRate: false,
+      canAccessPOS: false,
+      canManageBilling: false,
     },
   };
 

@@ -1,19 +1,21 @@
 // ============================================================================
 // FILE: src/api/shops/shop.routes.js
-// Shop Routes - API endpoints for shop management
+// Shop Routes - UPDATED to use new checkShopAccess middleware
 // ============================================================================
 
 import express from 'express';
 import * as shopController from './shop.controller.js';
 import * as shopValidation from './shop.validation.js';
 import { authenticate } from '../middlewares/auth.js';
-import { checkShopAccess } from '../middlewares/checkShopAccess.js';
+// ✅ CHANGED: Import from checkShopAccess.js instead of auth.js
+import { 
+  checkShopAccess, 
+  checkPermission,
+  verifyShopOwnership 
+} from '../middlewares/checkShopAccess.js';
+import { restrictTo } from '../middlewares/restrictTo.js';
 
 const router = express.Router();
-
-// ============================================================================
-// PUBLIC ROUTES (None for shops - all require authentication)
-// ============================================================================
 
 // ============================================================================
 // PROTECTED ROUTES (Require Authentication)
@@ -31,14 +33,24 @@ router.use(authenticate);
  * @desc    Create a new shop
  * @access  Super Admin, Org Admin
  */
-router.post('/', shopValidation.createShopValidation, shopController.createShop);
+router.post(
+  '/',
+  shopValidation.createShopValidation,
+  restrictTo('super_admin', 'org_admin'),
+  shopController.createShop
+);
 
 /**
  * @route   GET /api/v1/shops
  * @desc    Get all shops (filtered based on user role)
  * @access  Super Admin, Org Admin, Shop Admin, Manager, Staff
  */
-router.get('/', shopValidation.getShopsValidation, shopController.getAllShops);
+router.get(
+  '/',
+  shopValidation.getShopsValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
+  shopController.getAllShops
+);
 
 /**
  * @route   GET /api/v1/shops/:id
@@ -48,7 +60,7 @@ router.get('/', shopValidation.getShopsValidation, shopController.getAllShops);
 router.get(
   '/:id',
   shopValidation.getShopValidation,
-  checkShopAccess, // Middleware to verify user has access to this shop
+  checkShopAccess, // ✅ Now uses the advanced middleware
   shopController.getShopById
 );
 
@@ -60,19 +72,22 @@ router.get(
 router.put(
   '/:id',
   shopValidation.updateShopValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
+  checkPermission('canManageShopSettings'), // ✅ CHANGED: Now checks specific permission
   shopController.updateShop
 );
 
 /**
  * @route   DELETE /api/v1/shops/:id
  * @desc    Soft delete shop
- * @access  Super Admin, Org Admin
+ * @access  Super Admin, Org Admin only
  */
 router.delete(
   '/:id',
   shopValidation.deleteShopValidation,
-  checkShopAccess,
+  restrictTo('super_admin', 'org_admin'),
+  checkShopAccess, // Just verify access, no specific permission needed (role check above)
   shopController.deleteShop
 );
 
@@ -88,7 +103,9 @@ router.delete(
 router.patch(
   '/:id/settings',
   shopValidation.updateShopSettingsValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
+  checkPermission('canManageShopSettings'), // ✅ CHANGED: Specific permission check
   shopController.updateShopSettings
 );
 
@@ -100,7 +117,9 @@ router.patch(
 router.patch(
   '/:id/metal-rates',
   shopValidation.updateMetalRatesValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
+  checkPermission('canUpdateMetalRates'), // ✅ CHANGED: Specific permission check
   shopController.updateMetalRates
 );
 
@@ -113,7 +132,12 @@ router.patch(
  * @desc    Get shop statistics
  * @access  Super Admin, Org Admin, Shop Admin, Manager
  */
-router.get('/:id/statistics', checkShopAccess, shopController.getShopStatistics);
+router.get(
+  '/:id/statistics',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager','accountant'),
+  checkShopAccess, // Basic shop access check
+  shopController.getShopStatistics
+);
 
 // ============================================================================
 // EXPORT ROUTER

@@ -11,7 +11,8 @@ import errorHandler from '../api/middlewares/errorHandler.js';
 import authRoutes from '../api/auth/auth.routes.js';
 import shopRoutes from '../api/shops/shop.routes.js';
 import logger from '../utils/logger.js';
-
+import customerRoutes from '../api/customer/customer.routes.js';
+import supplierRoutes from '../api/supplier/supplier.routes.js';
 /**
  * Express App Configuration Loader
  */
@@ -145,7 +146,10 @@ const loadExpressApp = app => {
   // Import and use routes here
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/shops', shopRoutes);
-  // app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/shops/:shopId/customers', customerRoutes);
+app.use('/api/v1/suppliers', supplierRoutes);
+
+
   // ... more routes
 
   // =====================================
