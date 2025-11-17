@@ -59,7 +59,7 @@ export const checkRegistrationPermission = async (req, res, next) => {
     }
 
     // Check: Allowed roles
-    const allowedRoles = ['shop_admin', 'manager', 'staff', 'accountant', 'user'];
+    const allowedRoles = ['shop_admin', 'manager', 'staff', 'accountant', 'viewer'];
     if (!allowedRoles.includes(role)) {
       return res.status(403).json({
         success: false,
@@ -106,7 +106,7 @@ export const checkRegistrationPermission = async (req, res, next) => {
     }
 
     // Check: Allowed roles (only lower roles)
-    const allowedRoles = ['manager', 'staff', 'accountant', 'user'];
+    const allowedRoles = ['manager', 'staff', 'accountant', 'viewer'];
     if (!allowedRoles.includes(role)) {
       return res.status(403).json({
         success: false,
@@ -130,7 +130,7 @@ export const checkRegistrationPermission = async (req, res, next) => {
     }
 
     // Check: Allowed roles (only staff/user)
-    const allowedRoles = ['staff', 'user'];
+    const allowedRoles = ['staff', 'viewer'];
     if (!allowedRoles.includes(role)) {
       return res.status(403).json({
         success: false,

@@ -43,15 +43,15 @@ class EmailService {
       // Verify transporter configuration
       this.transporter.verify((error, _success) => {
         if (error) {
-          logger.error('❌ Email transporter verification failed:', error);
+          logger.error('  Email transporter verification failed:', error);
           this.initialized = false;
         } else {
-          logger.info('✅ Email transporter is ready');
+          logger.info('  Email transporter is ready');
           this.initialized = true;
         }
       });
     } catch (error) {
-      logger.error('❌ Failed to initialize email transporter:', error);
+      logger.error('  Failed to initialize email transporter:', error);
       this.initialized = false;
     }
   }
@@ -138,7 +138,7 @@ class EmailService {
         response: info.response,
       };
     } catch (error) {
-      logger.error('❌ Failed to send email:', error);
+      logger.error('  Failed to send email:', error);
       return {
         success: false,
         message: `Email sending failed: ${error.message}`,
@@ -331,7 +331,7 @@ class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>✅ Password Changed Successfully</h1>
+            <h1>  Password Changed Successfully</h1>
           </div>
           <div class="content">
             <h2>Hi ${user.firstName},</h2>
@@ -352,7 +352,7 @@ class EmailService {
 
     return await this.sendEmail({
       to: user.email,
-      subject: '✅ Password Changed - Jewelry ERP',
+      subject: '  Password Changed - Jewelry ERP',
       html,
     });
   }
@@ -435,7 +435,7 @@ class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>✅ Test Email</h1>
+            <h1>  Test Email</h1>
           </div>
           <div class="content">
             <h2>Email Service is Working!</h2>
@@ -450,7 +450,7 @@ class EmailService {
 
     return await this.sendEmail({
       to,
-      subject: '✅ Test Email - Jewelry ERP',
+      subject: '  Test Email - Jewelry ERP',
       html,
     });
   }

@@ -61,7 +61,7 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
-  checkAnyPermission(['canViewCustomers', 'canViewAnalytics']),
+    checkPermission('canViewCustomerAnalytics'),
   rateLimiter({ max: 30, windowMs: 60000 }),
   getCustomerAnalytics
 );
@@ -191,7 +191,7 @@ router.patch(
   blacklistCustomerValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canManageCustomers'),
+  checkPermission('canBlacklistCustomer'), 
   rateLimiter({ max: 10, windowMs: 60000 }),
   blacklistCustomer
 );
@@ -199,16 +199,16 @@ router.patch(
 /**
  * @route   PATCH /api/v1/shops/:shopId/customers/:customerId/unblacklist
  * @desc    Remove blacklist from customer
- * @access  Private (Shop Admin, Manager) // ✅ UPDATED
+ * @access  Private (Shop Admin, Manager) //   UPDATED
  * @permission canManageCustomers
  */
 router.patch(
   '/:customerId/unblacklist',
   shopIdValidation,
   customerIdValidation,
-  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'), // ✅ ADDED 'manager'
+  restrictTo('super_admin', 'org_admin', 'shop_admin'), //   ADDED 'manager'
   checkShopAccess,
-  checkPermission('canManageCustomers'),
+ checkPermission('canRemoveCustomerBlacklist'),
   rateLimiter({ max: 10, windowMs: 60000 }),
   removeBlacklist
 );
@@ -229,7 +229,7 @@ router.post(
   loyaltyPointsValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canManageCustomers'),
+ checkPermission('canAddLoyaltyPoints'),
   rateLimiter({ max: 50, windowMs: 60000 }),
   addLoyaltyPoints
 );
@@ -246,7 +246,7 @@ router.post(
   loyaltyPointsValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
-  checkAnyPermission(['canCreateSales', 'canManageCustomers']),
+  checkPermission('canRedeemLoyaltyPoints'),
   rateLimiter({ max: 50, windowMs: 60000 }),
   redeemLoyaltyPoints
 );

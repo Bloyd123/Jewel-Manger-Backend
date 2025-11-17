@@ -81,7 +81,7 @@ export const registerValidation = [
   body('role')
     .notEmpty()
     .withMessage('Role is required')
-    .isIn(['super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'])
+    .isIn(['super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'viewer'])
     .withMessage('Invalid role'),
 
   body('primaryShop')
@@ -90,7 +90,7 @@ export const registerValidation = [
     .withMessage('Super admin and org admin should not have primary shop')
     .bail()
     .if((value, { req }) =>
-      ['shop_admin', 'manager', 'staff', 'accountant', 'user'].includes(req.body.role)
+      ['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(req.body.role)
     )
     .notEmpty()
     .withMessage('Primary shop is required for shop-level users')

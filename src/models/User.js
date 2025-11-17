@@ -64,8 +64,8 @@ const userSchema = new mongoose.Schema(
     // Role-based Access Control (RBAC) - Organization Level
     role: {
       type: String,
-      enum: ['super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'],
-      default: 'user',
+      enum: ['super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'viewer'],
+      default: 'viewer',
       required: true,
     },
 
@@ -376,7 +376,7 @@ userSchema.methods.isShopAdmin = async function (shopId = null) {
     const access = await UserShopAccess.findOne({
       userId: this._id,
       shopId,
-      role: 'admin',
+      role: 'shop_admin',
       isActive: true,
       deletedAt: null,
       revokedAt: null,
@@ -386,7 +386,7 @@ userSchema.methods.isShopAdmin = async function (shopId = null) {
 
   const count = await UserShopAccess.countDocuments({
     userId: this._id,
-    role: 'admin',
+    role: 'shop_admin',
     isActive: true,
     deletedAt: null,
     revokedAt: null,

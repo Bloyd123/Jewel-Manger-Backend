@@ -309,7 +309,7 @@ class TokenManager {
     }
   }
   // ============================================================================
-  // 🆕 NEW METHOD: Check if Access Token is Blacklisted
+  //   NEW METHOD: Check if Access Token is Blacklisted
   // ============================================================================
   /**
    * Check if access token is blacklisted
@@ -475,7 +475,7 @@ class TokenManager {
       return token;
     } catch (error) {
       logger.error('Error generating password reset token:', error);
-      throw new InternalServerError('Failed to generate password reset token'); // ✅
+      throw new InternalServerError('Failed to generate password reset token'); //  
     }
   }
 

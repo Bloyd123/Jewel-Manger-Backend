@@ -165,7 +165,7 @@ app.use('/api/v1/suppliers', supplierRoutes);
   // Global Error Handler
   app.use(errorHandler);
 
-  logger.info('✅ Express app configured successfully');
+  logger.info('  Express app configured successfully');
 };
 
 export default loadExpressApp;

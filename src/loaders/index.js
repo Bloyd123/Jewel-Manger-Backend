@@ -18,9 +18,9 @@ const initLoaders = async app => {
     // 3. Load Redis (if you want to use it)
     // await connectRedis();
 
-    logger.info('✅ All loaders initialized successfully');
+    logger.info('  All loaders initialized successfully');
   } catch (error) {
-    logger.error('❌ Loader initialization failed:', error);
+    logger.error('  Loader initialization failed:', error);
     throw error;
   }
 };

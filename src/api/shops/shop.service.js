@@ -99,8 +99,8 @@ export const createShop = async (shopData, userId, userRole, userOrgId) => {
           userId: shopData.managerId,
           shopId: shop[0]._id,
           organizationId: shopData.organizationId,
-          role: 'admin',
-          permissions: UserShopAccess.getDefaultPermissions('admin'),
+          role: 'shop_admin',
+          permissions: UserShopAccess.getDefaultPermissions('shop_admin'),
           assignedBy: userId,
           isActive: true,
         },
@@ -284,7 +284,7 @@ export const getShopById = async (shopId, userId, userRole, includeSettings = fa
       isActive: true,
     });
 
-    if (userAccess && userAccess.role !== 'admin' && userRole !== 'super_admin') {
+    if (userAccess && userAccess.role !== 'shop_admin' && userRole !== 'super_admin') {
       delete shopObject.settings.metalRates;
       delete shopObject.bankDetails;
       delete shopObject.upiDetails;

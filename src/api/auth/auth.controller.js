@@ -39,7 +39,7 @@ export const register = catchAsync(async (req, res) => {
     throw new ValidationError('Organization ID is required for org admin');
   }
 
-  if (['shop_admin', 'manager', 'staff', 'accountant', 'user'].includes(role) && !primaryShop) {
+  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(role) && !primaryShop) {
     throw new ValidationError('Primary shop is required for shop-level users');
   }
 
@@ -98,7 +98,7 @@ export const logout = catchAsync(async (req, res) => {
     req.user._id,
     req.user.organizationId,
     refreshToken,
-    accessToken, // 🆕 Pass access token
+    accessToken, //   Pass access token
     req.ip
   );
 

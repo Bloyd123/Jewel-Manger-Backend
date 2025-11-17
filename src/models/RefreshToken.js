@@ -18,8 +18,8 @@ const refreshTokenSchema = new mongoose.Schema(
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
-      required: false, // ✅ Changed to false
-      default: null, // ✅ Added default
+      required: false, //   Changed to false
+      default: null, //   Added default
       index: true,
     },
 
@@ -130,7 +130,7 @@ refreshTokenSchema.index({ userId: 1, isRevoked: 1 });
 // Only index organizationId if it exists (sparse index for super_admins)
 refreshTokenSchema.index(
   { organizationId: 1, isRevoked: 1 },
-  { sparse: true } // ✅ Skip null values
+  { sparse: true } //   Skip null values
 );
 refreshTokenSchema.index({ tokenId: 1, isRevoked: 1 });
 // refreshTokenSchema.index({ expiresAt: 1 }); // For cleanup jobs

@@ -6,6 +6,7 @@ import tokenManager from '../../utils/tokenManager.js';
 import eventLogger from '../../utils/eventLogger.js';
 import cache from '../../utils/cache.js';
 import { sendEmail } from '../../utils/email.js';
+import { getPermissionsByRole } from '../../config/permissions.config.js';
 import {
   OrganizationNotFoundError,
   DuplicateEmailError,
@@ -26,7 +27,7 @@ class AuthService {
   // USER REGISTRATION
   // ========================================
   async registerUser(userData, ipAddress, userAgent, currentUser = null) {
-    // ✅ STEP 1: Destructure userData FIRST
+    //   STEP 1: Destructure userData FIRST
     const {
       username,
       email,
@@ -40,7 +41,7 @@ class AuthService {
       department,
     } = userData;
 
-    // ✅ STEP 2: Validate organization (skip for super_admin only)
+    //   STEP 2: Validate organization (skip for super_admin only)
     if (role !== 'super_admin') {
       if (!organizationId) {
         throw new ValidationError('Organization ID is required for non-super admin users');
@@ -57,7 +58,7 @@ class AuthService {
       }
     }
 
-    // ✅ STEP 3: Check GLOBAL uniqueness
+    //   STEP 3: Check GLOBAL uniqueness
     const existingUser = await User.findOne({
       $or: [{ email }, { username }],
     });
@@ -73,7 +74,7 @@ class AuthService {
       );
     }
 
-    // ✅ STEP 4: Create User
+    //   STEP 4: Create User
     const user = await User.create({
       username,
       email,
@@ -89,7 +90,7 @@ class AuthService {
       isActive: true,
     });
 
-    // ✅ STEP 5: Create UserShopAccess (if shop-level user)
+    //   STEP 5: Create UserShopAccess (if shop-level user)
     if (primaryShop) {
        const defaultPermissions = this.getDefaultPermissionsForShopAccess(role);
       await UserShopAccess.create({
@@ -101,10 +102,10 @@ class AuthService {
         isActive: true,
         grantedBy: currentUser?._id || null,
       });
-       console.log('✅ UserShopAccess created for', user.email, 'with role', role);
+       console.log('  UserShopAccess created for', user.email, 'with role', role);
     }
 
-    // ✅ STEP 6: Generate email verification token
+    //   STEP 6: Generate email verification token
     const verificationToken = tokenManager.generateEmailVerificationToken(user._id, user.email);
 
     // Save verification token (hashed)
@@ -115,16 +116,16 @@ class AuthService {
     user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
     await user.save();
 
-    // ✅ STEP 7: Send verification email (non-blocking)
+    //   STEP 7: Send verification email (non-blocking)
     this.sendVerificationEmail(user, verificationToken).catch(err => {
       console.error('Email sending failed:', err);
     });
 
-    // ✅ STEP 8: Generate token pair
+    //   STEP 8: Generate token pair
     const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
 
-    // ✅ STEP 9: Log Activity
-    // ✅ STEP 9: Log Activity
+    //   STEP 9: Log Activity
+    //   STEP 9: Log Activity
     if (currentUser) {
       await eventLogger.logUserManagement(
         currentUser._id,
@@ -155,122 +156,7 @@ class AuthService {
   // HELPER: Default Permissions Based on Role
   // ============================================
   getDefaultPermissionsForShopAccess(role) {
-  switch (role) {
-    case 'shop_admin':
-      return {
-        canManageSales: true,
-        canManagePurchases: true,
-        canManageInventory: true,
-        canManageParties: true,
-        canManageExpenses: true,
-        canManageSchemes: true,
-        canManageOrders: true,
-        canManageReports: true,
-        canManageSettings: true,
-        canManageUsers: true,
-        canManageShopSettings: true,
-        canViewReports: true,
-        canExportData: true,
-        canDeleteRecords: true,
-        canApproveTransactions: true,
-        canManageGoldRate: true,
-        canManageMetalRates: true,
-        canAccessPOS: true,
-        canManageBilling: true,
-      };
-
-    case 'manager':
-      return {
-        canManageSales: true,
-        canManagePurchases: true,
-        canManageInventory: true,
-        canManageParties: true,
-        canManageExpenses: true,
-        canManageSchemes: false,
-        canManageOrders: true,
-        canManageReports: true,
-        canManageSettings: false,
-        canManageUsers: false,
-        canManageShopSettings: false,
-        canViewReports: true,
-        canExportData: true,
-        canDeleteRecords: false,
-        canApproveTransactions: true,
-        canManageGoldRate: false,
-        canManageMetalRates: false,
-        canAccessPOS: true,
-        canManageBilling: true,
-      };
-
-    case 'staff':
-      return {
-        canManageSales: true,
-        canManagePurchases: false,
-        canManageInventory: false,
-        canManageParties: false,
-        canManageExpenses: false,
-        canManageSchemes: false,
-        canManageOrders: false,
-        canManageReports: false,
-        canManageSettings: false,
-        canManageUsers: false,
-        canManageShopSettings: false,
-        canViewReports: false,
-        canExportData: false,
-        canDeleteRecords: false,
-        canApproveTransactions: false,
-        canManageGoldRate: false,
-        canManageMetalRates: false,
-        canAccessPOS: true,
-        canManageBilling: false,
-      };
-
-    case 'accountant':
-      return {
-        canManageSales: true,
-        canManagePurchases: true,
-        canManageInventory: false,
-        canManageParties: true,
-        canManageExpenses: true,
-        canManageSchemes: false,
-        canManageOrders: false,
-        canManageReports: true,
-        canManageSettings: false,
-        canManageUsers: false,
-        canManageShopSettings: false,
-        canViewReports: true,
-        canExportData: true,
-        canDeleteRecords: false,
-        canApproveTransactions: false,
-        canManageGoldRate: false,
-        canManageMetalRates: false,
-        canAccessPOS: false,
-        canManageBilling: true,
-      };
-
-    default: // 'user' role
-      return {
-        canManageSales: false,
-        canManagePurchases: false,
-        canManageInventory: false,
-        canManageParties: false,
-        canManageExpenses: false,
-        canManageSchemes: false,
-        canManageOrders: false,
-        canManageReports: false,
-        canManageSettings: false,
-        canManageUsers: false,
-        canManageShopSettings: false,
-        canViewReports: false,
-        canExportData: false,
-        canDeleteRecords: false,
-        canApproveTransactions: false,
-        canManageGoldRate: false,
-        canManageMetalRates: false,
-        canAccessPOS: false,
-        canManageBilling: false,
-      };
-  }
+  return getPermissionsByRole(role);
 }
   // ========================================
   // USER LOGIN
@@ -341,7 +227,7 @@ class AuthService {
         console.error('Refresh token revocation failed:', error);
       }
     }
-    // 2. 🆕 Blacklist access token
+    // 2.   Blacklist access token
     if (accessToken) {
       try {
         await tokenManager.blacklistAccessToken(accessToken);

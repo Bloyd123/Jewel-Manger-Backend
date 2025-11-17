@@ -7,7 +7,7 @@ import express from 'express';
 import * as shopController from './shop.controller.js';
 import * as shopValidation from './shop.validation.js';
 import { authenticate } from '../middlewares/auth.js';
-// ✅ CHANGED: Import from checkShopAccess.js instead of auth.js
+//   CHANGED: Import from checkShopAccess.js instead of auth.js
 import { 
   checkShopAccess, 
   checkPermission,
@@ -37,6 +37,7 @@ router.post(
   '/',
   shopValidation.createShopValidation,
   restrictTo('super_admin', 'org_admin'),
+  checkPermission('canCreateShop'),
   shopController.createShop
 );
 
@@ -48,7 +49,8 @@ router.post(
 router.get(
   '/',
   shopValidation.getShopsValidation,
-  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+    checkPermission('canViewShops'), 
   shopController.getAllShops
 );
 
@@ -60,7 +62,8 @@ router.get(
 router.get(
   '/:id',
   shopValidation.getShopValidation,
-  checkShopAccess, // ✅ Now uses the advanced middleware
+  checkShopAccess, //   Now uses the advanced middleware
+   checkPermission('canViewSingleShop'), 
   shopController.getShopById
 );
 
@@ -74,7 +77,7 @@ router.put(
   shopValidation.updateShopValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canManageShopSettings'), // ✅ CHANGED: Now checks specific permission
+   checkPermission('canUpdateShop'),  //   Correct specific permission
   shopController.updateShop
 );
 
@@ -88,6 +91,7 @@ router.delete(
   shopValidation.deleteShopValidation,
   restrictTo('super_admin', 'org_admin'),
   checkShopAccess, // Just verify access, no specific permission needed (role check above)
+   checkPermission('canDeleteShop'), 
   shopController.deleteShop
 );
 
@@ -105,7 +109,7 @@ router.patch(
   shopValidation.updateShopSettingsValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canManageShopSettings'), // ✅ CHANGED: Specific permission check
+  checkPermission('canManageShopSettings'), //   CHANGED: Specific permission check
   shopController.updateShopSettings
 );
 
@@ -119,7 +123,7 @@ router.patch(
   shopValidation.updateMetalRatesValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canUpdateMetalRates'), // ✅ CHANGED: Specific permission check
+  checkPermission('canUpdateMetalRates'), //   CHANGED: Specific permission check
   shopController.updateMetalRates
 );
 
@@ -136,9 +140,23 @@ router.get(
   '/:id/statistics',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager','accountant'),
   checkShopAccess, // Basic shop access check
+  checkPermission('canViewShopStatistics'), 
   shopController.getShopStatistics
 );
 
+// /**
+//  * @route   POST /api/v1/shops/:id/transfer-inventory
+//  * @desc    Transfer inventory between shops
+//  * @access  Shop Admin, Manager
+//  */
+// router.post(
+//   '/:id/transfer-inventory',
+//   shopValidation.transferInventoryValidation,
+//   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+//   checkShopAccess,
+//   checkPermission('canTransferInventory'),  //   New permission
+//   shopController.transferInventory
+// );
 // ============================================================================
 // EXPORT ROUTER
 // ============================================================================
