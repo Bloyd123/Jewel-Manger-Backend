@@ -130,7 +130,6 @@ const productSchema = new mongoose.Schema(
       },
       netWeight: {
         type: Number,
-        required: true,
         min: 0,
       },
       wastage: {
@@ -556,7 +555,28 @@ const productSchema = new mongoose.Schema(
         fieldValue: mongoose.Schema.Types.Mixed,
       },
     ],
-
+    // Additioanly 
+    lifecycleHistory: [
+  {
+    action: String,               // created, reserved, sold, returned, repaired, transferred
+    fromShop: mongoose.ObjectId,
+    toShop: mongoose.ObjectId,
+    user: mongoose.ObjectId,
+    date: { type: Date, default: Date.now },
+    notes: String,
+  }
+],
+repair: {
+  status: { type: String, enum: ['none','sent','in_progress','completed'], default: 'none' },
+  sentAt: Date,
+  completedAt: Date,
+  repairNotes: String
+},
+returnDetails: {
+  returnedAt: Date,
+  reason: String,
+  refundAmount: Number,
+},
     // Notes
     notes: {
       type: String,
@@ -616,14 +636,19 @@ productSchema.pre('save', function (next) {
   }
 
   // Calculate net weight
-  this.weight.netWeight = this.weight.grossWeight - this.weight.stoneWeight;
+  const gross = Number(this.weight?.grossWeight) || 0;
+const stone = Number(this.weight?.stoneWeight) || 0;
+this.weight.netWeight = Math.max(0, gross - stone);
+
 
   // Calculate total stone value
   if (this.stones && this.stones.length > 0) {
-    this.pricing.stoneValue = this.stones.reduce(
-      (sum, stone) => sum + (stone.totalStonePrice || 0),
-      0
-    );
+this.pricing = this.pricing || {};
+
+this.pricing.stoneValue = Array.isArray(this.stones)
+  ? this.stones.reduce((sum, s) => sum + (s.totalStonePrice || 0), 0)
+  : 0;
+
   }
 
   next();
@@ -759,18 +784,38 @@ productSchema.methods.calculatePrice = function (metalRate) {
   return this.save();
 };
 
-// Static Methods
 productSchema.statics.generateProductCode = async function (shopId, prefix = 'PRD') {
-  let code = `${prefix}${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}`;
-  let counter = 1;
+  let attempts = 0;
 
-  while (await this.findOne({ shopId, productCode: code })) {
-    code = `${prefix}${String(Math.floor(Math.random() * 1000000) + counter).padStart(6, '0')}`;
-    counter++;
+  while (attempts < 5) {
+    // Step 1: get last created product for this shop
+    const lastProduct = await this.findOne({ shopId })
+      .sort({ createdAt: -1 })
+      .select('productCode')
+      .lean();
+
+    // Step 2: Extract number
+    const lastNumber = lastProduct
+      ? parseInt(lastProduct.productCode.replace(prefix, '')) || 0
+      : 0;
+
+    // Step 3: next number
+    const newNumber = lastNumber + 1 + attempts;
+
+    // Step 4: format
+    const code = `${prefix}${String(newNumber).padStart(6, '0')}`;
+
+    // Step 5: ensure not duplicate
+    const exists = await this.findOne({ shopId, productCode: code });
+    if (!exists) return code;
+
+    attempts++;
   }
 
-  return code;
+  // Step 6: FINAL fallback (never fails)
+  return `${prefix}${Date.now().toString().slice(-6)}`;
 };
+
 
 productSchema.statics.findByShop = function (shopId, options = {}) {
   return this.find({ shopId, deletedAt: null, ...options });
