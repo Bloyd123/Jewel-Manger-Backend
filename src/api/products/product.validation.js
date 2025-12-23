@@ -37,28 +37,16 @@ export const createProductValidation = [
     .isLength({ max: 2000 })
     .withMessage('Description cannot exceed 2000 characters'),
 
-  body('category')
-    .notEmpty()
-    .withMessage('Category is required')
-    .isIn([
-      'ring',
-      'necklace',
-      'earring',
-      'bracelet',
-      'bangle',
-      'pendant',
-      'chain',
-      'mangalsutra',
-      'nose_pin',
-      'anklet',
-      'coin',
-      'bar',
-      'biscuit',
-      'other',
-    ])
-    .withMessage('Invalid category'),
+body('categoryId')
+  .notEmpty()
+  .withMessage('Category is required')
+  .custom(isValidObjectId)
+  .withMessage('Invalid category ID'),
 
-  body('subCategory').optional().trim(),
+body('subCategoryId')
+  .optional()
+  .custom(isValidObjectId)
+  .withMessage('Invalid subcategory ID'),
 
   body('productType')
     .optional()
@@ -239,25 +227,16 @@ export const updateProductValidation = [
     .isLength({ max: 2000 })
     .withMessage('Description cannot exceed 2000 characters'),
 
-  body('category')
-    .optional()
-    .isIn([
-      'ring',
-      'necklace',
-      'earring',
-      'bracelet',
-      'bangle',
-      'pendant',
-      'chain',
-      'mangalsutra',
-      'nose_pin',
-      'anklet',
-      'coin',
-      'bar',
-      'biscuit',
-      'other',
-    ])
-    .withMessage('Invalid category'),
+body('categoryId')
+  .notEmpty()
+  .withMessage('Category is required')
+  .custom(isValidObjectId)
+  .withMessage('Invalid category ID'),
+
+body('subCategoryId')
+  .optional()
+  .custom(isValidObjectId)
+  .withMessage('Invalid subcategory ID'),
 
   body('weight.grossWeight')
     .optional()
@@ -299,25 +278,16 @@ export const getProductsValidation = [
     .isString()
     .withMessage('Sort must be a string'),
 
-  query('category')
+  query('category')  // ✅ QUERY PARAM
+    .optional()  // ✅ OPTIONAL FOR FILTERING
+    .custom(isValidObjectId)
+    .withMessage('Invalid category ID'),
+
+    
+  query('subCategory')
     .optional()
-    .isIn([
-      'ring',
-      'necklace',
-      'earring',
-      'bracelet',
-      'bangle',
-      'pendant',
-      'chain',
-      'mangalsutra',
-      'nose_pin',
-      'anklet',
-      'coin',
-      'bar',
-      'biscuit',
-      'other',
-    ])
-    .withMessage('Invalid category'),
+    .custom(isValidObjectId)
+    .withMessage('Invalid subcategory ID'),
 
   query('metalType')
     .optional()

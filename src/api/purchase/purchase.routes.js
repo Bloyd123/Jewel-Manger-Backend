@@ -12,8 +12,8 @@ import {
   deleteRateLimiter,
   apiRateLimiter,
 } from '../middlewares/rateLimiter.js';
-import * as purchaseController from '../controllers/purchase.controller.js';
-import * as purchaseValidation from '../validations/purchase.validation.js';
+import * as purchaseController from './purchase.controller.js';
+import * as purchaseValidation from './purchase.validation.js';
 
 const router = express.Router({ mergeParams: true }); // mergeParams for nested routes
 

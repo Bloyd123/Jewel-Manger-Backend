@@ -13,6 +13,9 @@ import shopRoutes from '../api/shops/shop.routes.js';
 import logger from '../utils/logger.js';
 import customerRoutes from '../api/customer/customer.routes.js';
 import supplierRoutes from '../api/supplier/supplier.routes.js';
+import purchaseRoutes from '../api/purchase/purchase.routes.js';
+import productRoutes from '../api/products/product.routes.js';
+import categoryRoutes from '../api/category/category.routes.js';
 /**
  * Express App Configuration Loader
  */
@@ -153,6 +156,10 @@ console.log("Incoming Origin:", origin);
   app.use('/api/v1/shops', shopRoutes);
 app.use('/api/v1/shops/:shopId/customers', customerRoutes);
 app.use('/api/v1/suppliers', supplierRoutes);
+app.use('/api/v1/shops/:shopId/purchases', purchaseRoutes);
+app.use('/api/v1/shops/:shopId/product', productRoutes);
+
+app.use('/api/v1/categories', categoryRoutes);
 
 
   // ... more routes

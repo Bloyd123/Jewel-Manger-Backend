@@ -17,12 +17,13 @@ import {
 } from './product.validation.js';
 import { authenticate } from '../middlewares/auth.js';
 import { restrictTo } from '../middlewares/restrictTo.js';
+
 import {
   checkShopAccess,
   checkPermission,
   checkAnyPermission,
 } from '../middlewares/checkShopAccess.js';
-import rateLimiter from '../middlewares/rateLimiter.js';
+import{ rateLimiter }from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
 

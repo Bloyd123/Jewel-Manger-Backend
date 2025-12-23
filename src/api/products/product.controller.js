@@ -7,7 +7,7 @@ import {
   sendValidationError,
   sendPaginated,
 } from '../../utils/sendResponse.js';
-import { catchAsync } from '../../middleware/errorHandler.js';
+import catchAsync from '../../utils/catchAsync.js';
 import { ValidationError } from '../../utils/AppError.js';
 
 class ProductController {
@@ -382,7 +382,7 @@ class ProductController {
         { $match: { shopId, organizationId, deletedAt: null } },
         {
           $group: {
-            _id: '$category',
+            _id: '$categoryId',
             count: { $sum: 1 },
             totalValue: {
               $sum: {
@@ -392,6 +392,20 @@ class ProductController {
           },
         },
         { $sort: { count: -1 } },
+         // ✅ ADD LOOKUP TO GET CATEGORY NAMES
+  {
+    $lookup: {
+      from: 'categories',
+      localField: '_id',
+      foreignField: '_id',
+      as: 'categoryDetails'
+    }
+  },
+  {
+    $addFields: {
+      categoryName: { $arrayElemAt: ['$categoryDetails.name.default', 0] }
+    }
+  }
       ]),
     ]);
 

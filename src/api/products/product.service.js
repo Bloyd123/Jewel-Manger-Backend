@@ -10,6 +10,8 @@ import {
   InsufficientStockError,
   DuplicateProductCodeError,
 } from '../../utils/AppError.js';
+import Category from '../../models/Category.js';
+
 
 class ProductService {
   // ============================================
@@ -61,6 +63,45 @@ class ProductService {
     } else if (quantity <= reorderLevel && quantity > 0) {
       stockStatus = 'low_stock';
     }
+// ===============================
+// STEP 1: "OTHER" MAPPING FIRST
+// ===============================
+let finalCategoryId = productData.categoryId;
+let finalSubCategoryId = productData.subCategoryId;
+
+if (finalCategoryId === 'OTHER') {
+  finalCategoryId = process.env.OTHER_CATEGORY_ID;
+}
+
+if (finalSubCategoryId === 'OTHER_MISC') {
+  finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
+}
+
+// ===============================
+// STEP 2: CATEGORY VALIDATION
+// ===============================
+const categoryExists = await Category.findOne({
+  _id: finalCategoryId,
+  isActive: true,
+  parentId: null,
+});
+
+if (!categoryExists) {
+  throw new ValidationError('Invalid category selected');
+}
+
+if (finalSubCategoryId) {
+  const subCategoryExists = await Category.findOne({
+    _id: finalSubCategoryId,
+    isActive: true,
+    parentId: finalCategoryId,
+  });
+
+  if (!subCategoryExists) {
+    throw new ValidationError('Invalid subcategory selected');
+  }
+}
+
 
     // 7. Create product
     const product = await Product.create({
@@ -68,6 +109,8 @@ class ProductService {
       shopId,
       productCode,
       ...productData,
+        categoryId: finalCategoryId,
+  subCategoryId: finalSubCategoryId,
       weight: {
         ...productData.weight,
         netWeight,
@@ -122,7 +165,7 @@ class ProductService {
       `Created product: ${product.name}`,
       {
         productCode: product.productCode,
-        category: product.category,
+       categoryId: product.categoryId,
         metalType: product.metal.type,
         quantity: product.stock.quantity,
       }
@@ -267,7 +310,7 @@ class ProductService {
     };
 
     // Apply filters
-    if (category) query.category = category;
+   if (category) query.categoryId = category; // Now expecting ObjectId in filters
     if (metalType) query['metal.type'] = metalType;
     if (purity) query['metal.purity'] = purity;
     if (status) query.status = status;
@@ -302,6 +345,8 @@ class ProductService {
         .skip(skip)
         .limit(parseInt(limit))
         .populate('supplierId', 'name code contactPerson phone')
+            .populate('categoryId', 'name code') // ✅ ADD THIS
+    .populate('subCategoryId', 'name code') // ✅ ADD THIS
         .lean(),
       Product.countDocuments(query),
     ]);
@@ -338,6 +383,8 @@ class ProductService {
       deletedAt: null,
     })
       .populate('supplierId', 'name code contactPerson phone email')
+        .populate('categoryId', 'name code') // ✅ ADD
+  .populate('subCategoryId', 'name code') // ✅ ADD
       .populate('createdBy', 'firstName lastName email')
       .populate('updatedBy', 'firstName lastName email')
       .lean();
@@ -356,6 +403,7 @@ class ProductService {
   // UPDATE PRODUCT
   // ============================================
   async updateProduct(productId, shopId, organizationId, updateData, userId) {
+
     const product = await Product.findOne({
       _id: productId,
       shopId,
@@ -404,6 +452,50 @@ class ProductService {
         updateData.stock.status = 'in_stock';
       }
     }
+// ===============================
+// CATEGORY VALIDATION (UPDATE)
+// ===============================
+let finalCategoryId = updateData.categoryId;
+let finalSubCategoryId = updateData.subCategoryId;
+
+// OTHER mapping
+if (finalCategoryId === 'OTHER') {
+  finalCategoryId = process.env.OTHER_CATEGORY_ID;
+}
+if (finalSubCategoryId === 'OTHER_MISC') {
+  finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
+}
+
+// Validate only if category is being updated
+if (finalCategoryId) {
+  const categoryExists = await Category.findOne({
+    _id: finalCategoryId,
+    isActive: true,
+    parentId: null,
+  });
+
+  if (!categoryExists) {
+    throw new ValidationError('Invalid category selected');
+  }
+}
+
+// Validate subcategory only if provided
+if (finalSubCategoryId) {
+  const subCategoryExists = await Category.findOne({
+    _id: finalSubCategoryId,
+    isActive: true,
+    parentId: finalCategoryId || product.categoryId,
+  });
+
+  if (!subCategoryExists) {
+    throw new ValidationError('Invalid subcategory selected');
+  }
+}
+
+// assign safe values
+updateData.categoryId = finalCategoryId;
+updateData.subCategoryId = finalSubCategoryId;
+
 
     // Apply updates
     Object.assign(product, updateData);
@@ -859,12 +951,12 @@ class ProductService {
         { status: 'out_of_stock' },
       ];
     }
-
-    const products = await Product.find(query)
-      .sort({ 'stock.quantity': 1 })
-      .select('name productCode category stock pricing primaryImage')
-      .lean();
-
+const products = await Product.find(query)
+  .sort({ 'stock.quantity': 1 })
+  .select('name productCode categoryId subCategoryId stock pricing primaryImage')
+  .populate('categoryId', 'name code')
+  .populate('subCategoryId', 'name code')
+  .lean();
     const criticalItems = products.filter((p) => p.stock.quantity === 0).length;
 
     return {
@@ -895,10 +987,12 @@ class ProductService {
       ],
     };
 
-    const products = await Product.find(query)
-      .limit(parseInt(limit))
-      .select('name productCode category metal weight pricing stock primaryImage saleStatus')
-      .lean();
+const products = await Product.find(query)
+  .limit(parseInt(limit))
+  .select('name productCode categoryId subCategoryId metal weight pricing stock primaryImage saleStatus')
+  .populate('categoryId', 'name code')
+  .populate('subCategoryId', 'name code')
+  .lean();
 
     return products;
   }

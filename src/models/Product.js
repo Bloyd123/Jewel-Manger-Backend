@@ -58,32 +58,18 @@ const productSchema = new mongoose.Schema(
       maxlength: 2000,
     },
 
-    // Category & Type
-    category: {
-      type: String,
-      enum: [
-        'ring',
-        'necklace',
-        'earring',
-        'bracelet',
-        'bangle',
-        'pendant',
-        'chain',
-        'mangalsutra',
-        'nose_pin',
-        'anklet',
-        'coin',
-        'bar',
-        'biscuit',
-        'other',
-      ],
-      required: true,
-      index: true,
-    },
-    subCategory: {
-      type: String,
-      trim: true,
-    },
+// Category & Type (Now using ObjectId references)
+categoryId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Category',
+  required: [true, 'Category is required'],
+  index: true,
+},
+subCategoryId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Category',
+  index: true,
+},
     productType: {
       type: String,
       enum: ['ready_made', 'custom_made', 'on_order', 'repair', 'exchange'],
@@ -605,7 +591,7 @@ returnDetails: {
 // Indexes
 productSchema.index({ organizationId: 1, shopId: 1, productCode: 1 }, { unique: true });
 productSchema.index({ shopId: 1, status: 1 });
-productSchema.index({ shopId: 1, category: 1 });
+productSchema.index({ shopId: 1, categoryId: 1 });
 productSchema.index({ shopId: 1, 'metal.type': 1 });
 productSchema.index({ barcode: 1 }, { sparse: true });
 productSchema.index({ huid: 1 }, { sparse: true });
@@ -821,8 +807,8 @@ productSchema.statics.findByShop = function (shopId, options = {}) {
   return this.find({ shopId, deletedAt: null, ...options });
 };
 
-productSchema.statics.findByCategory = function (shopId, category) {
-  return this.find({ shopId, category, deletedAt: null, isActive: true });
+productSchema.statics.findByCategory = function (shopId, categoryId) {
+  return this.find({ shopId, categoryId, deletedAt: null, isActive: true });
 };
 
 productSchema.statics.findByMetal = function (shopId, metalType) {

@@ -4,6 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "seed:categories": "node seeds/categorySeeder.js",
     "dev": "nodemon -r dotenv/config src/server.js",
     "start": "node -r dotenv/config src/server.js",
     "lint": "eslint .",

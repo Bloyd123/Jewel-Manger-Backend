@@ -4,7 +4,7 @@
 // ============================================================================
 
 import { catchAsync } from '../middlewares/errorHandler.js';
-import * as purchaseService from '../services/purchase.service.js';
+import * as purchaseService from './purchase.service.js';
 import {
   sendSuccess,
   sendCreated,
