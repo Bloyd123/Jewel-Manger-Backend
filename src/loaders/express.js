@@ -16,6 +16,7 @@ import supplierRoutes from '../api/supplier/supplier.routes.js';
 import purchaseRoutes from '../api/purchase/purchase.routes.js';
 import productRoutes from '../api/products/product.routes.js';
 import categoryRoutes from '../api/category/category.routes.js';
+import paymentRoutes from '../api/payment/payment.routes.js';
 /**
  * Express App Configuration Loader
  */
@@ -160,6 +161,7 @@ app.use('/api/v1/shops/:shopId/purchases', purchaseRoutes);
 app.use('/api/v1/shops/:shopId/product', productRoutes);
 
 app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/shops', paymentRoutes);
 
 
   // ... more routes
