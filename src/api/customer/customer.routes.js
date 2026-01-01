@@ -31,11 +31,11 @@ import {
 
 import { authenticate } from '../middlewares/auth.js';
 import { restrictTo } from '../middlewares/restrictTo.js';
-import { 
+import {
   checkShopAccess,
-  checkPermission, 
+  checkPermission,
   checkAnyPermission,
-  checkAllPermissions 
+  checkAllPermissions,
 } from '../middlewares/checkShopAccess.js';
 import { rateLimiter } from '../middlewares/rateLimiter.js';
 
@@ -61,7 +61,7 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
-    checkPermission('canViewCustomerAnalytics'),
+  checkPermission('canViewCustomerAnalytics'),
   rateLimiter({ max: 30, windowMs: 60000 }),
   getCustomerAnalytics
 );
@@ -80,7 +80,7 @@ router.get(
   '/search',
   searchCustomerValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
-  checkShopAccess, 
+  checkShopAccess,
   checkPermission('canViewCustomers'),
   rateLimiter({ max: 100, windowMs: 60000 }),
   searchCustomer
@@ -134,8 +134,8 @@ router.get(
   shopIdValidation,
   customerIdValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
-  
-checkShopAccess,
+
+  checkShopAccess,
   checkPermission('canViewCustomers'),
   rateLimiter({ max: 100, windowMs: 60000 }),
   getCustomerById
@@ -191,7 +191,7 @@ router.patch(
   blacklistCustomerValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canBlacklistCustomer'), 
+  checkPermission('canBlacklistCustomer'),
   rateLimiter({ max: 10, windowMs: 60000 }),
   blacklistCustomer
 );
@@ -208,7 +208,7 @@ router.patch(
   customerIdValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'), //   ADDED 'manager'
   checkShopAccess,
- checkPermission('canRemoveCustomerBlacklist'),
+  checkPermission('canRemoveCustomerBlacklist'),
   rateLimiter({ max: 10, windowMs: 60000 }),
   removeBlacklist
 );
@@ -229,7 +229,7 @@ router.post(
   loyaltyPointsValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
- checkPermission('canAddLoyaltyPoints'),
+  checkPermission('canAddLoyaltyPoints'),
   rateLimiter({ max: 50, windowMs: 60000 }),
   addLoyaltyPoints
 );

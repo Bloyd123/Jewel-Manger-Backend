@@ -273,7 +273,12 @@ export const getSalesPersonPerformance = catchAsync(async (req, res) => {
   const { shopId, userId } = req.params;
   const { startDate, endDate } = req.query;
 
-  const performance = await saleService.getSalesPersonPerformance(shopId, userId, startDate, endDate);
+  const performance = await saleService.getSalesPersonPerformance(
+    shopId,
+    userId,
+    startDate,
+    endDate
+  );
 
   sendSuccess(res, 200, 'Sales person performance fetched successfully', performance);
 });
@@ -304,7 +309,7 @@ export const getTodaySales = catchAsync(async (req, res) => {
 
   const sales = await saleService.getTodaySales(shopId);
 
-  sendSuccess(res, 200, 'Today\'s sales fetched successfully', sales);
+  sendSuccess(res, 200, "Today's sales fetched successfully", sales);
 });
 
 export const getPendingSales = catchAsync(async (req, res) => {

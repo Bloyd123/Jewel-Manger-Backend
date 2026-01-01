@@ -5,7 +5,7 @@
 
 /**
  * 🎯 ROLE-BASED PERMISSIONS MATRIX
- * 
+ *
  * Roles Hierarchy:
  * 1. super_admin   - Platform owner (full access across all organizations)
  * 2. org_admin     - Organization owner (full access within organization)
@@ -63,11 +63,11 @@ export const PERMISSIONS = {
     canEditCustomers: true,
     canDeleteCustomers: true,
     canViewCustomerHistory: true,
-        canBlacklistCustomer: true,          //   NEW
-    canRemoveCustomerBlacklist: true,    //   NEW
-    canAddLoyaltyPoints: true,           //   NEW
-    canRedeemLoyaltyPoints: true,        //   NEW
-    canViewCustomerAnalytics: true,      //   NEW
+    canBlacklistCustomer: true, //   NEW
+    canRemoveCustomerBlacklist: true, //   NEW
+    canAddLoyaltyPoints: true, //   NEW
+    canRedeemLoyaltyPoints: true, //   NEW
+    canViewCustomerAnalytics: true, //   NEW
 
     // Suppliers
     canManageSuppliers: true,
@@ -75,15 +75,15 @@ export const PERMISSIONS = {
     canCreateSuppliers: true,
     canEditSuppliers: true,
     canDeleteSuppliers: true,
-    canRestoreSupplier: true,            //   NEW
-    canUpdateSupplierRating: true,       //   NEW
-    canBlacklistSupplier: true,          //   NEW
-    canRemoveSupplierBlacklist: true,    //   NEW
-    canMarkPreferredSupplier: true,      //   NEW
-    canRemovePreferredSupplier: true,    //   NEW
-    canUpdateSupplierBalance: true,      //   NEW
-    canViewSupplierStatistics: true,     //   NEW
-    canViewTopSuppliers: true,           //   NEW
+    canRestoreSupplier: true, //   NEW
+    canUpdateSupplierRating: true, //   NEW
+    canBlacklistSupplier: true, //   NEW
+    canRemoveSupplierBlacklist: true, //   NEW
+    canMarkPreferredSupplier: true, //   NEW
+    canRemovePreferredSupplier: true, //   NEW
+    canUpdateSupplierBalance: true, //   NEW
+    canViewSupplierStatistics: true, //   NEW
+    canViewTopSuppliers: true, //   NEW
 
     // Parties & Billing
     canManageParties: true,
@@ -132,14 +132,14 @@ export const PERMISSIONS = {
     canManageShopSettings: true,
     canManageMetalRates: true,
     canUpdateMetalRates: true,
-     canManageTaxSettings: false,
-      canCreateShop: true,                 //   NEW
-    canViewShops: true,                  //   NEW
-    canViewSingleShop: true,             //   NEW
-    canUpdateShop: true,                 //   NEW
-    canDeleteShop: true,                 //   NEW
-    canViewShopStatistics: true,         //   NEW
-    canTransferInventory: true,          //   NEW
+    canManageTaxSettings: false,
+    canCreateShop: true, //   NEW
+    canViewShops: true, //   NEW
+    canViewSingleShop: true, //   NEW
+    canUpdateShop: true, //   NEW
+    canDeleteShop: true, //   NEW
+    canViewShopStatistics: true, //   NEW
+    canTransferInventory: true, //   NEW
 
     // Advanced Features
     canManageRepairs: true,
@@ -165,7 +165,7 @@ export const PERMISSIONS = {
     canViewInventory: true,
     canEditInventory: true,
     canManageProducts: true,
-    canDeleteProducts: false,       //  
+    canDeleteProducts: false, //
     canImportProducts: true,
     canExportProducts: true,
 
@@ -174,7 +174,7 @@ export const PERMISSIONS = {
     canViewPurchases: true,
     canCreatePurchases: true,
     canEditPurchases: true,
-    canDeletePurchases: false,      //  
+    canDeletePurchases: false, //
     canApprovePurchases: true,
 
     // Sales
@@ -182,10 +182,10 @@ export const PERMISSIONS = {
     canViewSales: true,
     canCreateSales: true,
     canEditSales: true,
-    canDeleteSales: false,          //  
+    canDeleteSales: false, //
     canApproveSales: true,
     canGenerateInvoices: true,
-    canCancelInvoices: false,       //  
+    canCancelInvoices: false, //
     canApplyDiscounts: true,
 
     // Orders
@@ -200,29 +200,29 @@ export const PERMISSIONS = {
     canViewCustomers: true,
     canCreateCustomers: true,
     canEditCustomers: true,
-    canDeleteCustomers: false,      //  
+    canDeleteCustomers: false, //
     canViewCustomerHistory: true,
-      canBlacklistCustomer: true,        //   Manager can blacklist
-  canRemoveCustomerBlacklist: false, //   Only shop_admin can remove
-  canAddLoyaltyPoints: true,
-  canRedeemLoyaltyPoints: true,
-  canViewCustomerAnalytics: true,
+    canBlacklistCustomer: true, //   Manager can blacklist
+    canRemoveCustomerBlacklist: false, //   Only shop_admin can remove
+    canAddLoyaltyPoints: true,
+    canRedeemLoyaltyPoints: true,
+    canViewCustomerAnalytics: true,
 
     // Suppliers
     canManageSuppliers: true,
     canViewSuppliers: true,
     canCreateSuppliers: true,
     canEditSuppliers: true,
-    canDeleteSuppliers: false,      //  
-      canRestoreSupplier: true,
-  canUpdateSupplierRating: true,
-  canBlacklistSupplier: false,       //   Only shop_admin (from table)
-  canRemoveSupplierBlacklist: false, //   Only shop_admin
-  canMarkPreferredSupplier: true,
-  canRemovePreferredSupplier: true,
-  canUpdateSupplierBalance: true,
-  canViewSupplierStatistics: true,
-  canViewTopSuppliers: true,
+    canDeleteSuppliers: false, //
+    canRestoreSupplier: true,
+    canUpdateSupplierRating: true,
+    canBlacklistSupplier: false, //   Only shop_admin (from table)
+    canRemoveSupplierBlacklist: false, //   Only shop_admin
+    canMarkPreferredSupplier: true,
+    canRemovePreferredSupplier: true,
+    canUpdateSupplierBalance: true,
+    canViewSupplierStatistics: true,
+    canViewTopSuppliers: true,
 
     // Parties & Billing
     canManageParties: true,
@@ -235,7 +235,7 @@ export const PERMISSIONS = {
     canViewPayments: true,
     canReceivePayments: true,
     canMakePayments: true,
-    canViewProfitLoss: false,       //  
+    canViewProfitLoss: false, //
     canApproveTransactions: true,
 
     // Expenses
@@ -246,7 +246,7 @@ export const PERMISSIONS = {
     canViewSchemes: true,
     canCreateSchemes: true,
     canEditSchemes: true,
-    canDeleteSchemes: false,        //  
+    canDeleteSchemes: false, //
 
     // Reports & Analytics
     canManageReports: true,
@@ -260,25 +260,25 @@ export const PERMISSIONS = {
     canAccessPOS: true,
 
     // Users
-    canManageUsers: false,          //  
+    canManageUsers: false, //
     canViewUsers: true,
-    canCreateUsers: false,          //  
-    canEditUsers: false,            //  
-    canDeleteUsers: false,          //  
-    canAssignRoles: false,          //  
+    canCreateUsers: false, //
+    canEditUsers: false, //
+    canDeleteUsers: false, //
+    canAssignRoles: false, //
 
     // Shop Settings
-    canManageShopSettings: false,   //  
+    canManageShopSettings: false, //
     canManageMetalRates: true,
     canUpdateMetalRates: true,
-    canManageTaxSettings: false,    //  
-      canCreateShop: false,              //   Cannot create shops
-  canViewShops: true,
-  canViewSingleShop: true,
-  canUpdateShop: false,              //   Cannot update shop (from table)
-  canDeleteShop: false,              //   Cannot delete shop
-  canViewShopStatistics: true,
-  canTransferInventory: true,
+    canManageTaxSettings: false, //
+    canCreateShop: false, //   Cannot create shops
+    canViewShops: true,
+    canViewSingleShop: true,
+    canUpdateShop: false, //   Cannot update shop (from table)
+    canDeleteShop: false, //   Cannot delete shop
+    canViewShopStatistics: true,
+    canTransferInventory: true,
 
     // Advanced Features
     canManageRepairs: true,
@@ -287,12 +287,12 @@ export const PERMISSIONS = {
     canManageOldGold: true,
 
     // System
-    canManageSettings: false,       //  
+    canManageSettings: false, //
     canExportData: true,
-    canDeleteRecords: false,        //  
-    canViewAuditLog: false,         //  
-    canBackupData: false,           //  
-    canRestoreData: false,          //  
+    canDeleteRecords: false, //
+    canViewAuditLog: false, //
+    canBackupData: false, //
+    canRestoreData: false, //
   },
 
   // ============================================================================
@@ -317,13 +317,13 @@ export const PERMISSIONS = {
     canApprovePurchases: false,
 
     // Sales
-    canManageSales: true,           //   For POS
+    canManageSales: true, //   For POS
     canViewSales: true,
-    canCreateSales: true,           //   For POS
+    canCreateSales: true, //   For POS
     canEditSales: false,
     canDeleteSales: false,
     canApproveSales: false,
-    canGenerateInvoices: true,      //   For POS
+    canGenerateInvoices: true, //   For POS
     canCancelInvoices: false,
     canApplyDiscounts: false,
 
@@ -337,31 +337,31 @@ export const PERMISSIONS = {
     // Customers
     canManageCustomers: false,
     canViewCustomers: true,
-    canCreateCustomers: true,       //   For POS
+    canCreateCustomers: true, //   For POS
     canEditCustomers: false,
     canDeleteCustomers: false,
     canViewCustomerHistory: true,
-      canBlacklistCustomer: false,       //   Staff cannot blacklist
-  canRemoveCustomerBlacklist: false,
-  canAddLoyaltyPoints: false,        //   Staff cannot add points
-  canRedeemLoyaltyPoints: true,      //   Staff can redeem (from table)
-  canViewCustomerAnalytics: false,   //   Staff cannot view analytics
+    canBlacklistCustomer: false, //   Staff cannot blacklist
+    canRemoveCustomerBlacklist: false,
+    canAddLoyaltyPoints: false, //   Staff cannot add points
+    canRedeemLoyaltyPoints: true, //   Staff can redeem (from table)
+    canViewCustomerAnalytics: false, //   Staff cannot view analytics
 
     // Suppliers
     canManageSuppliers: false,
     canViewSuppliers: true,
-    canCreateSuppliers: false,      //   Staff cannot create suppliers
+    canCreateSuppliers: false, //   Staff cannot create suppliers
     canEditSuppliers: false,
     canDeleteSuppliers: false,
-      canRestoreSupplier: false,
-  canUpdateSupplierRating: false,
-  canBlacklistSupplier: false,
-  canRemoveSupplierBlacklist: false,
-  canMarkPreferredSupplier: false,
-  canRemovePreferredSupplier: false,
-  canUpdateSupplierBalance: false,
-  canViewSupplierStatistics: false,
-  canViewTopSuppliers: false,        //   Staff cannot see top suppliers
+    canRestoreSupplier: false,
+    canUpdateSupplierRating: false,
+    canBlacklistSupplier: false,
+    canRemoveSupplierBlacklist: false,
+    canMarkPreferredSupplier: false,
+    canRemovePreferredSupplier: false,
+    canUpdateSupplierBalance: false,
+    canViewSupplierStatistics: false,
+    canViewTopSuppliers: false, //   Staff cannot see top suppliers
 
     // Parties & Billing
     canManageParties: false,
@@ -372,7 +372,7 @@ export const PERMISSIONS = {
     // Financial
     canViewFinancials: false,
     canViewPayments: true,
-    canReceivePayments: true,       //   Can receive cash
+    canReceivePayments: true, //   Can receive cash
     canMakePayments: false,
     canViewProfitLoss: false,
     canApproveTransactions: false,
@@ -396,7 +396,7 @@ export const PERMISSIONS = {
     canViewDashboard: true,
 
     // POS
-    canAccessPOS: true,             //   Main permission
+    canAccessPOS: true, //   Main permission
 
     // Users
     canManageUsers: false,
@@ -411,13 +411,13 @@ export const PERMISSIONS = {
     canManageMetalRates: false,
     canUpdateMetalRates: false,
     canManageTaxSettings: false,
-      canCreateShop: false,
-  canViewShops: true,
-  canViewSingleShop: true,
-  canUpdateShop: false,
-  canDeleteShop: false,
-  canViewShopStatistics: false,      //   Staff cannot view statistics
-  canTransferInventory: false,
+    canCreateShop: false,
+    canViewShops: true,
+    canViewSingleShop: true,
+    canUpdateShop: false,
+    canDeleteShop: false,
+    canViewShopStatistics: false, //   Staff cannot view statistics
+    canTransferInventory: false,
 
     // Advanced Features
     canManageRepairs: false,
@@ -445,10 +445,10 @@ export const PERMISSIONS = {
     canManageProducts: false,
     canDeleteProducts: false,
     canImportProducts: false,
-    canExportProducts: true,        //   For reports
+    canExportProducts: true, //   For reports
 
     // Purchases
-    canManagePurchases: true,       //   View & reconcile
+    canManagePurchases: true, //   View & reconcile
     canViewPurchases: true,
     canCreatePurchases: false,
     canEditPurchases: false,
@@ -456,13 +456,13 @@ export const PERMISSIONS = {
     canApprovePurchases: false,
 
     // Sales
-    canManageSales: true,           //   View & reconcile
+    canManageSales: true, //   View & reconcile
     canViewSales: true,
     canCreateSales: false,
     canEditSales: false,
     canDeleteSales: false,
     canApproveSales: false,
-    canGenerateInvoices: true,      //   Generate invoices
+    canGenerateInvoices: true, //   Generate invoices
     canCancelInvoices: false,
     canApplyDiscounts: false,
 
@@ -476,47 +476,47 @@ export const PERMISSIONS = {
     // Customers
     canManageCustomers: false,
     canViewCustomers: true,
-    canCreateCustomers: false,      //   Not accountant's job
+    canCreateCustomers: false, //   Not accountant's job
     canEditCustomers: false,
     canDeleteCustomers: false,
     canViewCustomerHistory: true,
-      canBlacklistCustomer: false,       //   Not accountant's job
-  canRemoveCustomerBlacklist: false,
-  canAddLoyaltyPoints: false,
-  canRedeemLoyaltyPoints: false,     //   Accountant doesn't handle POS
-  canViewCustomerAnalytics: true,    //   For financial reports
+    canBlacklistCustomer: false, //   Not accountant's job
+    canRemoveCustomerBlacklist: false,
+    canAddLoyaltyPoints: false,
+    canRedeemLoyaltyPoints: false, //   Accountant doesn't handle POS
+    canViewCustomerAnalytics: true, //   For financial reports
 
     // Suppliers
     canManageSuppliers: false,
     canViewSuppliers: true,
-    canCreateSuppliers: false,      //   Not accountant's job
+    canCreateSuppliers: false, //   Not accountant's job
     canEditSuppliers: false,
     canDeleteSuppliers: false,
- canRestoreSupplier: false,
-  canUpdateSupplierRating: false,
-  canBlacklistSupplier: false,
-  canRemoveSupplierBlacklist: false,
-  canMarkPreferredSupplier: false,
-  canRemovePreferredSupplier: false,
-  canUpdateSupplierBalance: true,    //   Accountant manages balances
-  canViewSupplierStatistics: true,   //   For financial reports
-  canViewTopSuppliers: false,        //   From table
+    canRestoreSupplier: false,
+    canUpdateSupplierRating: false,
+    canBlacklistSupplier: false,
+    canRemoveSupplierBlacklist: false,
+    canMarkPreferredSupplier: false,
+    canRemovePreferredSupplier: false,
+    canUpdateSupplierBalance: true, //   Accountant manages balances
+    canViewSupplierStatistics: true, //   For financial reports
+    canViewTopSuppliers: false, //   From table
     // Parties & Billing
-    canManageParties: true,         //   Reconcile accounts
-    canViewPartyLedger: true,       //  
-    canManageBilling: true,         //  
+    canManageParties: true, //   Reconcile accounts
+    canViewPartyLedger: true, //
+    canManageBilling: true, //
     canViewBilling: true,
 
     // Financial
-    canViewFinancials: true,        //   Core permission
+    canViewFinancials: true, //   Core permission
     canViewPayments: true,
     canReceivePayments: true,
     canMakePayments: true,
-    canViewProfitLoss: true,        //   Core permission
+    canViewProfitLoss: true, //   Core permission
     canApproveTransactions: false,
 
     // Expenses
-    canManageExpenses: true,        //   Core permission
+    canManageExpenses: true, //   Core permission
 
     // Schemes
     canManageSchemes: false,
@@ -526,15 +526,15 @@ export const PERMISSIONS = {
     canDeleteSchemes: false,
 
     // Reports & Analytics
-    canManageReports: true,         //   Core permission
+    canManageReports: true, //   Core permission
     canViewReports: true,
-    canGenerateReports: true,       //   Core permission
+    canGenerateReports: true, //   Core permission
     canExportReports: true,
-    canViewAnalytics: true,         //   Core permission
+    canViewAnalytics: true, //   Core permission
     canViewDashboard: true,
 
     // POS
-    canAccessPOS: false,            //   Not needed
+    canAccessPOS: false, //   Not needed
 
     // Users
     canManageUsers: false,
@@ -549,13 +549,13 @@ export const PERMISSIONS = {
     canManageMetalRates: false,
     canUpdateMetalRates: false,
     canManageTaxSettings: false,
-      canCreateShop: false,
-  canViewShops: true,
-  canViewSingleShop: true,
-  canUpdateShop: false,
-  canDeleteShop: false,
-  canViewShopStatistics: true,       //   For financial reports
-  canTransferInventory: false,
+    canCreateShop: false,
+    canViewShops: true,
+    canViewSingleShop: true,
+    canUpdateShop: false,
+    canDeleteShop: false,
+    canViewShopStatistics: true, //   For financial reports
+    canTransferInventory: false,
 
     // Advanced Features
     canManageRepairs: false,
@@ -565,10 +565,10 @@ export const PERMISSIONS = {
 
     // System
     canManageSettings: false,
-    canExportData: true,            //   For reports
+    canExportData: true, //   For reports
     canDeleteRecords: false,
     canViewAuditLog: false,
-    canBackupData: true,            //   Financial backups
+    canBackupData: true, //   Financial backups
     canRestoreData: false,
   },
 
@@ -576,27 +576,27 @@ export const PERMISSIONS = {
   // VIEWER - Read-only Access
   // ============================================================================
   viewer: {
-      canBlacklistCustomer: false,
-  canRemoveCustomerBlacklist: false,
-  canAddLoyaltyPoints: false,
-  canRedeemLoyaltyPoints: false,
-  canViewCustomerAnalytics: false,
+    canBlacklistCustomer: false,
+    canRemoveCustomerBlacklist: false,
+    canAddLoyaltyPoints: false,
+    canRedeemLoyaltyPoints: false,
+    canViewCustomerAnalytics: false,
     canRestoreSupplier: false,
-  canUpdateSupplierRating: false,
-  canBlacklistSupplier: false,
-  canRemoveSupplierBlacklist: false,
-  canMarkPreferredSupplier: false,
-  canRemovePreferredSupplier: false,
-  canUpdateSupplierBalance: false,
-  canViewSupplierStatistics: false,
-  canViewTopSuppliers: false,
+    canUpdateSupplierRating: false,
+    canBlacklistSupplier: false,
+    canRemoveSupplierBlacklist: false,
+    canMarkPreferredSupplier: false,
+    canRemovePreferredSupplier: false,
+    canUpdateSupplierBalance: false,
+    canViewSupplierStatistics: false,
+    canViewTopSuppliers: false,
     canCreateShop: false,
-  canViewShops: true,                //   Can view list
-  canViewSingleShop: true,           //   Can view single
-  canUpdateShop: false,
-  canDeleteShop: false,
-  canViewShopStatistics: false,
-  canTransferInventory: false,
+    canViewShops: true, //   Can view list
+    canViewSingleShop: true, //   Can view single
+    canUpdateShop: false,
+    canDeleteShop: false,
+    canViewShopStatistics: false,
+    canTransferInventory: false,
     canManageInventory: false,
     canViewInventory: true,
     canEditInventory: false,
@@ -686,11 +686,9 @@ export const PERMISSIONS = {
  * @param {string} role - User role
  * @returns {object} Permission object
  */
-export const getPermissionsByRole = (role) => {
+export const getPermissionsByRole = role => {
   return PERMISSIONS[role] || PERMISSIONS.viewer;
 };
-
-
 
 export default {
   PERMISSIONS,

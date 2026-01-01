@@ -1,10 +1,6 @@
 import supplierService from './supplier.service.js';
 import { catchAsync } from '../middlewares/errorHandler.js';
-import { 
-  sendSuccess, 
-  sendCreated, 
-  sendPaginated 
-} from '../../utils/sendResponse.js';
+import { sendSuccess, sendCreated, sendPaginated } from '../../utils/sendResponse.js';
 
 /**
  * @desc    Create new supplier
@@ -30,15 +26,10 @@ export const createSupplier = catchAsync(async (req, res) => {
 export const getSuppliers = catchAsync(async (req, res) => {
   const shopId = req.query.shopId || req.user.primaryShop;
 
-  const result = await supplierService.getSuppliers(
-    shopId,
-    req.user.organizationId,
-    req.query,
-    {
-      page: req.query.page,
-      limit: req.query.limit,
-    }
-  );
+  const result = await supplierService.getSuppliers(shopId, req.user.organizationId, req.query, {
+    page: req.query.page,
+    limit: req.query.limit,
+  });
 
   sendPaginated(
     res,

@@ -25,9 +25,7 @@ const validate = (req, res, next) => {
  * Validate purchase ID parameter
  */
 export const purchaseId = [
-  param('purchaseId')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  param('purchaseId').isMongoId().withMessage('Invalid purchase ID format'),
   validate,
 ];
 
@@ -35,9 +33,7 @@ export const purchaseId = [
  * Validate supplier ID parameter
  */
 export const supplierId = [
-  param('supplierId')
-    .isMongoId()
-    .withMessage('Invalid supplier ID format'),
+  param('supplierId').isMongoId().withMessage('Invalid supplier ID format'),
   validate,
 ];
 
@@ -51,23 +47,16 @@ export const createPurchase = [
     .isMongoId()
     .withMessage('Invalid supplier ID'),
 
-  body('purchaseDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid purchase date format'),
+  body('purchaseDate').optional().isISO8601().withMessage('Invalid purchase date format'),
 
   body('purchaseType')
     .optional()
     .isIn(['new_stock', 'old_gold', 'exchange', 'consignment', 'repair_return', 'sample'])
     .withMessage('Invalid purchase type'),
 
-  body('items')
-    .isArray({ min: 1 })
-    .withMessage('At least one item is required'),
+  body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
 
-  body('items.*.productName')
-    .notEmpty()
-    .withMessage('Product name is required'),
+  body('items.*.productName').notEmpty().withMessage('Product name is required'),
 
   body('items.*.metalType')
     .notEmpty()
@@ -75,9 +64,7 @@ export const createPurchase = [
     .isIn(['gold', 'silver', 'platinum', 'diamond', 'mixed'])
     .withMessage('Invalid metal type'),
 
-  body('items.*.purity')
-    .notEmpty()
-    .withMessage('Purity is required'),
+  body('items.*.purity').notEmpty().withMessage('Purity is required'),
 
   body('items.*.grossWeight')
     .isFloat({ min: 0 })
@@ -88,14 +75,9 @@ export const createPurchase = [
     .isFloat({ min: 0 })
     .withMessage('Stone weight must be a positive number'),
 
-  body('items.*.netWeight')
-    .isFloat({ min: 0 })
-    .withMessage('Net weight must be a positive number'),
+  body('items.*.netWeight').isFloat({ min: 0 }).withMessage('Net weight must be a positive number'),
 
-  body('items.*.quantity')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Quantity must be at least 1'),
+  body('items.*.quantity').optional().isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
 
   body('payment.paymentMode')
     .optional()
@@ -114,19 +96,11 @@ export const createPurchase = [
  * Validate update purchase request
  */
 export const updatePurchase = [
-  param('purchaseId')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  param('purchaseId').isMongoId().withMessage('Invalid purchase ID format'),
 
-  body('supplierId')
-    .optional()
-    .isMongoId()
-    .withMessage('Invalid supplier ID'),
+  body('supplierId').optional().isMongoId().withMessage('Invalid supplier ID'),
 
-  body('purchaseDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid purchase date format'),
+  body('purchaseDate').optional().isISO8601().withMessage('Invalid purchase date format'),
 
   body('items')
     .optional()
@@ -145,10 +119,7 @@ export const updatePurchase = [
  * Validate get purchases query
  */
 export const getPurchases = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
   query('limit')
     .optional()
@@ -157,7 +128,16 @@ export const getPurchases = [
 
   query('status')
     .optional()
-    .isIn(['draft', 'pending', 'ordered', 'received', 'partial_received', 'completed', 'cancelled', 'returned'])
+    .isIn([
+      'draft',
+      'pending',
+      'ordered',
+      'received',
+      'partial_received',
+      'completed',
+      'cancelled',
+      'returned',
+    ])
     .withMessage('Invalid status'),
 
   query('paymentStatus')
@@ -165,15 +145,9 @@ export const getPurchases = [
     .isIn(['paid', 'partial', 'unpaid', 'overdue'])
     .withMessage('Invalid payment status'),
 
-  query('startDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid start date format'),
+  query('startDate').optional().isISO8601().withMessage('Invalid start date format'),
 
-  query('endDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid end date format'),
+  query('endDate').optional().isISO8601().withMessage('Invalid end date format'),
 
   validate,
 ];
@@ -182,14 +156,21 @@ export const getPurchases = [
  * Validate update status request
  */
 export const updateStatus = [
-  param('purchaseId')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  param('purchaseId').isMongoId().withMessage('Invalid purchase ID format'),
 
   body('status')
     .notEmpty()
     .withMessage('Status is required')
-    .isIn(['draft', 'pending', 'ordered', 'received', 'partial_received', 'completed', 'cancelled', 'returned'])
+    .isIn([
+      'draft',
+      'pending',
+      'ordered',
+      'received',
+      'partial_received',
+      'completed',
+      'cancelled',
+      'returned',
+    ])
     .withMessage('Invalid status'),
 
   validate,
@@ -199,24 +180,13 @@ export const updateStatus = [
  * Validate receive purchase request
  */
 export const receivePurchase = [
-  param('purchaseId')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  param('purchaseId').isMongoId().withMessage('Invalid purchase ID format'),
 
-  body('receivedBy')
-    .optional()
-    .isMongoId()
-    .withMessage('Invalid user ID for receivedBy'),
+  body('receivedBy').optional().isMongoId().withMessage('Invalid user ID for receivedBy'),
 
-  body('receivedDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid received date format'),
+  body('receivedDate').optional().isISO8601().withMessage('Invalid received date format'),
 
-  body('notes')
-    .optional()
-    .isString()
-    .withMessage('Notes must be a string'),
+  body('notes').optional().isString().withMessage('Notes must be a string'),
 
   validate,
 ];
@@ -225,9 +195,7 @@ export const receivePurchase = [
  * Validate cancel purchase request
  */
 export const cancelPurchase = [
-  param('purchaseId')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  param('purchaseId').isMongoId().withMessage('Invalid purchase ID format'),
 
   body('reason')
     .notEmpty()
@@ -243,14 +211,9 @@ export const cancelPurchase = [
  * Validate approve purchase request
  */
 export const approvePurchase = [
-  param('purchaseId')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  param('purchaseId').isMongoId().withMessage('Invalid purchase ID format'),
 
-  body('notes')
-    .optional()
-    .isString()
-    .withMessage('Notes must be a string'),
+  body('notes').optional().isString().withMessage('Notes must be a string'),
 
   validate,
 ];
@@ -259,9 +222,7 @@ export const approvePurchase = [
  * Validate reject purchase request
  */
 export const rejectPurchase = [
-  param('purchaseId')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  param('purchaseId').isMongoId().withMessage('Invalid purchase ID format'),
 
   body('reason')
     .notEmpty()
@@ -277,9 +238,7 @@ export const rejectPurchase = [
  * Validate add payment request
  */
 export const addPayment = [
-  param('purchaseId')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  param('purchaseId').isMongoId().withMessage('Invalid purchase ID format'),
 
   body('amount')
     .notEmpty()
@@ -293,40 +252,19 @@ export const addPayment = [
     .isIn(['cash', 'card', 'upi', 'cheque', 'bank_transfer'])
     .withMessage('Invalid payment mode'),
 
-  body('paymentDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid payment date format'),
+  body('paymentDate').optional().isISO8601().withMessage('Invalid payment date format'),
 
-  body('transactionId')
-    .optional()
-    .isString()
-    .withMessage('Transaction ID must be a string'),
+  body('transactionId').optional().isString().withMessage('Transaction ID must be a string'),
 
-  body('referenceNumber')
-    .optional()
-    .isString()
-    .withMessage('Reference number must be a string'),
+  body('referenceNumber').optional().isString().withMessage('Reference number must be a string'),
 
-  body('chequeNumber')
-    .optional()
-    .isString()
-    .withMessage('Cheque number must be a string'),
+  body('chequeNumber').optional().isString().withMessage('Cheque number must be a string'),
 
-  body('chequeDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid cheque date format'),
+  body('chequeDate').optional().isISO8601().withMessage('Invalid cheque date format'),
 
-  body('bankName')
-    .optional()
-    .isString()
-    .withMessage('Bank name must be a string'),
+  body('bankName').optional().isString().withMessage('Bank name must be a string'),
 
-  body('notes')
-    .optional()
-    .isString()
-    .withMessage('Notes must be a string'),
+  body('notes').optional().isString().withMessage('Notes must be a string'),
 
   validate,
 ];
@@ -335,13 +273,9 @@ export const addPayment = [
  * Validate bulk delete request
  */
 export const bulkDelete = [
-  body('purchaseIds')
-    .isArray({ min: 1 })
-    .withMessage('At least one purchase ID is required'),
+  body('purchaseIds').isArray({ min: 1 }).withMessage('At least one purchase ID is required'),
 
-  body('purchaseIds.*')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  body('purchaseIds.*').isMongoId().withMessage('Invalid purchase ID format'),
 
   validate,
 ];
@@ -350,13 +284,9 @@ export const bulkDelete = [
  * Validate bulk approve request
  */
 export const bulkApprove = [
-  body('purchaseIds')
-    .isArray({ min: 1 })
-    .withMessage('At least one purchase ID is required'),
+  body('purchaseIds').isArray({ min: 1 }).withMessage('At least one purchase ID is required'),
 
-  body('purchaseIds.*')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  body('purchaseIds.*').isMongoId().withMessage('Invalid purchase ID format'),
 
   validate,
 ];
@@ -365,9 +295,7 @@ export const bulkApprove = [
  * Validate upload document request
  */
 export const uploadDocument = [
-  param('purchaseId')
-    .isMongoId()
-    .withMessage('Invalid purchase ID format'),
+  param('purchaseId').isMongoId().withMessage('Invalid purchase ID format'),
 
   body('documentType')
     .notEmpty()
@@ -381,10 +309,7 @@ export const uploadDocument = [
     .isURL()
     .withMessage('Invalid document URL'),
 
-  body('documentNumber')
-    .optional()
-    .isString()
-    .withMessage('Document number must be a string'),
+  body('documentNumber').optional().isString().withMessage('Document number must be a string'),
 
   validate,
 ];
@@ -424,10 +349,7 @@ export const dateRange = [
     .isISO8601()
     .withMessage('Invalid end date format'),
 
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
   query('limit')
     .optional()

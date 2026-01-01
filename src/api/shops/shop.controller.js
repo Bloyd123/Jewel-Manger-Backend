@@ -12,10 +12,10 @@ import { catchAsync } from '../middlewares/errorHandler.js';
 // VALIDATION ERROR HANDLER
 // ============================================================================
 
-const handleValidationErrors = (req) => {
+const handleValidationErrors = req => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const errorMessages = errors.array().map((err) => err.msg);
+    const errorMessages = errors.array().map(err => err.msg);
     throw new AppError(`Validation Error: ${errorMessages.join(', ')}`, 400);
   }
 };
@@ -104,12 +104,7 @@ export const updateShop = catchAsync(async (req, res, next) => {
   req.shop = await shopService.getShopById(req.params.id, req.user._id, req.user.role, true);
 
   // 3. Update shop via service
-  const result = await shopService.updateShop(
-    req.params.id,
-    req.body,
-    req.user._id,
-    req.user.role
-  );
+  const result = await shopService.updateShop(req.params.id, req.body, req.user._id, req.user.role);
 
   // 4. Send response
   res.status(200).json({
@@ -171,11 +166,7 @@ export const getShopStatistics = catchAsync(async (req, res, next) => {
   handleValidationErrors(req);
 
   // 2. Get statistics via service
-  const result = await shopService.getShopStatistics(
-    req.params.id,
-    req.user._id,
-    req.user.role
-  );
+  const result = await shopService.getShopStatistics(req.params.id, req.user._id, req.user.role);
 
   // 3. Send response
   res.status(200).json(result);

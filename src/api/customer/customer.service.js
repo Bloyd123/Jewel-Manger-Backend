@@ -69,7 +69,9 @@ class CustomerService {
     // Check duplicate phone in same shop
     const duplicate = await this.checkDuplicatePhone(shopId, normalizedData.phone);
     if (duplicate) {
-      throw new ConflictError(`Customer with phone ${normalizedData.phone} already exists in this shop`);
+      throw new ConflictError(
+        `Customer with phone ${normalizedData.phone} already exists in this shop`
+      );
     }
 
     // Generate customer code
@@ -151,7 +153,7 @@ class CustomerService {
       // Try cache first for phone lookup
       const cacheKey = `customer:phone:${shopId}:${phone}`;
       const cachedId = await cache.get(cacheKey);
-      
+
       if (cachedId) {
         return await this.getCustomerById(cachedId, shopId);
       }
@@ -172,7 +174,9 @@ class CustomerService {
     }
 
     const customer = await Customer.findOne(query)
-      .select('firstName lastName phone email customerCode customerType membershipTier loyaltyPoints totalPurchases statistics.lastOrderDate isActive')
+      .select(
+        'firstName lastName phone email customerCode customerType membershipTier loyaltyPoints totalPurchases statistics.lastOrderDate isActive'
+      )
       .lean();
 
     // Cache if found by phone
@@ -224,10 +228,7 @@ class CustomerService {
 
     // VIP only filter
     if (filters.vipOnly) {
-      query.$or = [
-        { customerType: 'vip' },
-        { membershipTier: 'platinum' },
-      ];
+      query.$or = [{ customerType: 'vip' }, { membershipTier: 'platinum' }];
     }
 
     // Date range filter
@@ -253,10 +254,9 @@ class CustomerService {
       page: paginationOptions.page || 1,
       limit: paginationOptions.limit || 20,
       sort: paginationOptions.sort || '-createdAt',
-      select: 'firstName lastName phone email customerCode customerType membershipTier loyaltyPoints totalPurchases totalDue isActive statistics.lastOrderDate createdAt',
-      populate: [
-        { path: 'referredBy', select: 'firstName lastName customerCode' },
-      ],
+      select:
+        'firstName lastName phone email customerCode customerType membershipTier loyaltyPoints totalPurchases totalDue isActive statistics.lastOrderDate createdAt',
+      populate: [{ path: 'referredBy', select: 'firstName lastName customerCode' }],
     });
 
     // Cache for 5 minutes
@@ -334,7 +334,9 @@ class CustomerService {
 
     // Check if has outstanding balance
     if (customer.totalDue > 0) {
-      throw new ValidationError(`Cannot delete customer with outstanding balance of ₹${customer.totalDue}`);
+      throw new ValidationError(
+        `Cannot delete customer with outstanding balance of ₹${customer.totalDue}`
+      );
     }
 
     // Soft delete
@@ -472,14 +474,16 @@ class CustomerService {
       },
     ]);
 
-    return stats[0] || {
-      totalCustomers: 0,
-      activeCustomers: 0,
-      vipCustomers: 0,
-      totalOutstanding: 0,
-      totalLoyaltyPoints: 0,
-      avgLifetimeValue: 0,
-    };
+    return (
+      stats[0] || {
+        totalCustomers: 0,
+        activeCustomers: 0,
+        vipCustomers: 0,
+        totalOutstanding: 0,
+        totalLoyaltyPoints: 0,
+        avgLifetimeValue: 0,
+      }
+    );
   }
 
   /**
@@ -500,14 +504,16 @@ class CustomerService {
 
     // Names
     if (normalized.firstName) {
-      normalized.firstName = normalized.firstName.trim()
+      normalized.firstName = normalized.firstName
+        .trim()
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
     }
 
     if (normalized.lastName) {
-      normalized.lastName = normalized.lastName.trim()
+      normalized.lastName = normalized.lastName
+        .trim()
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
@@ -536,7 +542,11 @@ class CustomerService {
    */
   async cacheCustomer(customer) {
     await cache.set(`customer:${customer._id}`, customer, 1800);
-    await cache.set(`customer:phone:${customer.shopId}:${customer.phone}`, customer._id.toString(), 3600);
+    await cache.set(
+      `customer:phone:${customer.shopId}:${customer.phone}`,
+      customer._id.toString(),
+      3600
+    );
   }
 
   /**

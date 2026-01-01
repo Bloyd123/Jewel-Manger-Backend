@@ -11,11 +11,7 @@ import eventLogger from '../../utils/eventLogger.js';
 import { businessLogger } from '../../utils/logger.js';
 import APIFeatures from '../../utils/apiFeatures.js';
 import { getPaginationData } from '../../utils/pagination.js';
-import {
-  NotFoundError,
-  BadRequestError,
-  ValidationError,
-} from '../../utils/AppError.js';
+import { NotFoundError, BadRequestError, ValidationError } from '../../utils/AppError.js';
 
 // ============================================================================
 // 1. PURCHASE CRUD OPERATIONS
@@ -138,7 +134,7 @@ export const getAllPurchases = async (shopId, filters) => {
 /**
  * Get single purchase by ID
  */
-export const getPurchaseById = async (purchaseId) => {
+export const getPurchaseById = async purchaseId => {
   const purchase = await Purchase.findById(purchaseId)
     .populate('supplierId', 'businessName supplierCode contactPerson address')
     .populate('createdBy', 'firstName lastName email')
@@ -191,7 +187,7 @@ export const updatePurchase = async (purchaseId, data, userId) => {
 /**
  * Soft delete purchase (only draft status)
  */
-export const deletePurchase = async (purchaseId) => {
+export const deletePurchase = async purchaseId => {
   const purchase = await Purchase.findById(purchaseId);
 
   if (!purchase) {
@@ -324,7 +320,7 @@ export const receivePurchase = async (purchaseId, receiveData, userId) => {
         },
         pricing: {
           costPrice: item.itemTotal / item.quantity,
-          sellingPrice: item.itemTotal / item.quantity * 1.2, // 20% markup
+          sellingPrice: (item.itemTotal / item.quantity) * 1.2, // 20% markup
         },
         supplierId: purchase.supplierId,
         supplierDetails: {
@@ -526,7 +522,7 @@ export const addPayment = async (purchaseId, paymentData, userId) => {
 /**
  * Get all payments for a purchase
  */
-export const getPayments = async (purchaseId) => {
+export const getPayments = async purchaseId => {
   const purchase = await Purchase.findById(purchaseId).select('payment');
 
   if (!purchase) {
@@ -659,14 +655,14 @@ export const getPurchaseAnalytics = async (shopId, filters) => {
 /**
  * Get all pending/incomplete purchases
  */
-export const getPendingPurchases = async (shopId) => {
+export const getPendingPurchases = async shopId => {
   return Purchase.findPending(shopId).populate('supplierId', 'businessName supplierCode');
 };
 
 /**
  * Get all unpaid/partially paid purchases
  */
-export const getUnpaidPurchases = async (shopId) => {
+export const getUnpaidPurchases = async shopId => {
   return Purchase.findUnpaid(shopId).populate('supplierId', 'businessName supplierCode');
 };
 
@@ -677,7 +673,7 @@ export const getUnpaidPurchases = async (shopId) => {
 /**
  * Bulk delete multiple purchases (draft only)
  */
-export const bulkDeletePurchases = async (purchaseIds) => {
+export const bulkDeletePurchases = async purchaseIds => {
   // Validate all are draft
   const purchases = await Purchase.find({
     _id: { $in: purchaseIds },
@@ -689,10 +685,7 @@ export const bulkDeletePurchases = async (purchaseIds) => {
   }
 
   // Soft delete all
-  await Purchase.updateMany(
-    { _id: { $in: purchaseIds } },
-    { $set: { deletedAt: new Date() } }
-  );
+  await Purchase.updateMany({ _id: { $in: purchaseIds } }, { $set: { deletedAt: new Date() } });
 
   return { deletedCount: purchases.length };
 };
@@ -739,7 +732,7 @@ export const uploadDocument = async (purchaseId, documentData) => {
 /**
  * Get all documents for a purchase
  */
-export const getDocuments = async (purchaseId) => {
+export const getDocuments = async purchaseId => {
   const purchase = await Purchase.findById(purchaseId).select('documents');
 
   if (!purchase) {

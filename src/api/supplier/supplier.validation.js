@@ -14,7 +14,7 @@ import { ValidationError } from '../../utils/AppError.js';
  * Validation middleware wrapper
  * Runs all validations and returns errors if any
  */
-const validate = (validations) => {
+const validate = validations => {
   return async (req, res, next) => {
     // Run all validations
     for (let validation of validations) {
@@ -28,7 +28,7 @@ const validate = (validations) => {
     }
 
     // Format errors
-    const extractedErrors = errors.array().map((err) => ({
+    const extractedErrors = errors.array().map(err => ({
       field: err.path || err.param,
       message: err.msg,
       value: err.value,
@@ -43,32 +43,32 @@ const validate = (validations) => {
 // VALIDATION HELPER FUNCTIONS
 // ============================================================================
 
-const isValidGST = (value) => {
+const isValidGST = value => {
   if (!value) return true; // Optional field
   return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(value);
 };
 
-const isValidPAN = (value) => {
+const isValidPAN = value => {
   if (!value) return true; // Optional field
   return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value);
 };
 
-const isValidPhone = (value) => {
+const isValidPhone = value => {
   if (!value) return true; // Optional field
   return /^[0-9]{10}$/.test(value);
 };
 
-const isValidPincode = (value) => {
+const isValidPincode = value => {
   if (!value) return true; // Optional field
   return /^[0-9]{6}$/.test(value);
 };
 
-const isValidIFSC = (value) => {
+const isValidIFSC = value => {
   if (!value) return true; // Optional field
   return /^[A-Z]{4}0[A-Z0-9]{6}$/.test(value);
 };
 
-const isValidUPI = (value) => {
+const isValidUPI = value => {
   if (!value) return true; // Optional field
   return /^[\w.-]+@[\w.-]+$/.test(value);
 };
@@ -160,11 +160,7 @@ export const createSupplierValidation = validate([
     .withMessage('Business phone must be 10 digits'),
 
   // Website
-  body('website')
-    .optional()
-    .trim()
-    .isURL()
-    .withMessage('Invalid website URL'),
+  body('website').optional().trim().isURL().withMessage('Invalid website URL'),
 
   // Address - Street
   body('address.street')
@@ -219,7 +215,17 @@ export const createSupplierValidation = validate([
   // Supplier Category
   body('supplierCategory')
     .optional()
-    .isIn(['gold', 'silver', 'diamond', 'platinum', 'gemstone', 'pearls', 'making', 'packaging', 'mixed'])
+    .isIn([
+      'gold',
+      'silver',
+      'diamond',
+      'platinum',
+      'gemstone',
+      'pearls',
+      'making',
+      'packaging',
+      'mixed',
+    ])
     .withMessage('Invalid supplier category'),
 
   // Payment Terms
@@ -284,10 +290,7 @@ export const createSupplierValidation = validate([
     .withMessage('Notes must not exceed 1000 characters'),
 
   // Products Supplied (Array)
-  body('productsSupplied')
-    .optional()
-    .isArray()
-    .withMessage('Products supplied must be an array'),
+  body('productsSupplied').optional().isArray().withMessage('Products supplied must be an array'),
 
   body('productsSupplied.*')
     .optional()
@@ -296,10 +299,7 @@ export const createSupplierValidation = validate([
     .withMessage('Product name must be between 1 and 100 characters'),
 
   // Tags (Array)
-  body('tags')
-    .optional()
-    .isArray()
-    .withMessage('Tags must be an array'),
+  body('tags').optional().isArray().withMessage('Tags must be an array'),
 
   body('tags.*')
     .optional()
@@ -314,9 +314,7 @@ export const createSupplierValidation = validate([
 
 export const updateSupplierValidation = validate([
   // Supplier ID (from params)
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid supplier ID'),
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
 
   // All fields are optional for update
   body('businessName')
@@ -362,20 +360,11 @@ export const updateSupplierValidation = validate([
     .isFloat({ min: 0 })
     .withMessage('Credit limit must be a positive number'),
 
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 
-  body('isVerified')
-    .optional()
-    .isBoolean()
-    .withMessage('isVerified must be a boolean'),
+  body('isVerified').optional().isBoolean().withMessage('isVerified must be a boolean'),
 
-  body('isPreferred')
-    .optional()
-    .isBoolean()
-    .withMessage('isPreferred must be a boolean'),
+  body('isPreferred').optional().isBoolean().withMessage('isPreferred must be a boolean'),
 ]);
 
 // ============================================================================
@@ -383,9 +372,7 @@ export const updateSupplierValidation = validate([
 // ============================================================================
 
 export const getSupplierValidation = validate([
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid supplier ID'),
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
 // ============================================================================
@@ -393,9 +380,7 @@ export const getSupplierValidation = validate([
 // ============================================================================
 
 export const deleteSupplierValidation = validate([
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid supplier ID'),
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
 // ============================================================================
@@ -404,10 +389,7 @@ export const deleteSupplierValidation = validate([
 
 export const getSuppliersValidation = validate([
   // Pagination
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
   query('limit')
     .optional()
@@ -429,34 +411,40 @@ export const getSuppliersValidation = validate([
 
   query('supplierCategory')
     .optional()
-    .isIn(['gold', 'silver', 'diamond', 'platinum', 'gemstone', 'pearls', 'making', 'packaging', 'mixed'])
+    .isIn([
+      'gold',
+      'silver',
+      'diamond',
+      'platinum',
+      'gemstone',
+      'pearls',
+      'making',
+      'packaging',
+      'mixed',
+    ])
     .withMessage('Invalid supplier category'),
 
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 
-  query('isPreferred')
-    .optional()
-    .isBoolean()
-    .withMessage('isPreferred must be a boolean'),
+  query('isPreferred').optional().isBoolean().withMessage('isPreferred must be a boolean'),
 
-  query('isBlacklisted')
-    .optional()
-    .isBoolean()
-    .withMessage('isBlacklisted must be a boolean'),
+  query('isBlacklisted').optional().isBoolean().withMessage('isBlacklisted must be a boolean'),
 
   // Sorting
   query('sort')
     .optional()
     .trim()
     .isIn([
-      'businessName', '-businessName',
-      'createdAt', '-createdAt',
-      'totalPurchases', '-totalPurchases',
-      'rating', '-rating',
-      'supplierCode', '-supplierCode'
+      'businessName',
+      '-businessName',
+      'createdAt',
+      '-createdAt',
+      'totalPurchases',
+      '-totalPurchases',
+      'rating',
+      '-rating',
+      'supplierCode',
+      '-supplierCode',
     ])
     .withMessage('Invalid sort field'),
 ]);
@@ -466,9 +454,7 @@ export const getSuppliersValidation = validate([
 // ============================================================================
 
 export const updateRatingValidation = validate([
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid supplier ID'),
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
 
   body('qualityRating')
     .isInt({ min: 1, max: 5 })
@@ -478,9 +464,7 @@ export const updateRatingValidation = validate([
     .isInt({ min: 1, max: 5 })
     .withMessage('Delivery rating must be between 1 and 5'),
 
-  body('priceRating')
-    .isInt({ min: 1, max: 5 })
-    .withMessage('Price rating must be between 1 and 5'),
+  body('priceRating').isInt({ min: 1, max: 5 }).withMessage('Price rating must be between 1 and 5'),
 ]);
 
 // ============================================================================
@@ -488,9 +472,7 @@ export const updateRatingValidation = validate([
 // ============================================================================
 
 export const blacklistSupplierValidation = validate([
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid supplier ID'),
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
 
   body('reason')
     .trim()
@@ -505,14 +487,12 @@ export const blacklistSupplierValidation = validate([
 // ============================================================================
 
 export const updateBalanceValidation = validate([
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid supplier ID'),
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
 
   body('amount')
     .isFloat()
     .withMessage('Amount must be a number')
-    .custom((value) => value !== 0)
+    .custom(value => value !== 0)
     .withMessage('Amount cannot be zero'),
 
   body('type')
@@ -531,9 +511,7 @@ export const updateBalanceValidation = validate([
 // ============================================================================
 
 export const restoreSupplierValidation = validate([
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid supplier ID'),
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
 // ============================================================================
@@ -541,9 +519,7 @@ export const restoreSupplierValidation = validate([
 // ============================================================================
 
 export const markPreferredValidation = validate([
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid supplier ID'),
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
 // ============================================================================
@@ -551,9 +527,7 @@ export const markPreferredValidation = validate([
 // ============================================================================
 
 export const removeBlacklistValidation = validate([
-  param('id')
-    .isMongoId()
-    .withMessage('Invalid supplier ID'),
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
 // ============================================================================

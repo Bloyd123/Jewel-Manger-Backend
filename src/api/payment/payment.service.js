@@ -35,8 +35,10 @@ class PaymentService {
       });
 
       // Auto-complete for cash/UPI payments
-      if (payment.paymentMode === 'cash' || 
-          (payment.paymentMode === 'upi' && payment.transactionId)) {
+      if (
+        payment.paymentMode === 'cash' ||
+        (payment.paymentMode === 'upi' && payment.transactionId)
+      ) {
         payment.status = 'completed';
       }
 
@@ -319,9 +321,7 @@ class PaymentService {
       payment.updatedBy = userId;
 
       if (reason) {
-        payment.notes = payment.notes 
-          ? `${payment.notes}\n${reason}` 
-          : reason;
+        payment.notes = payment.notes ? `${payment.notes}\n${reason}` : reason;
       }
 
       await payment.save();
@@ -385,8 +385,8 @@ class PaymentService {
       }
 
       payment.status = 'cancelled';
-      payment.notes = payment.notes 
-        ? `${payment.notes}\nCancellation reason: ${reason}` 
+      payment.notes = payment.notes
+        ? `${payment.notes}\nCancellation reason: ${reason}`
         : `Cancellation reason: ${reason}`;
       payment.updatedBy = userId;
 
@@ -472,9 +472,7 @@ class PaymentService {
       payment.updatedBy = userId;
 
       if (notes) {
-        payment.notes = payment.notes 
-          ? `${payment.notes}\n${notes}` 
-          : notes;
+        payment.notes = payment.notes ? `${payment.notes}\n${notes}` : notes;
       }
 
       await payment.save();
@@ -525,9 +523,7 @@ class PaymentService {
       payment.updatedBy = userId;
 
       if (notes) {
-        payment.notes = payment.notes 
-          ? `${payment.notes}\n${notes}` 
-          : notes;
+        payment.notes = payment.notes ? `${payment.notes}\n${notes}` : notes;
       }
 
       await payment.save();
@@ -599,7 +595,8 @@ class PaymentService {
 
       if (startDate || endDate) {
         query['paymentDetails.chequeDetails.clearanceDate'] = {};
-        if (startDate) query['paymentDetails.chequeDetails.clearanceDate'].$gte = new Date(startDate);
+        if (startDate)
+          query['paymentDetails.chequeDetails.clearanceDate'].$gte = new Date(startDate);
         if (endDate) {
           const end = new Date(endDate);
           end.setHours(23, 59, 59, 999);
@@ -639,7 +636,7 @@ class PaymentService {
         if (sale) {
           sale.payment.paidAmount += payment.amount;
           sale.payment.dueAmount = sale.payment.totalAmount - sale.payment.paidAmount;
-          
+
           if (sale.payment.paidAmount >= sale.payment.totalAmount) {
             sale.payment.paymentStatus = 'paid';
           } else if (sale.payment.paidAmount > 0) {
@@ -653,7 +650,7 @@ class PaymentService {
         if (purchase) {
           purchase.payment.paidAmount += payment.amount;
           purchase.payment.dueAmount = purchase.payment.totalAmount - purchase.payment.paidAmount;
-          
+
           if (purchase.payment.paidAmount >= purchase.payment.totalAmount) {
             purchase.payment.paymentStatus = 'paid';
           } else if (purchase.payment.paidAmount > 0) {
@@ -680,7 +677,7 @@ class PaymentService {
         if (sale) {
           sale.payment.paidAmount -= payment.amount;
           sale.payment.dueAmount = sale.payment.totalAmount - sale.payment.paidAmount;
-          
+
           if (sale.payment.paidAmount === 0) {
             sale.payment.paymentStatus = 'unpaid';
           } else if (sale.payment.paidAmount < sale.payment.totalAmount) {
@@ -694,7 +691,7 @@ class PaymentService {
         if (purchase) {
           purchase.payment.paidAmount -= payment.amount;
           purchase.payment.dueAmount = purchase.payment.totalAmount - purchase.payment.paidAmount;
-          
+
           if (purchase.payment.paidAmount === 0) {
             purchase.payment.paymentStatus = 'unpaid';
           } else if (purchase.payment.paidAmount < purchase.payment.totalAmount) {
@@ -857,7 +854,11 @@ class PaymentService {
       const [totalPayments, reconciledPayments, unreconciledPayments] = await Promise.all([
         Payment.countDocuments(query),
         Payment.countDocuments({ ...query, 'reconciliation.isReconciled': true }),
-        Payment.countDocuments({ ...query, 'reconciliation.isReconciled': false, status: 'completed' }),
+        Payment.countDocuments({
+          ...query,
+          'reconciliation.isReconciled': false,
+          status: 'completed',
+        }),
       ]);
 
       const [reconciledAmount, unreconciledAmount, totalDiscrepancy] = await Promise.all([

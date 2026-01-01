@@ -8,10 +8,10 @@ import * as shopController from './shop.controller.js';
 import * as shopValidation from './shop.validation.js';
 import { authenticate } from '../middlewares/auth.js';
 //   CHANGED: Import from checkShopAccess.js instead of auth.js
-import { 
-  checkShopAccess, 
+import {
+  checkShopAccess,
   checkPermission,
-  verifyShopOwnership 
+  verifyShopOwnership,
 } from '../middlewares/checkShopAccess.js';
 import { restrictTo } from '../middlewares/restrictTo.js';
 
@@ -50,7 +50,7 @@ router.get(
   '/',
   shopValidation.getShopsValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
-    checkPermission('canViewShops'), 
+  checkPermission('canViewShops'),
   shopController.getAllShops
 );
 
@@ -63,7 +63,7 @@ router.get(
   '/:id',
   shopValidation.getShopValidation,
   checkShopAccess, //   Now uses the advanced middleware
-   checkPermission('canViewSingleShop'), 
+  checkPermission('canViewSingleShop'),
   shopController.getShopById
 );
 
@@ -77,7 +77,7 @@ router.put(
   shopValidation.updateShopValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-   checkPermission('canUpdateShop'),  //   Correct specific permission
+  checkPermission('canUpdateShop'), //   Correct specific permission
   shopController.updateShop
 );
 
@@ -91,7 +91,7 @@ router.delete(
   shopValidation.deleteShopValidation,
   restrictTo('super_admin', 'org_admin'),
   checkShopAccess, // Just verify access, no specific permission needed (role check above)
-   checkPermission('canDeleteShop'), 
+  checkPermission('canDeleteShop'),
   shopController.deleteShop
 );
 
@@ -113,7 +113,6 @@ router.patch(
   shopController.updateShopSettings
 );
 
-
 // ============================================================================
 // SHOP STATISTICS & REPORTS
 // ============================================================================
@@ -125,9 +124,9 @@ router.patch(
  */
 router.get(
   '/:id/statistics',
-  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager','accountant'),
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess, // Basic shop access check
-  checkPermission('canViewShopStatistics'), 
+  checkPermission('canViewShopStatistics'),
   shopController.getShopStatistics
 );
 

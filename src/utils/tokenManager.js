@@ -475,7 +475,7 @@ class TokenManager {
       return token;
     } catch (error) {
       logger.error('Error generating password reset token:', error);
-      throw new InternalServerError('Failed to generate password reset token'); //  
+      throw new InternalServerError('Failed to generate password reset token'); //
     }
   }
 

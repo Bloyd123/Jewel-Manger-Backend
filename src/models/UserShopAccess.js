@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { getPermissionsByRole } from '../config/permissions.config.js';
 
-
 const userShopAccessSchema = new mongoose.Schema(
   {
     // References
@@ -131,45 +130,45 @@ const userShopAccessSchema = new mongoose.Schema(
       canViewAuditLog: { type: Boolean, default: false },
       canBackupData: { type: Boolean, default: false },
       canRestoreData: { type: Boolean, default: false },
-            // Composite/High-Level Permissions
+      // Composite/High-Level Permissions
       canManageInventory: { type: Boolean, default: false },
       canManageSales: { type: Boolean, default: false },
       canManagePurchases: { type: Boolean, default: false },
       canManageExpenses: { type: Boolean, default: false },
       canManageReports: { type: Boolean, default: false },
       canManageSettings: { type: Boolean, default: false },
-      
+
       // Additional System Permissions
       canExportData: { type: Boolean, default: false },
       canDeleteRecords: { type: Boolean, default: false },
-      canManageMetalRates: { type: Boolean, default: false },  
+      canManageMetalRates: { type: Boolean, default: false },
       canAccessPOS: { type: Boolean, default: false },
       canManageBilling: { type: Boolean, default: false },
       canBlacklistCustomer: { type: Boolean, default: false },
-    canRemoveCustomerBlacklist: { type: Boolean, default: false },
-    canAddLoyaltyPoints: { type: Boolean, default: false },
-    canRedeemLoyaltyPoints: { type: Boolean, default: false },
-    canViewCustomerAnalytics: { type: Boolean, default: false },
-    
-    // Supplier (9)
-    canRestoreSupplier: { type: Boolean, default: false },
-    canUpdateSupplierRating: { type: Boolean, default: false },
-    canBlacklistSupplier: { type: Boolean, default: false },
-    canRemoveSupplierBlacklist: { type: Boolean, default: false },
-    canMarkPreferredSupplier: { type: Boolean, default: false },
-    canRemovePreferredSupplier: { type: Boolean, default: false },
-    canUpdateSupplierBalance: { type: Boolean, default: false },
-    canViewSupplierStatistics: { type: Boolean, default: false },
-    canViewTopSuppliers: { type: Boolean, default: false },
-    
-    // Shop (7)
-    canCreateShop: { type: Boolean, default: false },
-    canViewShops: { type: Boolean, default: true },
-    canViewSingleShop: { type: Boolean, default: true },
-    canUpdateShop: { type: Boolean, default: false },
-    canDeleteShop: { type: Boolean, default: false },
-    canViewShopStatistics: { type: Boolean, default: false },
-    canTransferInventory: { type: Boolean, default: false },
+      canRemoveCustomerBlacklist: { type: Boolean, default: false },
+      canAddLoyaltyPoints: { type: Boolean, default: false },
+      canRedeemLoyaltyPoints: { type: Boolean, default: false },
+      canViewCustomerAnalytics: { type: Boolean, default: false },
+
+      // Supplier (9)
+      canRestoreSupplier: { type: Boolean, default: false },
+      canUpdateSupplierRating: { type: Boolean, default: false },
+      canBlacklistSupplier: { type: Boolean, default: false },
+      canRemoveSupplierBlacklist: { type: Boolean, default: false },
+      canMarkPreferredSupplier: { type: Boolean, default: false },
+      canRemovePreferredSupplier: { type: Boolean, default: false },
+      canUpdateSupplierBalance: { type: Boolean, default: false },
+      canViewSupplierStatistics: { type: Boolean, default: false },
+      canViewTopSuppliers: { type: Boolean, default: false },
+
+      // Shop (7)
+      canCreateShop: { type: Boolean, default: false },
+      canViewShops: { type: Boolean, default: true },
+      canViewSingleShop: { type: Boolean, default: true },
+      canUpdateShop: { type: Boolean, default: false },
+      canDeleteShop: { type: Boolean, default: false },
+      canViewShopStatistics: { type: Boolean, default: false },
+      canTransferInventory: { type: Boolean, default: false },
     },
 
     // Access Status
@@ -415,7 +414,7 @@ userShopAccessSchema.methods.getPermissionSummary = function () {
 
 // Get default permissions based on role
 userShopAccessSchema.statics.getDefaultPermissions = function (role) {
- return getPermissionsByRole(role);
+  return getPermissionsByRole(role);
 };
 
 // Find user's shop accesses

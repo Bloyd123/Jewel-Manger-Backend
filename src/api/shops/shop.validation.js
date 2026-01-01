@@ -10,11 +10,11 @@ import mongoose from 'mongoose';
 // HELPER VALIDATORS
 // ============================================================================
 
-const isValidObjectId = (value) => {
+const isValidObjectId = value => {
   return mongoose.Types.ObjectId.isValid(value);
 };
 
-const isValidCoordinates = (value) => {
+const isValidCoordinates = value => {
   if (!Array.isArray(value) || value.length !== 2) return false;
   const [lng, lat] = value;
   return (
@@ -122,10 +122,7 @@ export const createShopValidation = [
     .withMessage('Invalid established year'),
 
   // Manager ID (optional - will default to logged-in user)
-  body('managerId')
-    .optional()
-    .custom(isValidObjectId)
-    .withMessage('Invalid manager ID'),
+  body('managerId').optional().custom(isValidObjectId).withMessage('Invalid manager ID'),
 
   // Copy Settings From
   body('copySettingsFromShopId')
@@ -136,11 +133,7 @@ export const createShopValidation = [
   // Bank Details Validation
   body('bankDetails').optional().isArray().withMessage('Bank details must be an array'),
 
-  body('bankDetails.*.bankName')
-    .optional()
-    .trim()
-    .notEmpty()
-    .withMessage('Bank name is required'),
+  body('bankDetails.*.bankName').optional().trim().notEmpty().withMessage('Bank name is required'),
 
   body('bankDetails.*.accountNumber')
     .optional()
@@ -300,10 +293,7 @@ export const getShopsValidation = [
 export const getShopValidation = [
   param('id').custom(isValidObjectId).withMessage('Invalid shop ID'),
 
-  query('includeSettings')
-    .optional()
-    .isBoolean()
-    .withMessage('includeSettings must be boolean'),
+  query('includeSettings').optional().isBoolean().withMessage('includeSettings must be boolean'),
 
   query('populate').optional().trim(),
 ];

@@ -12,7 +12,7 @@ import {
 } from './supplier.validation.js';
 import { authenticate } from '../middlewares/auth.js';
 import { restrictTo } from '../middlewares/restrictTo.js';
-import { checkPermission ,checkShopAccess} from '../middlewares/checkShopAccess.js';
+import { checkPermission, checkShopAccess } from '../middlewares/checkShopAccess.js';
 
 const router = express.Router();
 
@@ -25,8 +25,8 @@ router.use(authenticate);
 router.get(
   '/stats',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
-checkShopAccess,
-checkPermission('canViewSupplierStatistics'),
+  checkShopAccess,
+  checkPermission('canViewSupplierStatistics'),
   supplierController.getSupplierStats
 );
 
@@ -34,7 +34,7 @@ router.get(
   '/top',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-   checkPermission('canViewTopSuppliers'),
+  checkPermission('canViewTopSuppliers'),
   supplierController.getTopSuppliers
 );
 
@@ -47,8 +47,8 @@ router.get(
   '/',
   getSuppliersValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
-   checkShopAccess,
-     checkPermission('canViewSuppliers'),
+  checkShopAccess,
+  checkPermission('canViewSuppliers'),
   supplierController.getSuppliers
 );
 
@@ -57,8 +57,8 @@ router.post(
   '/',
   createSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
-  checkShopAccess,  //   Add shop access check
-  checkPermission('canCreateSuppliers'),  //   Correct permission
+  checkShopAccess, //   Add shop access check
+  checkPermission('canCreateSuppliers'), //   Correct permission
 
   supplierController.createSupplier
 );
@@ -68,8 +68,8 @@ router.get(
   '/:id',
   getSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
-    checkShopAccess,
-  checkPermission('canViewSuppliers'),  //   Add permission
+  checkShopAccess,
+  checkPermission('canViewSuppliers'), //   Add permission
   supplierController.getSupplierById
 );
 
@@ -78,8 +78,8 @@ router.patch(
   '/:id',
   updateSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
-    checkPermission('canEditSuppliers'),  //   Correct permission
-  
+  checkPermission('canEditSuppliers'), //   Correct permission
+
   supplierController.updateSupplier
 );
 
@@ -88,8 +88,8 @@ router.delete(
   '/:id',
   deleteSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
-  checkShopAccess,  //   Add shop access check
-  checkPermission('canDeleteSuppliers'),  //   Correct permission
+  checkShopAccess, //   Add shop access check
+  checkPermission('canDeleteSuppliers'), //   Correct permission
   supplierController.deleteSupplier
 );
 
@@ -101,9 +101,9 @@ router.delete(
 router.post(
   '/:id/restore',
   getSupplierValidation,
-  restrictTo('super_admin', 'org_admin', 'shop_admin','manager'),
-  checkShopAccess,  //   Add shop access check
-  checkPermission('canRestoreSupplier'),  //   New permission
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess, //   Add shop access check
+  checkPermission('canRestoreSupplier'), //   New permission
   supplierController.restoreSupplier
 );
 
@@ -112,8 +112,8 @@ router.patch(
   '/:id/rating',
   updateRatingValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
-  checkShopAccess,  //   Add shop access check
-  checkPermission('canUpdateSupplierRating'),  //   New permission
+  checkShopAccess, //   Add shop access check
+  checkPermission('canUpdateSupplierRating'), //   New permission
   supplierController.updateRating
 );
 
@@ -122,8 +122,8 @@ router.post(
   '/:id/blacklist',
   blacklistSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
-  checkShopAccess,  //   Add shop access check
-  checkPermission('canBlacklistSupplier'),  //   New permission
+  checkShopAccess, //   Add shop access check
+  checkPermission('canBlacklistSupplier'), //   New permission
   supplierController.blacklistSupplier
 );
 
@@ -132,8 +132,8 @@ router.post(
   '/:id/remove-blacklist',
   getSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
- checkShopAccess,  //   Add shop access check
-  checkPermission('canRemoveSupplierBlacklist'),  //   New permission
+  checkShopAccess, //   Add shop access check
+  checkPermission('canRemoveSupplierBlacklist'), //   New permission
   supplierController.removeBlacklist
 );
 
@@ -142,8 +142,8 @@ router.post(
   '/:id/preferred',
   getSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
-  checkShopAccess,  //   Add shop access check
-  checkPermission('canMarkPreferredSupplier'),  //   New permission
+  checkShopAccess, //   Add shop access check
+  checkPermission('canMarkPreferredSupplier'), //   New permission
   supplierController.markAsPreferred
 );
 
@@ -152,8 +152,8 @@ router.delete(
   '/:id/preferred',
   getSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
-   checkShopAccess,  //   Add shop access check
-  checkPermission('canRemovePreferredSupplier'),  //   New permission
+  checkShopAccess, //   Add shop access check
+  checkPermission('canRemovePreferredSupplier'), //   New permission
   supplierController.removePreferred
 );
 
@@ -162,8 +162,8 @@ router.post(
   '/:id/balance',
   updateBalanceValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
-  checkShopAccess,  //   Add shop access check
-  checkPermission('canUpdateSupplierBalance'),  //   New permission
+  checkShopAccess, //   Add shop access check
+  checkPermission('canUpdateSupplierBalance'), //   New permission
   supplierController.updateBalance
 );
 

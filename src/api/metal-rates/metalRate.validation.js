@@ -242,20 +242,14 @@ export const getRateHistory = [
       return true;
     }),
 
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
 
-  query('sort')
-    .optional()
-    .isString()
-    .withMessage('Sort must be a string'),
+  query('sort').optional().isString().withMessage('Sort must be a string'),
 
   handleValidationErrors,
 ];
@@ -391,10 +385,7 @@ export const getAverageRate = [
     .isIn(['gold', 'silver', 'platinum'])
     .withMessage('Metal type must be: gold, silver, or platinum'),
 
-  query('purity')
-    .optional()
-    .isString()
-    .withMessage('Purity must be a string'),
+  query('purity').optional().isString().withMessage('Purity must be a string'),
 
   query('days')
     .optional()
@@ -430,9 +421,7 @@ export const validateSellingRate = (sellingRate, buyingRate, metalName) => {
   return body(sellingRate).custom((value, { req }) => {
     const buyingRateValue = req.body[buyingRate];
     if (value < buyingRateValue) {
-      throw new Error(
-        `${metalName} selling rate cannot be less than buying rate`
-      );
+      throw new Error(`${metalName} selling rate cannot be less than buying rate`);
     }
     return true;
   });

@@ -87,7 +87,7 @@ export const authenticate = async (req, res, next) => {
 /**
  * Authorize by Role
  * Checks if user has required role
- * 
+ *
  * NOTE: This is deprecated - use restrictTo from restrictTo.js instead
  * Kept for backward compatibility
  */

@@ -2,27 +2,27 @@ import mongoose from 'mongoose';
 
 const categorySchema = new mongoose.Schema(
   {
-    parentId: { 
-      type: mongoose.Schema.Types.ObjectId, 
+    parentId: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
       default: null,
-      index: true 
+      index: true,
     },
-    code: { 
-      type: String, 
-      required: true, 
+    code: {
+      type: String,
+      required: true,
       uppercase: true,
       unique: true,
-      index: true 
+      index: true,
     },
     name: {
       default: { type: String, required: true },
-      localized: { type: Map, of: String }
+      localized: { type: Map, of: String },
     },
-    isActive: { type: Boolean, default: true, index: true } 
+    isActive: { type: Boolean, default: true, index: true },
   },
   {
-    timestamps: true 
+    timestamps: true,
   }
 );
 

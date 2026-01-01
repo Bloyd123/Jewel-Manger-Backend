@@ -29,7 +29,7 @@ export {
   MetalRate,
   Payment,
   Order,
-    Customer,
+  Customer,
   Product,
   ActivityLog,
 };

@@ -182,7 +182,7 @@ export const getAllShops = async (queryParams, userId, userRole, userOrgId) => {
       revokedAt: null,
     }).select('shopId');
 
-    const accessibleShopIds = userAccess.map((access) => access.shopId);
+    const accessibleShopIds = userAccess.map(access => access.shopId);
 
     if (accessibleShopIds.length === 0) {
       return {
@@ -268,7 +268,10 @@ export const getShopById = async (shopId, userId, userRole, includeSettings = fa
     }
 
     // Org admin check
-    if (userRole === 'org_admin' && shop.organizationId._id.toString() !== hasAccess.organizationId.toString()) {
+    if (
+      userRole === 'org_admin' &&
+      shop.organizationId._id.toString() !== hasAccess.organizationId.toString()
+    ) {
       throw new AppError('You do not have access to this shop', 403);
     }
   }
@@ -327,7 +330,7 @@ export const updateShop = async (shopId, updateData, userId, userRole) => {
   // 3. Restrict certain fields based on shop verification status
   if (shop.isVerified && userRole !== 'super_admin') {
     const restrictedFields = ['gstNumber', 'panNumber'];
-    restrictedFields.forEach((field) => {
+    restrictedFields.forEach(field => {
       if (updateData[field]) {
         throw new AppError(`Only super admin can update ${field} of verified shop`, 403);
       }
@@ -336,7 +339,7 @@ export const updateShop = async (shopId, updateData, userId, userRole) => {
 
   // 4. Prevent updating code, organizationId, statistics, etc.
   const protectedFields = ['code', 'organizationId', 'statistics', 'createdBy', 'createdAt'];
-  protectedFields.forEach((field) => delete updateData[field]);
+  protectedFields.forEach(field => delete updateData[field]);
 
   // 5. Update shop
   Object.assign(shop, updateData);
@@ -522,5 +525,5 @@ export default {
   updateShop,
   deleteShop,
   updateShopSettings,
-getShopStatistics,
+  getShopStatistics,
 };

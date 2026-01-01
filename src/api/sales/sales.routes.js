@@ -31,35 +31,15 @@ router.get(
   saleController.getSalesAnalytics
 );
 
-router.get(
-  '/dashboard',
-  checkPermission('canViewDashboard'),
-  saleController.getSalesDashboard
-);
+router.get('/dashboard', checkPermission('canViewDashboard'), saleController.getSalesDashboard);
 
-router.get(
-  '/today',
-  checkPermission('canViewSales'),
-  saleController.getTodaySales
-);
+router.get('/today', checkPermission('canViewSales'), saleController.getTodaySales);
 
-router.get(
-  '/pending',
-  checkPermission('canViewSales'),
-  saleController.getPendingSales
-);
+router.get('/pending', checkPermission('canViewSales'), saleController.getPendingSales);
 
-router.get(
-  '/unpaid',
-  checkPermission('canViewFinancials'),
-  saleController.getUnpaidSales
-);
+router.get('/unpaid', checkPermission('canViewFinancials'), saleController.getUnpaidSales);
 
-router.get(
-  '/overdue',
-  checkPermission('canViewFinancials'),
-  saleController.getOverdueSales
-);
+router.get('/overdue', checkPermission('canViewFinancials'), saleController.getOverdueSales);
 
 // ============================================================================
 // 12. SEARCH & FILTERS (Before /:saleId)
@@ -235,17 +215,9 @@ router.post(
   saleController.addPayment
 );
 
-router.get(
-  '/:saleId/payments',
-  checkPermission('canViewSales'),
-  saleController.getSalePayments
-);
+router.get('/:saleId/payments', checkPermission('canViewSales'), saleController.getSalePayments);
 
-router.get(
-  '/:saleId/receipt',
-  checkPermission('canViewSales'),
-  saleController.generateReceipt
-);
+router.get('/:saleId/receipt', checkPermission('canViewSales'), saleController.generateReceipt);
 
 // ============================================================================
 // 4. RETURN & EXCHANGE
@@ -285,11 +257,7 @@ router.delete(
 // 9. INVOICE MANAGEMENT
 // ============================================================================
 
-router.get(
-  '/:saleId/invoice',
-  checkPermission('canViewSales'),
-  saleController.generateInvoice
-);
+router.get('/:saleId/invoice', checkPermission('canViewSales'), saleController.generateInvoice);
 
 router.post(
   '/:saleId/invoice/send',
@@ -333,11 +301,7 @@ router.post(
   saleController.uploadDocument
 );
 
-router.get(
-  '/:saleId/documents',
-  checkPermission('canViewSales'),
-  saleController.getDocuments
-);
+router.get('/:saleId/documents', checkPermission('canViewSales'), saleController.getDocuments);
 
 // ============================================================================
 // 14. APPROVAL

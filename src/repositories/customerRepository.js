@@ -23,9 +23,9 @@ class CustomerRepository {
 
     const customer = await Customer.findOne({
       _id: customerId,
-      deletedAt: null
+      deletedAt: null,
     });
-    
+
     if (!customer) {
       throw new NotFoundError('Customer not found');
     }
@@ -108,7 +108,7 @@ class CustomerRepository {
   // Generate Sequential Customer Code
   async generateCustomerCode(shopId, prefix = 'CUST') {
     const lastCode = await this.getLastCustomerCode(shopId);
-    
+
     let number = 1;
     if (lastCode) {
       const lastNumber = parseInt(lastCode.replace(prefix, ''));
@@ -154,13 +154,7 @@ class CustomerRepository {
 
   // Find All with Filters
   async findAll(filters, options = {}) {
-    const {
-      page = 1,
-      limit = 20,
-      sort = '-createdAt',
-      select,
-      populate,
-    } = options;
+    const { page = 1, limit = 20, sort = '-createdAt', select, populate } = options;
 
     const skip = (page - 1) * limit;
 
@@ -190,7 +184,7 @@ class CustomerRepository {
   // Search Customers
   async search(shopId, searchTerm) {
     const regex = new RegExp(searchTerm, 'i');
-    
+
     return await Customer.find({
       shopId,
       deletedAt: null,
@@ -202,9 +196,9 @@ class CustomerRepository {
         { customerCode: regex },
       ],
     })
-    .limit(20)
-    .select('customerCode firstName lastName phone email customerType loyaltyPoints')
-    .lean();
+      .limit(20)
+      .select('customerCode firstName lastName phone email customerType loyaltyPoints')
+      .lean();
   }
 
   // Get Top Customers
@@ -214,10 +208,12 @@ class CustomerRepository {
       deletedAt: null,
       isActive: true,
     })
-    .sort({ 'statistics.totalSpent': -1 })
-    .limit(limit)
-    .select('customerCode firstName lastName statistics.totalSpent statistics.totalOrders membershipTier')
-    .lean();
+      .sort({ 'statistics.totalSpent': -1 })
+      .limit(limit)
+      .select(
+        'customerCode firstName lastName statistics.totalSpent statistics.totalOrders membershipTier'
+      )
+      .lean();
   }
 
   // Get Customer Statistics
@@ -240,13 +236,15 @@ class CustomerRepository {
       },
     ]);
 
-    return stats[0] || {
-      totalCustomers: 0,
-      activeCustomers: 0,
-      vipCustomers: 0,
-      totalOutstanding: 0,
-      totalLoyaltyPoints: 0,
-    };
+    return (
+      stats[0] || {
+        totalCustomers: 0,
+        activeCustomers: 0,
+        vipCustomers: 0,
+        totalOutstanding: 0,
+        totalLoyaltyPoints: 0,
+      }
+    );
   }
 
   // Cache Customer

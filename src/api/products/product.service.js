@@ -12,7 +12,6 @@ import {
 } from '../../utils/AppError.js';
 import Category from '../../models/Category.js';
 
-
 class ProductService {
   // ============================================
   // CREATE PRODUCT
@@ -24,7 +23,9 @@ class ProductService {
     // 2. Get current metal rates
     const metalRates = await MetalRate.getCurrentRate(shopId);
     if (!metalRates) {
-      throw new ValidationError('Metal rates not found for this shop. Please set metal rates first.');
+      throw new ValidationError(
+        'Metal rates not found for this shop. Please set metal rates first.'
+      );
     }
 
     // 3. Calculate net weight
@@ -48,7 +49,7 @@ class ProductService {
 
     // 5. Process stones
     if (productData.stones && productData.stones.length > 0) {
-      productData.stones.forEach((stone) => {
+      productData.stones.forEach(stone => {
         stone.totalStonePrice = (stone.stonePrice || 0) * (stone.pieceCount || 1);
       });
     }
@@ -63,45 +64,44 @@ class ProductService {
     } else if (quantity <= reorderLevel && quantity > 0) {
       stockStatus = 'low_stock';
     }
-// ===============================
-// STEP 1: "OTHER" MAPPING FIRST
-// ===============================
-let finalCategoryId = productData.categoryId;
-let finalSubCategoryId = productData.subCategoryId;
+    // ===============================
+    // STEP 1: "OTHER" MAPPING FIRST
+    // ===============================
+    let finalCategoryId = productData.categoryId;
+    let finalSubCategoryId = productData.subCategoryId;
 
-if (finalCategoryId === 'OTHER') {
-  finalCategoryId = process.env.OTHER_CATEGORY_ID;
-}
+    if (finalCategoryId === 'OTHER') {
+      finalCategoryId = process.env.OTHER_CATEGORY_ID;
+    }
 
-if (finalSubCategoryId === 'OTHER_MISC') {
-  finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
-}
+    if (finalSubCategoryId === 'OTHER_MISC') {
+      finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
+    }
 
-// ===============================
-// STEP 2: CATEGORY VALIDATION
-// ===============================
-const categoryExists = await Category.findOne({
-  _id: finalCategoryId,
-  isActive: true,
-  parentId: null,
-});
+    // ===============================
+    // STEP 2: CATEGORY VALIDATION
+    // ===============================
+    const categoryExists = await Category.findOne({
+      _id: finalCategoryId,
+      isActive: true,
+      parentId: null,
+    });
 
-if (!categoryExists) {
-  throw new ValidationError('Invalid category selected');
-}
+    if (!categoryExists) {
+      throw new ValidationError('Invalid category selected');
+    }
 
-if (finalSubCategoryId) {
-  const subCategoryExists = await Category.findOne({
-    _id: finalSubCategoryId,
-    isActive: true,
-    parentId: finalCategoryId,
-  });
+    if (finalSubCategoryId) {
+      const subCategoryExists = await Category.findOne({
+        _id: finalSubCategoryId,
+        isActive: true,
+        parentId: finalCategoryId,
+      });
 
-  if (!subCategoryExists) {
-    throw new ValidationError('Invalid subcategory selected');
-  }
-}
-
+      if (!subCategoryExists) {
+        throw new ValidationError('Invalid subcategory selected');
+      }
+    }
 
     // 7. Create product
     const product = await Product.create({
@@ -109,8 +109,8 @@ if (finalSubCategoryId) {
       shopId,
       productCode,
       ...productData,
-        categoryId: finalCategoryId,
-  subCategoryId: finalSubCategoryId,
+      categoryId: finalCategoryId,
+      subCategoryId: finalSubCategoryId,
       weight: {
         ...productData.weight,
         netWeight,
@@ -165,7 +165,7 @@ if (finalSubCategoryId) {
       `Created product: ${product.name}`,
       {
         productCode: product.productCode,
-       categoryId: product.categoryId,
+        categoryId: product.categoryId,
         metalType: product.metal.type,
         quantity: product.stock.quantity,
       }
@@ -233,9 +233,10 @@ if (finalSubCategoryId) {
     }
 
     // 4. Calculate stone value
-    const stoneValue = stones?.reduce((sum, stone) => {
-      return sum + ((stone.stonePrice || 0) * (stone.pieceCount || 1));
-    }, 0) || 0;
+    const stoneValue =
+      stones?.reduce((sum, stone) => {
+        return sum + (stone.stonePrice || 0) * (stone.pieceCount || 1);
+      }, 0) || 0;
 
     // 5. Calculate other charges
     const otherCharges = pricing?.otherCharges || 0;
@@ -310,7 +311,7 @@ if (finalSubCategoryId) {
     };
 
     // Apply filters
-   if (category) query.categoryId = category; // Now expecting ObjectId in filters
+    if (category) query.categoryId = category; // Now expecting ObjectId in filters
     if (metalType) query['metal.type'] = metalType;
     if (purity) query['metal.purity'] = purity;
     if (status) query.status = status;
@@ -345,8 +346,8 @@ if (finalSubCategoryId) {
         .skip(skip)
         .limit(parseInt(limit))
         .populate('supplierId', 'name code contactPerson phone')
-            .populate('categoryId', 'name code') // ✅ ADD THIS
-    .populate('subCategoryId', 'name code') // ✅ ADD THIS
+        .populate('categoryId', 'name code') // ✅ ADD THIS
+        .populate('subCategoryId', 'name code') // ✅ ADD THIS
         .lean(),
       Product.countDocuments(query),
     ]);
@@ -383,8 +384,8 @@ if (finalSubCategoryId) {
       deletedAt: null,
     })
       .populate('supplierId', 'name code contactPerson phone email')
-        .populate('categoryId', 'name code') // ✅ ADD
-  .populate('subCategoryId', 'name code') // ✅ ADD
+      .populate('categoryId', 'name code') // ✅ ADD
+      .populate('subCategoryId', 'name code') // ✅ ADD
       .populate('createdBy', 'firstName lastName email')
       .populate('updatedBy', 'firstName lastName email')
       .lean();
@@ -403,7 +404,6 @@ if (finalSubCategoryId) {
   // UPDATE PRODUCT
   // ============================================
   async updateProduct(productId, shopId, organizationId, updateData, userId) {
-
     const product = await Product.findOne({
       _id: productId,
       shopId,
@@ -452,50 +452,49 @@ if (finalSubCategoryId) {
         updateData.stock.status = 'in_stock';
       }
     }
-// ===============================
-// CATEGORY VALIDATION (UPDATE)
-// ===============================
-let finalCategoryId = updateData.categoryId;
-let finalSubCategoryId = updateData.subCategoryId;
+    // ===============================
+    // CATEGORY VALIDATION (UPDATE)
+    // ===============================
+    let finalCategoryId = updateData.categoryId;
+    let finalSubCategoryId = updateData.subCategoryId;
 
-// OTHER mapping
-if (finalCategoryId === 'OTHER') {
-  finalCategoryId = process.env.OTHER_CATEGORY_ID;
-}
-if (finalSubCategoryId === 'OTHER_MISC') {
-  finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
-}
+    // OTHER mapping
+    if (finalCategoryId === 'OTHER') {
+      finalCategoryId = process.env.OTHER_CATEGORY_ID;
+    }
+    if (finalSubCategoryId === 'OTHER_MISC') {
+      finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
+    }
 
-// Validate only if category is being updated
-if (finalCategoryId) {
-  const categoryExists = await Category.findOne({
-    _id: finalCategoryId,
-    isActive: true,
-    parentId: null,
-  });
+    // Validate only if category is being updated
+    if (finalCategoryId) {
+      const categoryExists = await Category.findOne({
+        _id: finalCategoryId,
+        isActive: true,
+        parentId: null,
+      });
 
-  if (!categoryExists) {
-    throw new ValidationError('Invalid category selected');
-  }
-}
+      if (!categoryExists) {
+        throw new ValidationError('Invalid category selected');
+      }
+    }
 
-// Validate subcategory only if provided
-if (finalSubCategoryId) {
-  const subCategoryExists = await Category.findOne({
-    _id: finalSubCategoryId,
-    isActive: true,
-    parentId: finalCategoryId || product.categoryId,
-  });
+    // Validate subcategory only if provided
+    if (finalSubCategoryId) {
+      const subCategoryExists = await Category.findOne({
+        _id: finalSubCategoryId,
+        isActive: true,
+        parentId: finalCategoryId || product.categoryId,
+      });
 
-  if (!subCategoryExists) {
-    throw new ValidationError('Invalid subcategory selected');
-  }
-}
+      if (!subCategoryExists) {
+        throw new ValidationError('Invalid subcategory selected');
+      }
+    }
 
-// assign safe values
-updateData.categoryId = finalCategoryId;
-updateData.subCategoryId = finalSubCategoryId;
-
+    // assign safe values
+    updateData.categoryId = finalCategoryId;
+    updateData.subCategoryId = finalSubCategoryId;
 
     // Apply updates
     Object.assign(product, updateData);
@@ -612,7 +611,8 @@ updateData.subCategoryId = finalSubCategoryId;
     await product.updateStock(newQuantity, 'set');
 
     // Create inventory transaction
-    const transactionType = operation === 'add' ? 'IN' : operation === 'subtract' ? 'OUT' : 'ADJUSTMENT';
+    const transactionType =
+      operation === 'add' ? 'IN' : operation === 'subtract' ? 'OUT' : 'ADJUSTMENT';
 
     await InventoryTransaction.create({
       organizationId,
@@ -938,26 +938,20 @@ updateData.subCategoryId = finalSubCategoryId;
       organizationId,
       deletedAt: null,
       isActive: true,
-      $or: [
-        { status: 'low_stock' },
-        { status: 'out_of_stock' },
-      ],
+      $or: [{ status: 'low_stock' }, { status: 'out_of_stock' }],
     };
 
     // If custom threshold provided
     if (threshold !== undefined) {
-      query.$or = [
-        { 'stock.quantity': { $lte: threshold } },
-        { status: 'out_of_stock' },
-      ];
+      query.$or = [{ 'stock.quantity': { $lte: threshold } }, { status: 'out_of_stock' }];
     }
-const products = await Product.find(query)
-  .sort({ 'stock.quantity': 1 })
-  .select('name productCode categoryId subCategoryId stock pricing primaryImage')
-  .populate('categoryId', 'name code')
-  .populate('subCategoryId', 'name code')
-  .lean();
-    const criticalItems = products.filter((p) => p.stock.quantity === 0).length;
+    const products = await Product.find(query)
+      .sort({ 'stock.quantity': 1 })
+      .select('name productCode categoryId subCategoryId stock pricing primaryImage')
+      .populate('categoryId', 'name code')
+      .populate('subCategoryId', 'name code')
+      .lean();
+    const criticalItems = products.filter(p => p.stock.quantity === 0).length;
 
     return {
       products,
@@ -987,12 +981,14 @@ const products = await Product.find(query)
       ],
     };
 
-const products = await Product.find(query)
-  .limit(parseInt(limit))
-  .select('name productCode categoryId subCategoryId metal weight pricing stock primaryImage saleStatus')
-  .populate('categoryId', 'name code')
-  .populate('subCategoryId', 'name code')
-  .lean();
+    const products = await Product.find(query)
+      .limit(parseInt(limit))
+      .select(
+        'name productCode categoryId subCategoryId metal weight pricing stock primaryImage saleStatus'
+      )
+      .populate('categoryId', 'name code')
+      .populate('subCategoryId', 'name code')
+      .lean();
 
     return products;
   }

@@ -484,7 +484,7 @@ export const returnSale = async (shopId, saleId, returnData, userId) => {
 
     for (const returnItem of itemsToReturn) {
       const saleItem = sale.items.find(
-        (item) => item.productId?.toString() === returnItem.productId?.toString()
+        item => item.productId?.toString() === returnItem.productId?.toString()
       );
 
       if (saleItem && saleItem.productId) {
@@ -501,7 +501,8 @@ export const returnSale = async (shopId, saleId, returnData, userId) => {
                 productCode: saleItem.productCode,
                 transactionType: 'RETURN',
                 quantity: returnItem.quantity || saleItem.quantity,
-                previousQuantity: product.stock.quantity - (returnItem.quantity || saleItem.quantity),
+                previousQuantity:
+                  product.stock.quantity - (returnItem.quantity || saleItem.quantity),
                 newQuantity: product.stock.quantity,
                 referenceType: 'sale',
                 referenceId: sale._id,
@@ -575,13 +576,13 @@ export const addOldGold = async (shopId, saleId, oldGoldData, userId) => {
   if (!sale) throw new NotFoundError('Sale not found');
 
   const totalOldGoldValue = oldGoldData.oldGoldItems.reduce(
-    (sum, item) => sum + (item.netWeight * item.ratePerGram),
+    (sum, item) => sum + item.netWeight * item.ratePerGram,
     0
   );
 
   sale.oldGoldExchange = {
     hasExchange: true,
-    items: oldGoldData.oldGoldItems.map((item) => ({
+    items: oldGoldData.oldGoldItems.map(item => ({
       metalType: item.metalType,
       purity: item.purity,
       grossWeight: item.grossWeight,
@@ -682,7 +683,7 @@ export const getSalesAnalytics = async (shopId, startDate, endDate, groupBy = 'd
   return analytics[0] || {};
 };
 
-export const getSalesDashboard = async (shopId) => {
+export const getSalesDashboard = async shopId => {
   const cacheKey = `sales_dashboard_${shopId}`;
   const cached = cache.get(cacheKey);
   if (cached) return cached;
@@ -717,7 +718,7 @@ export const getSalesDashboard = async (shopId) => {
   return dashboard;
 };
 
-export const getTodaySales = async (shopId) => {
+export const getTodaySales = async shopId => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -726,7 +727,7 @@ export const getTodaySales = async (shopId) => {
     .lean();
 };
 
-export const getPendingSales = async (shopId) => {
+export const getPendingSales = async shopId => {
   return Sale.find({
     shopId,
     status: { $in: ['draft', 'pending'] },
@@ -734,7 +735,7 @@ export const getPendingSales = async (shopId) => {
   }).lean();
 };
 
-export const getUnpaidSales = async (shopId) => {
+export const getUnpaidSales = async shopId => {
   return Sale.find({
     shopId,
     'payment.paymentStatus': { $in: ['unpaid', 'partial'] },
@@ -742,7 +743,7 @@ export const getUnpaidSales = async (shopId) => {
   }).lean();
 };
 
-export const getOverdueSales = async (shopId) => {
+export const getOverdueSales = async shopId => {
   return Sale.find({
     shopId,
     'payment.dueDate': { $lt: new Date() },
@@ -808,7 +809,9 @@ export const getSalesPersonPerformance = async (shopId, userId, startDate, endDa
   return {
     totalSales: sales.length,
     totalValue: sales.reduce((sum, s) => sum + s.financials.grandTotal, 0),
-    averageValue: sales.length ? sales.reduce((sum, s) => sum + s.financials.grandTotal, 0) / sales.length : 0,
+    averageValue: sales.length
+      ? sales.reduce((sum, s) => sum + s.financials.grandTotal, 0) / sales.length
+      : 0,
   };
 };
 
@@ -1011,7 +1014,7 @@ export const bulkPrintInvoices = async (shopId, saleIds) => {
   const bulkInvoiceData = {
     printDate: new Date(),
     totalInvoices: sales.length,
-    invoices: sales.map((sale) => ({
+    invoices: sales.map(sale => ({
       invoiceNumber: sale.invoiceNumber,
       customer: sale.customerDetails.customerName,
       date: sale.saleDate,

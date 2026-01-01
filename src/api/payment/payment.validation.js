@@ -14,7 +14,14 @@ export const createPaymentValidation = [
     .trim()
     .notEmpty()
     .withMessage('Payment type is required')
-    .isIn(['sale_payment', 'purchase_payment', 'scheme_payment', 'advance_payment', 'refund', 'other'])
+    .isIn([
+      'sale_payment',
+      'purchase_payment',
+      'scheme_payment',
+      'advance_payment',
+      'refund',
+      'other',
+    ])
     .withMessage('Invalid payment type'),
 
   body('transactionType')
@@ -66,10 +73,7 @@ export const createPaymentValidation = [
     .isIn(['sale', 'purchase', 'scheme_enrollment', 'order', 'none'])
     .withMessage('Invalid reference type'),
 
-  body('reference.referenceId')
-    .optional()
-    .isMongoId()
-    .withMessage('Invalid reference ID'),
+  body('reference.referenceId').optional().isMongoId().withMessage('Invalid reference ID'),
 
   // Payment Mode Specific Validations
   body('paymentDetails.cardDetails.last4Digits')
@@ -110,14 +114,9 @@ export const createPaymentValidation = [
  * Validation for updating payment
  */
 export const updatePaymentValidation = [
-  param('paymentId')
-    .isMongoId()
-    .withMessage('Invalid payment ID'),
+  param('paymentId').isMongoId().withMessage('Invalid payment ID'),
 
-  body('amount')
-    .optional()
-    .isFloat({ min: 0.01 })
-    .withMessage('Amount must be greater than 0'),
+  body('amount').optional().isFloat({ min: 0.01 }).withMessage('Amount must be greater than 0'),
 
   body('paymentMode')
     .optional()
@@ -136,47 +135,30 @@ export const updatePaymentValidation = [
     .withMessage('Notes cannot exceed 1000 characters'),
 
   // Prevent updating immutable fields
-  body('paymentNumber')
-    .not()
-    .exists()
-    .withMessage('Payment number cannot be updated'),
+  body('paymentNumber').not().exists().withMessage('Payment number cannot be updated'),
 
-  body('paymentDate')
-    .not()
-    .exists()
-    .withMessage('Payment date cannot be updated'),
+  body('paymentDate').not().exists().withMessage('Payment date cannot be updated'),
 ];
 
 /**
  * Validation for payment ID parameter
  */
 export const paymentIdValidation = [
-  param('paymentId')
-    .isMongoId()
-    .withMessage('Invalid payment ID'),
+  param('paymentId').isMongoId().withMessage('Invalid payment ID'),
 ];
 
 /**
  * Validation for shop ID parameter
  */
-export const shopIdValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
-];
+export const shopIdValidation = [param('shopId').isMongoId().withMessage('Invalid shop ID')];
 
 /**
  * Validation for getting payments list
  */
 export const getPaymentsValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
   query('limit')
     .optional()
@@ -185,7 +167,14 @@ export const getPaymentsValidation = [
 
   query('paymentType')
     .optional()
-    .isIn(['sale_payment', 'purchase_payment', 'scheme_payment', 'advance_payment', 'refund', 'other'])
+    .isIn([
+      'sale_payment',
+      'purchase_payment',
+      'scheme_payment',
+      'advance_payment',
+      'refund',
+      'other',
+    ])
     .withMessage('Invalid payment type'),
 
   query('transactionType')
@@ -203,15 +192,9 @@ export const getPaymentsValidation = [
     .isIn(['pending', 'completed', 'failed', 'cancelled', 'refunded'])
     .withMessage('Invalid status'),
 
-  query('startDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid start date'),
+  query('startDate').optional().isISO8601().withMessage('Invalid start date'),
 
-  query('endDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid end date'),
+  query('endDate').optional().isISO8601().withMessage('Invalid end date'),
 
   query('minAmount')
     .optional()
@@ -240,9 +223,7 @@ export const getPaymentsValidation = [
  * Validation for payment status update
  */
 export const updatePaymentStatusValidation = [
-  param('paymentId')
-    .isMongoId()
-    .withMessage('Invalid payment ID'),
+  param('paymentId').isMongoId().withMessage('Invalid payment ID'),
 
   body('status')
     .notEmpty()
@@ -261,14 +242,9 @@ export const updatePaymentStatusValidation = [
  * Validation for cheque clearance
  */
 export const chequeClearanceValidation = [
-  param('paymentId')
-    .isMongoId()
-    .withMessage('Invalid payment ID'),
+  param('paymentId').isMongoId().withMessage('Invalid payment ID'),
 
-  body('clearanceDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid clearance date'),
+  body('clearanceDate').optional().isISO8601().withMessage('Invalid clearance date'),
 
   body('notes')
     .optional()
@@ -281,9 +257,7 @@ export const chequeClearanceValidation = [
  * Validation for cheque bounce
  */
 export const chequeBounceValidation = [
-  param('paymentId')
-    .isMongoId()
-    .withMessage('Invalid payment ID'),
+  param('paymentId').isMongoId().withMessage('Invalid payment ID'),
 
   body('bounceReason')
     .notEmpty()
@@ -303,9 +277,7 @@ export const chequeBounceValidation = [
  * Validation for reconciliation
  */
 export const reconcilePaymentValidation = [
-  param('paymentId')
-    .isMongoId()
-    .withMessage('Invalid payment ID'),
+  param('paymentId').isMongoId().withMessage('Invalid payment ID'),
 
   body('reconciledWith')
     .trim()
@@ -314,10 +286,7 @@ export const reconcilePaymentValidation = [
     .isLength({ min: 3, max: 100 })
     .withMessage('Reference must be between 3 and 100 characters'),
 
-  body('discrepancy')
-    .optional()
-    .isFloat()
-    .withMessage('Discrepancy must be a number'),
+  body('discrepancy').optional().isFloat().withMessage('Discrepancy must be a number'),
 
   body('notes')
     .optional()
@@ -330,9 +299,7 @@ export const reconcilePaymentValidation = [
  * Validation for sending receipt
  */
 export const sendReceiptValidation = [
-  param('paymentId')
-    .isMongoId()
-    .withMessage('Invalid payment ID'),
+  param('paymentId').isMongoId().withMessage('Invalid payment ID'),
 
   body('method')
     .notEmpty()
@@ -363,18 +330,11 @@ export const sendReceiptValidation = [
  * Validation for party payments
  */
 export const partyPaymentsValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
-  param('partyId')
-    .isMongoId()
-    .withMessage('Invalid party ID'),
+  param('partyId').isMongoId().withMessage('Invalid party ID'),
 
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
   query('limit')
     .optional()
@@ -383,7 +343,14 @@ export const partyPaymentsValidation = [
 
   query('paymentType')
     .optional()
-    .isIn(['sale_payment', 'purchase_payment', 'scheme_payment', 'advance_payment', 'refund', 'other'])
+    .isIn([
+      'sale_payment',
+      'purchase_payment',
+      'scheme_payment',
+      'advance_payment',
+      'refund',
+      'other',
+    ])
     .withMessage('Invalid payment type'),
 
   query('status')
@@ -396,9 +363,7 @@ export const partyPaymentsValidation = [
  * Validation for date range queries
  */
 export const dateRangeValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
   query('startDate')
     .notEmpty()
@@ -423,22 +388,15 @@ export const dateRangeValidation = [
  * Validation for bulk reconcile
  */
 export const bulkReconcileValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
   body('paymentIds')
     .isArray({ min: 1, max: 100 })
     .withMessage('Payment IDs must be an array with 1-100 items'),
 
-  body('paymentIds.*')
-    .isMongoId()
-    .withMessage('Invalid payment ID in array'),
+  body('paymentIds.*').isMongoId().withMessage('Invalid payment ID in array'),
 
-  body('reconciledWith')
-    .trim()
-    .notEmpty()
-    .withMessage('Bank statement reference is required'),
+  body('reconciledWith').trim().notEmpty().withMessage('Bank statement reference is required'),
 
   body('notes')
     .optional()
@@ -451,9 +409,7 @@ export const bulkReconcileValidation = [
  * Validation for bulk export
  */
 export const bulkExportValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
   body('paymentIds')
     .optional()
@@ -471,9 +427,7 @@ export const bulkExportValidation = [
  * Validation for refund processing
  */
 export const processRefundValidation = [
-  param('paymentId')
-    .isMongoId()
-    .withMessage('Invalid payment ID'),
+  param('paymentId').isMongoId().withMessage('Invalid payment ID'),
 
   body('refundAmount')
     .notEmpty()
@@ -499,9 +453,7 @@ export const processRefundValidation = [
  * Validation for approval/rejection
  */
 export const approvalValidation = [
-  param('paymentId')
-    .isMongoId()
-    .withMessage('Invalid payment ID'),
+  param('paymentId').isMongoId().withMessage('Invalid payment ID'),
 
   body('notes')
     .optional()
@@ -522,9 +474,7 @@ export const approvalValidation = [
  * Validation for amount range filter
  */
 export const amountRangeValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
   query('minAmount')
     .notEmpty()
@@ -544,10 +494,7 @@ export const amountRangeValidation = [
       return true;
     }),
 
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
   query('limit')
     .optional()

@@ -5,14 +5,14 @@ import mongoose from 'mongoose';
 // HELPER VALIDATORS
 // ============================================
 
-const isValidObjectId = (value) => {
+const isValidObjectId = value => {
   if (!mongoose.Types.ObjectId.isValid(value)) {
     throw new Error('Invalid ID format');
   }
   return true;
 };
 
-const isPositiveNumber = (value) => {
+const isPositiveNumber = value => {
   if (value < 0) {
     throw new Error('Value must be a positive number');
   }
@@ -37,16 +37,13 @@ export const createProductValidation = [
     .isLength({ max: 2000 })
     .withMessage('Description cannot exceed 2000 characters'),
 
-body('categoryId')
-  .notEmpty()
-  .withMessage('Category is required')
-  .custom(isValidObjectId)
-  .withMessage('Invalid category ID'),
+  body('categoryId')
+    .notEmpty()
+    .withMessage('Category is required')
+    .custom(isValidObjectId)
+    .withMessage('Invalid category ID'),
 
-body('subCategoryId')
-  .optional()
-  .custom(isValidObjectId)
-  .withMessage('Invalid subcategory ID'),
+  body('subCategoryId').optional().custom(isValidObjectId).withMessage('Invalid subcategory ID'),
 
   body('productType')
     .optional()
@@ -155,10 +152,7 @@ body('subCategoryId')
     .withMessage('Invalid gender'),
 
   // Stones array validation
-  body('stones')
-    .optional()
-    .isArray()
-    .withMessage('Stones must be an array'),
+  body('stones').optional().isArray().withMessage('Stones must be an array'),
 
   body('stones.*.stoneType')
     .optional()
@@ -186,15 +180,9 @@ body('subCategoryId')
     .withMessage('Stone price must be positive'),
 
   // Images
-  body('images')
-    .optional()
-    .isArray()
-    .withMessage('Images must be an array'),
+  body('images').optional().isArray().withMessage('Images must be an array'),
 
-  body('images.*.url')
-    .optional()
-    .isURL()
-    .withMessage('Invalid image URL'),
+  body('images.*.url').optional().isURL().withMessage('Invalid image URL'),
 
   // Hallmarking
   body('hallmarking.isHallmarked')
@@ -227,16 +215,13 @@ export const updateProductValidation = [
     .isLength({ max: 2000 })
     .withMessage('Description cannot exceed 2000 characters'),
 
-body('categoryId')
-  .notEmpty()
-  .withMessage('Category is required')
-  .custom(isValidObjectId)
-  .withMessage('Invalid category ID'),
+  body('categoryId')
+    .notEmpty()
+    .withMessage('Category is required')
+    .custom(isValidObjectId)
+    .withMessage('Invalid category ID'),
 
-body('subCategoryId')
-  .optional()
-  .custom(isValidObjectId)
-  .withMessage('Invalid subcategory ID'),
+  body('subCategoryId').optional().custom(isValidObjectId).withMessage('Invalid subcategory ID'),
 
   body('weight.grossWeight')
     .optional()
@@ -253,51 +238,35 @@ body('subCategoryId')
     .isInt({ min: 0 })
     .withMessage('Quantity must be a positive integer'),
 
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be boolean'),
 ];
 
 // ============================================
 // GET PRODUCTS VALIDATION (Query params)
 // ============================================
 export const getProductsValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
 
-  query('sort')
-    .optional()
-    .isString()
-    .withMessage('Sort must be a string'),
+  query('sort').optional().isString().withMessage('Sort must be a string'),
 
-  query('category')  // ✅ QUERY PARAM
-    .optional()  // ✅ OPTIONAL FOR FILTERING
+  query('category') // ✅ QUERY PARAM
+    .optional() // ✅ OPTIONAL FOR FILTERING
     .custom(isValidObjectId)
     .withMessage('Invalid category ID'),
 
-    
-  query('subCategory')
-    .optional()
-    .custom(isValidObjectId)
-    .withMessage('Invalid subcategory ID'),
+  query('subCategory').optional().custom(isValidObjectId).withMessage('Invalid subcategory ID'),
 
   query('metalType')
     .optional()
     .isIn(['gold', 'silver', 'platinum', 'diamond', 'gemstone', 'mixed'])
     .withMessage('Invalid metal type'),
 
-  query('purity')
-    .optional()
-    .isString()
-    .withMessage('Purity must be a string'),
+  query('purity').optional().isString().withMessage('Purity must be a string'),
 
   query('status')
     .optional()
@@ -309,15 +278,9 @@ export const getProductsValidation = [
     .isIn(['available', 'reserved', 'sold', 'on_hold', 'returned'])
     .withMessage('Invalid sale status'),
 
-  query('minPrice')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Min price must be positive'),
+  query('minPrice').optional().isFloat({ min: 0 }).withMessage('Min price must be positive'),
 
-  query('maxPrice')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Max price must be positive'),
+  query('maxPrice').optional().isFloat({ min: 0 }).withMessage('Max price must be positive'),
 
   query('search')
     .optional()
@@ -334,16 +297,12 @@ export const getProductsValidation = [
 // ============================================
 // GET SINGLE PRODUCT VALIDATION
 // ============================================
-export const getProductByIdValidation = [
-  param('id').custom(isValidObjectId),
-];
+export const getProductByIdValidation = [param('id').custom(isValidObjectId)];
 
 // ============================================
 // DELETE PRODUCT VALIDATION
 // ============================================
-export const deleteProductValidation = [
-  param('id').custom(isValidObjectId),
-];
+export const deleteProductValidation = [param('id').custom(isValidObjectId)];
 
 // ============================================
 // UPDATE STOCK VALIDATION
@@ -384,9 +343,7 @@ export const updateStockValidation = [
     ])
     .withMessage('Invalid reference type'),
 
-  body('referenceId')
-    .optional()
-    .custom(isValidObjectId),
+  body('referenceId').optional().custom(isValidObjectId),
 ];
 
 // ============================================
@@ -395,10 +352,7 @@ export const updateStockValidation = [
 export const reserveProductValidation = [
   param('id').custom(isValidObjectId),
 
-  body('customerId')
-    .notEmpty()
-    .withMessage('Customer ID is required')
-    .custom(isValidObjectId),
+  body('customerId').notEmpty().withMessage('Customer ID is required').custom(isValidObjectId),
 
   body('reservationDays')
     .optional()
@@ -418,14 +372,9 @@ export const reserveProductValidation = [
 export const markAsSoldValidation = [
   param('id').custom(isValidObjectId),
 
-  body('customerId')
-    .notEmpty()
-    .withMessage('Customer ID is required')
-    .custom(isValidObjectId),
+  body('customerId').notEmpty().withMessage('Customer ID is required').custom(isValidObjectId),
 
-  body('saleId')
-    .optional()
-    .custom(isValidObjectId),
+  body('saleId').optional().custom(isValidObjectId),
 ];
 
 // ============================================
@@ -434,15 +383,9 @@ export const markAsSoldValidation = [
 export const calculatePriceValidation = [
   param('id').custom(isValidObjectId),
 
-  body('useCurrentRate')
-    .optional()
-    .isBoolean()
-    .withMessage('useCurrentRate must be boolean'),
+  body('useCurrentRate').optional().isBoolean().withMessage('useCurrentRate must be boolean'),
 
-  body('customRate')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Custom rate must be positive'),
+  body('customRate').optional().isFloat({ min: 0 }).withMessage('Custom rate must be positive'),
 ];
 
 // ============================================

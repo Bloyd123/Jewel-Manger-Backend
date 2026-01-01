@@ -134,25 +134,25 @@ const metalRateSchema = new mongoose.Schema(
         '14K': { percentage: { type: Number, default: 58.5 } },
       },
       silver: {
-        '999': { percentage: { type: Number, default: 99.9 } },
-        '925': { percentage: { type: Number, default: 92.5 } },
-        '900': { percentage: { type: Number, default: 90 } },
+        999: { percentage: { type: Number, default: 99.9 } },
+        925: { percentage: { type: Number, default: 92.5 } },
+        900: { percentage: { type: Number, default: 90 } },
       },
       platinum: {
-        '950': { percentage: { type: Number, default: 95 } },
+        950: { percentage: { type: Number, default: 95 } },
       },
     },
     customPurities: [
-  {
-    metalType: String,        // 'gold', 'silver', 'platinum', 'palladium'
-    purityName: String,       // '23K', '916', '958', 'White Gold'
-    purityPercentage: Number, // 95.83, 91.6, 95.8
-    buyingRate: Number,
-    sellingRate: Number,
-    description: String,      // Optional notes
-    isActive: Boolean
-  }
-],
+      {
+        metalType: String, // 'gold', 'silver', 'platinum', 'palladium'
+        purityName: String, // '23K', '916', '958', 'White Gold'
+        purityPercentage: Number, // 95.83, 91.6, 95.8
+        buyingRate: Number,
+        sellingRate: Number,
+        description: String, // Optional notes
+        isActive: Boolean,
+      },
+    ],
 
     //   NEW: Auto-calculated rates (system-generated for analytics)
     autoConvertedRates: {
@@ -176,9 +176,9 @@ const metalRateSchema = new mongoose.Schema(
     //   NEW: Trend analytics cache (pre-computed for dashboard performance)
     trendData: {
       gold: {
-        ma7: { type: Number, default: 0 },   // 7-day moving average
-        ma30: { type: Number, default: 0 },  // 30-day moving average
-        ma90: { type: Number, default: 0 },  // 90-day moving average
+        ma7: { type: Number, default: 0 }, // 7-day moving average
+        ma30: { type: Number, default: 0 }, // 30-day moving average
+        ma90: { type: Number, default: 0 }, // 90-day moving average
       },
       silver: {
         ma7: { type: Number, default: 0 },
@@ -361,7 +361,7 @@ metalRateSchema.pre('save', async function (next) {
   if (this.isModified('gold.gold24K')) {
     const gold24KBuying = this.gold.gold24K.buyingRate;
     const gold24KSelling = this.gold.gold24K.sellingRate;
-    
+
     // Calculate 20K rates (83.3% purity)
     this.autoConvertedRates.gold20K.buyingRate = (gold24KBuying * 83.3) / 100;
     this.autoConvertedRates.gold20K.sellingRate = (gold24KSelling * 83.3) / 100;
@@ -370,7 +370,7 @@ metalRateSchema.pre('save', async function (next) {
   if (this.isModified('silver.pure')) {
     const silver999Buying = this.silver.pure.buyingRate;
     const silver999Selling = this.silver.pure.sellingRate;
-    
+
     // Calculate 900 silver rates (90% purity)
     this.autoConvertedRates.silver900.buyingRate = (silver999Buying * 90) / 100;
     this.autoConvertedRates.silver900.sellingRate = (silver999Selling * 90) / 100;
@@ -449,7 +449,7 @@ metalRateSchema.pre('save', async function (next) {
       // Gold change
       const goldDiff = this.gold.gold24K.sellingRate - previousRate.gold.gold24K.sellingRate;
       this.changes.goldChange = goldDiff;
-      this.changes.goldChangePercentage = 
+      this.changes.goldChangePercentage =
         previousRate.gold.gold24K.sellingRate !== 0
           ? (goldDiff / previousRate.gold.gold24K.sellingRate) * 100
           : 0;
@@ -700,8 +700,9 @@ metalRateSchema.statics.calculateMovingAverage = async function (shopId, metalTy
 
   if (!rates.length) return 0;
 
-  const field = metalType === 'gold' ? 'gold24K' : metalType === 'silver' ? 'silver999' : 'platinum950';
-  
+  const field =
+    metalType === 'gold' ? 'gold24K' : metalType === 'silver' ? 'silver999' : 'platinum950';
+
   const sum = rates.reduce((acc, rate) => {
     const value = rate.baseRates?.[field] || 0;
     return acc + value;
@@ -729,7 +730,8 @@ metalRateSchema.statics.getTrendChartData = async function (shopId, metalType = 
     .sort({ rateDate: 1 })
     .select('rateDate baseRates trendData');
 
-  const field = metalType === 'gold' ? 'gold24K' : metalType === 'silver' ? 'silver999' : 'platinum950';
+  const field =
+    metalType === 'gold' ? 'gold24K' : metalType === 'silver' ? 'silver999' : 'platinum950';
 
   return rates.map(rate => ({
     date: rate.rateDate,
@@ -749,7 +751,7 @@ metalRateSchema.statics.getTrendChartData = async function (shopId, metalType = 
  */
 metalRateSchema.statics.syncToAllShops = async function (organizationId, masterRateData, userId) {
   const JewelryShop = mongoose.model('JewelryShop');
-  
+
   const shops = await JewelryShop.find({
     organizationId,
     deletedAt: null,

@@ -154,9 +154,7 @@ class MetalRateService {
       const currentRate = await MetalRate.getCurrentRate(shopId);
 
       if (!currentRate) {
-        throw new NotFoundError(
-          'No current metal rate found. Please update today\'s rates.'
-        );
+        throw new NotFoundError("No current metal rate found. Please update today's rates.");
       }
 
       // 3. Store in cache (1 hour)
@@ -181,13 +179,7 @@ class MetalRateService {
   // =========================================================================
   async getRateHistory(shopId, filters = {}) {
     try {
-      const {
-        startDate,
-        endDate,
-        page = 1,
-        limit = 10,
-        sort = '-rateDate',
-      } = filters;
+      const { startDate, endDate, page = 1, limit = 10, sort = '-rateDate' } = filters;
 
       // Build query
       const query = {
@@ -217,7 +209,9 @@ class MetalRateService {
           .sort(sort)
           .skip(skip)
           .limit(parseInt(limit))
-          .select('rateDate gold silver platinum changes baseRates trendData weightUnit currency isCurrent'),
+          .select(
+            'rateDate gold silver platinum changes baseRates trendData weightUnit currency isCurrent'
+          ),
         MetalRate.countDocuments(query),
       ]);
 
@@ -296,9 +290,7 @@ class MetalRateService {
       const comparison = {
         fromDate,
         toDate,
-        daysDifference: Math.ceil(
-          (new Date(toDate) - new Date(fromDate)) / (1000 * 60 * 60 * 24)
-        ),
+        daysDifference: Math.ceil((new Date(toDate) - new Date(fromDate)) / (1000 * 60 * 60 * 24)),
         gold24K: this.calculateRateChange(
           fromRate.gold.gold24K.sellingRate,
           toRate.gold.gold24K.sellingRate
@@ -321,20 +313,14 @@ class MetalRateService {
         ),
         trendComparison: {
           gold: {
-            ma7Change:
-              toRate.trendData?.gold?.ma7 - fromRate.trendData?.gold?.ma7 || 0,
-            ma30Change:
-              toRate.trendData?.gold?.ma30 - fromRate.trendData?.gold?.ma30 || 0,
-            ma90Change:
-              toRate.trendData?.gold?.ma90 - fromRate.trendData?.gold?.ma90 || 0,
+            ma7Change: toRate.trendData?.gold?.ma7 - fromRate.trendData?.gold?.ma7 || 0,
+            ma30Change: toRate.trendData?.gold?.ma30 - fromRate.trendData?.gold?.ma30 || 0,
+            ma90Change: toRate.trendData?.gold?.ma90 - fromRate.trendData?.gold?.ma90 || 0,
           },
           silver: {
-            ma7Change:
-              toRate.trendData?.silver?.ma7 - fromRate.trendData?.silver?.ma7 || 0,
-            ma30Change:
-              toRate.trendData?.silver?.ma30 - fromRate.trendData?.silver?.ma30 || 0,
-            ma90Change:
-              toRate.trendData?.silver?.ma90 - fromRate.trendData?.silver?.ma90 || 0,
+            ma7Change: toRate.trendData?.silver?.ma7 - fromRate.trendData?.silver?.ma7 || 0,
+            ma30Change: toRate.trendData?.silver?.ma30 - fromRate.trendData?.silver?.ma30 || 0,
+            ma90Change: toRate.trendData?.silver?.ma90 - fromRate.trendData?.silver?.ma90 || 0,
           },
         },
       };
@@ -401,8 +387,7 @@ class MetalRateService {
           startRate: trendData[0]?.rate || 0,
           highestRate: Math.max(...trendData.map(d => d.rate)),
           lowestRate: Math.min(...trendData.map(d => d.rate)),
-          averageRate:
-            trendData.reduce((sum, d) => sum + d.rate, 0) / trendData.length,
+          averageRate: trendData.reduce((sum, d) => sum + d.rate, 0) / trendData.length,
         },
       };
 
@@ -444,9 +429,7 @@ class MetalRateService {
 
       // 2. Create/update rates for all shops
       const results = await Promise.allSettled(
-        shops.map(shop =>
-          this.createOrUpdateTodayRate(shop._id, rateData, userId)
-        )
+        shops.map(shop => this.createOrUpdateTodayRate(shop._id, rateData, userId))
       );
 
       // 3. Analyze results
@@ -570,9 +553,7 @@ class MetalRateService {
 
       // Cannot delete current rate
       if (rate.isCurrent) {
-        throw new ConflictError(
-          'Cannot delete current rate. Please create a new rate first.'
-        );
+        throw new ConflictError('Cannot delete current rate. Please create a new rate first.');
       }
 
       await rate.softDelete();

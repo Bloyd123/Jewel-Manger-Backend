@@ -522,15 +522,17 @@ class SupplierService {
         },
       ]);
 
-      return stats[0] || {
-        totalSuppliers: 0,
-        activeSuppliers: 0,
-        preferredSuppliers: 0,
-        blacklistedSuppliers: 0,
-        totalPurchases: 0,
-        totalDue: 0,
-        totalAdvance: 0,
-      };
+      return (
+        stats[0] || {
+          totalSuppliers: 0,
+          activeSuppliers: 0,
+          preferredSuppliers: 0,
+          blacklistedSuppliers: 0,
+          totalPurchases: 0,
+          totalDue: 0,
+          totalAdvance: 0,
+        }
+      );
     } catch (error) {
       logger.error('Error fetching supplier stats', { error: error.message, shopId });
       throw error;

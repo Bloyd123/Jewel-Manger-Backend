@@ -94,7 +94,13 @@ class ProductController {
     const organizationId = req.user.organizationId;
     const userId = req.user._id;
 
-    const product = await productService.updateProduct(id, shopId, organizationId, req.body, userId);
+    const product = await productService.updateProduct(
+      id,
+      shopId,
+      organizationId,
+      req.body,
+      userId
+    );
 
     return sendSuccess(res, 200, 'Product updated successfully', product);
   });
@@ -154,7 +160,13 @@ class ProductController {
     const organizationId = req.user.organizationId;
     const userId = req.user._id;
 
-    const result = await productService.reserveProduct(id, shopId, organizationId, req.body, userId);
+    const result = await productService.reserveProduct(
+      id,
+      shopId,
+      organizationId,
+      req.body,
+      userId
+    );
 
     return sendSuccess(res, 200, 'Product reserved successfully', result);
   });
@@ -325,12 +337,7 @@ class ProductController {
       userId
     );
 
-    return sendSuccess(
-      res,
-      200,
-      `${result.modifiedCount} products updated successfully`,
-      result
-    );
+    return sendSuccess(res, 200, `${result.modifiedCount} products updated successfully`, result);
   });
 
   // ============================================
@@ -392,20 +399,20 @@ class ProductController {
           },
         },
         { $sort: { count: -1 } },
-         // ✅ ADD LOOKUP TO GET CATEGORY NAMES
-  {
-    $lookup: {
-      from: 'categories',
-      localField: '_id',
-      foreignField: '_id',
-      as: 'categoryDetails'
-    }
-  },
-  {
-    $addFields: {
-      categoryName: { $arrayElemAt: ['$categoryDetails.name.default', 0] }
-    }
-  }
+        // ✅ ADD LOOKUP TO GET CATEGORY NAMES
+        {
+          $lookup: {
+            from: 'categories',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'categoryDetails',
+          },
+        },
+        {
+          $addFields: {
+            categoryName: { $arrayElemAt: ['$categoryDetails.name.default', 0] },
+          },
+        },
       ]),
     ]);
 

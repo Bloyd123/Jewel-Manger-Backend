@@ -40,17 +40,17 @@ const loadExpressApp = app => {
   const corsOptions = {
     origin(origin, callback) {
       const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-         'http://localhost:5173',
+        'http://localhost:5173',
         'http://localhost:3000',
         'http://localhost:3001',
-          'http://192.168.1.36:3000', 
+        'http://192.168.1.36:3000',
       ];
 
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-       console.log("Allowed Origins:", allowedOrigins);
-console.log("Incoming Origin:", origin);
+        console.log('Allowed Origins:', allowedOrigins);
+        console.log('Incoming Origin:', origin);
 
         callback(new Error('Not allowed by CORS'));
       }
@@ -155,14 +155,13 @@ console.log("Incoming Origin:", origin);
   // Import and use routes here
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/shops', shopRoutes);
-app.use('/api/v1/shops/:shopId/customers', customerRoutes);
-app.use('/api/v1/suppliers', supplierRoutes);
-app.use('/api/v1/shops/:shopId/purchases', purchaseRoutes);
-app.use('/api/v1/shops/:shopId/product', productRoutes);
+  app.use('/api/v1/shops/:shopId/customers', customerRoutes);
+  app.use('/api/v1/suppliers', supplierRoutes);
+  app.use('/api/v1/shops/:shopId/purchases', purchaseRoutes);
+  app.use('/api/v1/shops/:shopId/product', productRoutes);
 
-app.use('/api/v1/categories', categoryRoutes);
-app.use('/api/v1/shops', paymentRoutes);
-
+  app.use('/api/v1/categories', categoryRoutes);
+  app.use('/api/v1/shops', paymentRoutes);
 
   // ... more routes
 

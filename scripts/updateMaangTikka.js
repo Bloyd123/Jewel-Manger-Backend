@@ -8,16 +8,16 @@ dotenv.config();
 const maangTikkaSubCategories = [
   {
     code: 'TRADITIONAL_MAANG_TIKKA',
-    name: { default: 'Traditional Maang Tikka', localized: { hi: 'पारंपरिक मांग टीका' } }
+    name: { default: 'Traditional Maang Tikka', localized: { hi: 'पारंपरिक मांग टीका' } },
   },
   {
     code: 'MODERN_MAANG_TIKKA',
-    name: { default: 'Modern Maang Tikka', localized: { hi: 'आधुनिक मांग टीका' } }
+    name: { default: 'Modern Maang Tikka', localized: { hi: 'आधुनिक मांग टीका' } },
   },
   {
     code: 'BRIDAL_MAANG_TIKKA',
-    name: { default: 'Bridal Maang Tikka', localized: { hi: 'दुल्हन का मांग टीका' } }
-  }
+    name: { default: 'Bridal Maang Tikka', localized: { hi: 'दुल्हन का मांग टीका' } },
+  },
 ];
 
 const run = async () => {
@@ -32,10 +32,10 @@ const run = async () => {
         $set: {
           name: {
             default: 'Maang Tikka',
-            localized: { hi: 'मांग टीका' }
+            localized: { hi: 'मांग टीका' },
           },
-          isActive: true
-        }
+          isActive: true,
+        },
       },
       { upsert: true, new: true }
     );
@@ -47,8 +47,8 @@ const run = async () => {
           $set: {
             ...sub,
             parentId: parent._id,
-            isActive: true
-          }
+            isActive: true,
+          },
         },
         { upsert: true }
       );
@@ -57,7 +57,6 @@ const run = async () => {
     console.log('✅ Maang Tikka updated successfully');
     await mongoose.disconnect();
     process.exit(0);
-
   } catch (err) {
     console.error('❌ Error:', err);
     process.exit(1);

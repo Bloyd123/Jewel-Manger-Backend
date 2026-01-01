@@ -33,17 +33,17 @@ const inventoryTransactionSchema = new mongoose.Schema(
     transactionType: {
       type: String,
       enum: [
-        'IN',           // Stock added
-        'OUT',          // Stock reduced
-        'ADJUSTMENT',   // Manual adjustment
-        'SALE',         // Product sold
-        'PURCHASE',     // Product purchased
-        'RETURN',       // Product returned
-        'TRANSFER_IN',  // Transferred from another shop
+        'IN', // Stock added
+        'OUT', // Stock reduced
+        'ADJUSTMENT', // Manual adjustment
+        'SALE', // Product sold
+        'PURCHASE', // Product purchased
+        'RETURN', // Product returned
+        'TRANSFER_IN', // Transferred from another shop
         'TRANSFER_OUT', // Transferred to another shop
-        'DAMAGE',       // Damaged/lost
-        'RESERVED',     // Reserved for customer
-        'UNRESERVED',   // Reservation cancelled
+        'DAMAGE', // Damaged/lost
+        'RESERVED', // Reserved for customer
+        'UNRESERVED', // Reservation cancelled
       ],
       required: true,
       index: true,
@@ -174,9 +174,7 @@ inventoryTransactionSchema.virtual('quantityChange').get(function () {
 });
 
 inventoryTransactionSchema.virtual('isInbound').get(function () {
-  return ['IN', 'PURCHASE', 'RETURN', 'TRANSFER_IN', 'UNRESERVED'].includes(
-    this.transactionType
-  );
+  return ['IN', 'PURCHASE', 'RETURN', 'TRANSFER_IN', 'UNRESERVED'].includes(this.transactionType);
 });
 
 inventoryTransactionSchema.virtual('isOutbound').get(function () {

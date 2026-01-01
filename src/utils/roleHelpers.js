@@ -11,10 +11,10 @@ export const canCreateShop = (user, organizationId) => {
   return false;
 };
 
-export const canManageAllShops = (user) => {
+export const canManageAllShops = user => {
   return ['super_admin', 'org_admin'].includes(user.role);
 };
 
-export const canDeleteShop = (user) => {
+export const canDeleteShop = user => {
   return ['super_admin', 'org_admin'].includes(user.role);
 };

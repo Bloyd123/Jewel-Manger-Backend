@@ -92,17 +92,17 @@ class AuthService {
 
     //   STEP 5: Create UserShopAccess (if shop-level user)
     if (primaryShop) {
-       const defaultPermissions = this.getDefaultPermissionsForShopAccess(role);
+      const defaultPermissions = this.getDefaultPermissionsForShopAccess(role);
       await UserShopAccess.create({
         userId: user._id,
         shopId: primaryShop,
         organizationId,
         role: role,
-          permissions: defaultPermissions,
+        permissions: defaultPermissions,
         isActive: true,
         grantedBy: currentUser?._id || null,
       });
-       console.log('  UserShopAccess created for', user.email, 'with role', role);
+      console.log('  UserShopAccess created for', user.email, 'with role', role);
     }
 
     //   STEP 6: Generate email verification token
@@ -156,8 +156,8 @@ class AuthService {
   // HELPER: Default Permissions Based on Role
   // ============================================
   getDefaultPermissionsForShopAccess(role) {
-  return getPermissionsByRole(role);
-}
+    return getPermissionsByRole(role);
+  }
   // ========================================
   // USER LOGIN
   // ========================================
@@ -184,7 +184,7 @@ class AuthService {
       if (!organization || !organization.isActive) {
         throw new UnauthorizedError('Organization is inactive');
       }
-// !important
+      // !important
       // // Check subscription status
       // if (!organization.isSubscriptionActive()) {
       //   throw new UnauthorizedError('Organization subscription has expired');

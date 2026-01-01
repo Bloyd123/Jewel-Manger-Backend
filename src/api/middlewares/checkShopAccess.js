@@ -6,7 +6,11 @@
 import mongoose from 'mongoose';
 import UserShopAccess from '../../models/UserShopAccess.js';
 import JewelryShop from '../../models/Shop.js';
-import { InsufficientPermissionsError, NotFoundError, ValidationError } from '../../utils/AppError.js';
+import {
+  InsufficientPermissionsError,
+  NotFoundError,
+  ValidationError,
+} from '../../utils/AppError.js';
 import { catchAsync } from './errorHandler.js';
 import logger from '../../utils/logger.js';
 
@@ -82,7 +86,11 @@ export const checkShopAccess = catchAsync(async (req, res, next) => {
 
     // 10. Update last access timestamp (async, don't wait)
     userAccess.updateLastAccess(req.ip).catch(err => {
-      logger.error('Failed to update last access', { userId: req.user._id, shopId, error: err.message });
+      logger.error('Failed to update last access', {
+        userId: req.user._id,
+        shopId,
+        error: err.message,
+      });
     });
 
     // 11. Attach shop and user access to request for use in controllers
@@ -104,7 +112,7 @@ export const checkShopAccess = catchAsync(async (req, res, next) => {
  * @param {string} permission - Permission key to check (e.g., 'canManagePurchases')
  * @returns {Function} Express middleware
  */
-export const checkPermission = (permission) => {
+export const checkPermission = permission => {
   return catchAsync(async (req, res, next) => {
     try {
       // 1. Super admin and org admin have all permissions - bypass check
@@ -113,7 +121,8 @@ export const checkPermission = (permission) => {
       }
 
       // 2. Get shopId from multiple sources
-      const shopId = req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
+      const shopId =
+        req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
 
       if (!shopId) {
         throw new NotFoundError('Shop ID is required to check permissions');
@@ -154,7 +163,11 @@ export const checkPermission = (permission) => {
 
       // 5. Check if user has the specific permission
       if (!userAccess.hasPermission(permission)) {
-        const permissionName = permission.replace('can', '').replace(/([A-Z])/g, ' $1').trim().toLowerCase();
+        const permissionName = permission
+          .replace('can', '')
+          .replace(/([A-Z])/g, ' $1')
+          .trim()
+          .toLowerCase();
         throw new InsufficientPermissionsError(`You do not have permission to ${permissionName}`);
       }
 
@@ -174,7 +187,7 @@ export const checkPermission = (permission) => {
  * @param {string[]} permissions - Array of permission keys
  * @returns {Function} Express middleware
  */
-export const checkAnyPermission = (permissions) => {
+export const checkAnyPermission = permissions => {
   return catchAsync(async (req, res, next) => {
     try {
       // Super admin and org admin have all permissions
@@ -182,7 +195,8 @@ export const checkAnyPermission = (permissions) => {
         return next();
       }
 
-      const shopId = req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
+      const shopId =
+        req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
 
       if (!shopId) {
         throw new NotFoundError('Shop ID is required to check permissions');
@@ -207,7 +221,10 @@ export const checkAnyPermission = (permissions) => {
           throw new InsufficientPermissionsError('You do not have access to this shop');
         }
 
-        if (!userAccess.isActive || (userAccess.accessEndDate && new Date() > userAccess.accessEndDate)) {
+        if (
+          !userAccess.isActive ||
+          (userAccess.accessEndDate && new Date() > userAccess.accessEndDate)
+        ) {
           throw new InsufficientPermissionsError('Your shop access is invalid or expired');
         }
 
@@ -235,7 +252,7 @@ export const checkAnyPermission = (permissions) => {
  * @param {string[]} permissions - Array of permission keys
  * @returns {Function} Express middleware
  */
-export const checkAllPermissions = (permissions) => {
+export const checkAllPermissions = permissions => {
   return catchAsync(async (req, res, next) => {
     try {
       // Super admin and org admin have all permissions
@@ -243,7 +260,8 @@ export const checkAllPermissions = (permissions) => {
         return next();
       }
 
-      const shopId = req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
+      const shopId =
+        req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
 
       if (!shopId) {
         throw new NotFoundError('Shop ID is required to check permissions');
@@ -268,7 +286,10 @@ export const checkAllPermissions = (permissions) => {
           throw new InsufficientPermissionsError('You do not have access to this shop');
         }
 
-        if (!userAccess.isActive || (userAccess.accessEndDate && new Date() > userAccess.accessEndDate)) {
+        if (
+          !userAccess.isActive ||
+          (userAccess.accessEndDate && new Date() > userAccess.accessEndDate)
+        ) {
           throw new InsufficientPermissionsError('Your shop access is invalid or expired');
         }
 

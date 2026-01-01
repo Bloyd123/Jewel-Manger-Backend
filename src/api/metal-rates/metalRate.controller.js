@@ -18,11 +18,7 @@ class MetalRateController {
     const { shopId } = req.params;
     const userId = req.user._id;
 
-    const result = await metalRateService.createOrUpdateTodayRate(
-      shopId,
-      req.body,
-      userId
-    );
+    const result = await metalRateService.createOrUpdateTodayRate(shopId, req.body, userId);
 
     const statusCode = result.data.isNew === false ? 200 : 201;
 
@@ -131,11 +127,7 @@ class MetalRateController {
       throw new ValidationError('Days must be a positive number');
     }
 
-    const result = await metalRateService.getTrendChartData(
-      shopId,
-      metalType,
-      daysNum
-    );
+    const result = await metalRateService.getTrendChartData(shopId, metalType, daysNum);
 
     return sendSuccess(res, 200, result.message, result.data, {
       cached: result.cached,
@@ -152,18 +144,11 @@ class MetalRateController {
     const userId = req.user._id;
 
     // Verify user belongs to this organization (unless super_admin)
-    if (
-      req.user.role !== 'super_admin' &&
-      req.user.organizationId.toString() !== organizationId
-    ) {
+    if (req.user.role !== 'super_admin' && req.user.organizationId.toString() !== organizationId) {
       throw new ValidationError('You can only sync rates for your own organization');
     }
 
-    const result = await metalRateService.syncToAllShops(
-      organizationId,
-      req.body,
-      userId
-    );
+    const result = await metalRateService.syncToAllShops(organizationId, req.body, userId);
 
     const statusCode = result.data.failedShops > 0 ? 207 : 200; // 207 Multi-Status
 
@@ -248,9 +233,7 @@ class MetalRateController {
     const rateForPurity = currentRate.getRateForPurity(metalType, purity);
 
     if (!rateForPurity) {
-      throw new ValidationError(
-        `Invalid metal type or purity: ${metalType} ${purity}`
-      );
+      throw new ValidationError(`Invalid metal type or purity: ${metalType} ${purity}`);
     }
 
     return sendSuccess(res, 200, 'Rate for purity retrieved', {

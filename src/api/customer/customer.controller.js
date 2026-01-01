@@ -32,11 +32,7 @@ export const createCustomer = async (req, res) => {
     const customerData = req.body;
 
     // Create customer
-    const customer = await customerService.createCustomer(
-      shopId,
-      customerData,
-      req.user._id
-    );
+    const customer = await customerService.createCustomer(shopId, customerData, req.user._id);
 
     // Log activity
     await eventLogger.logActivity({
@@ -134,11 +130,7 @@ export const getCustomers = async (req, res) => {
     };
 
     // Get customers
-    const result = await customerService.getCustomers(
-      shopId,
-      filters,
-      paginationOptions
-    );
+    const result = await customerService.getCustomers(shopId, filters, paginationOptions);
 
     // Get summary statistics
     const summary = await customerService.getCustomerStatistics(shopId);
@@ -313,11 +305,7 @@ export const deleteCustomer = async (req, res) => {
   try {
     const { shopId, customerId } = req.params;
 
-    const customer = await customerService.deleteCustomer(
-      customerId,
-      shopId,
-      req.user._id
-    );
+    const customer = await customerService.deleteCustomer(customerId, shopId, req.user._id);
 
     // Log activity
     await eventLogger.logActivity({
@@ -423,11 +411,7 @@ export const removeBlacklist = async (req, res) => {
   try {
     const { shopId, customerId } = req.params;
 
-    const customer = await customerService.removeBlacklist(
-      customerId,
-      shopId,
-      req.user._id
-    );
+    const customer = await customerService.removeBlacklist(customerId, shopId, req.user._id);
 
     // Log activity
     await eventLogger.logActivity({
@@ -479,12 +463,7 @@ export const addLoyaltyPoints = async (req, res) => {
     const { shopId, customerId } = req.params;
     const { points, reason } = req.body;
 
-    const customer = await customerService.addLoyaltyPoints(
-      customerId,
-      shopId,
-      points,
-      reason
-    );
+    const customer = await customerService.addLoyaltyPoints(customerId, shopId, points, reason);
 
     return sendSuccess(res, 200, `Added ${points} loyalty points`, {
       customer: {
@@ -521,11 +500,7 @@ export const redeemLoyaltyPoints = async (req, res) => {
     const { shopId, customerId } = req.params;
     const { points } = req.body;
 
-    const customer = await customerService.redeemLoyaltyPoints(
-      customerId,
-      shopId,
-      points
-    );
+    const customer = await customerService.redeemLoyaltyPoints(customerId, shopId, points);
 
     return sendSuccess(res, 200, `Redeemed ${points} loyalty points`, {
       customer: {

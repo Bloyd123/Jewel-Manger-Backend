@@ -58,18 +58,18 @@ const productSchema = new mongoose.Schema(
       maxlength: 2000,
     },
 
-// Category & Type (Now using ObjectId references)
-categoryId: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: 'Category',
-  required: [true, 'Category is required'],
-  index: true,
-},
-subCategoryId: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: 'Category',
-  index: true,
-},
+    // Category & Type (Now using ObjectId references)
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      required: [true, 'Category is required'],
+      index: true,
+    },
+    subCategoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      index: true,
+    },
     productType: {
       type: String,
       enum: ['ready_made', 'custom_made', 'on_order', 'repair', 'exchange'],
@@ -541,28 +541,28 @@ subCategoryId: {
         fieldValue: mongoose.Schema.Types.Mixed,
       },
     ],
-    // Additioanly 
+    // Additioanly
     lifecycleHistory: [
-  {
-    action: String,               // created, reserved, sold, returned, repaired, transferred
-    fromShop: mongoose.ObjectId,
-    toShop: mongoose.ObjectId,
-    user: mongoose.ObjectId,
-    date: { type: Date, default: Date.now },
-    notes: String,
-  }
-],
-repair: {
-  status: { type: String, enum: ['none','sent','in_progress','completed'], default: 'none' },
-  sentAt: Date,
-  completedAt: Date,
-  repairNotes: String
-},
-returnDetails: {
-  returnedAt: Date,
-  reason: String,
-  refundAmount: Number,
-},
+      {
+        action: String, // created, reserved, sold, returned, repaired, transferred
+        fromShop: mongoose.ObjectId,
+        toShop: mongoose.ObjectId,
+        user: mongoose.ObjectId,
+        date: { type: Date, default: Date.now },
+        notes: String,
+      },
+    ],
+    repair: {
+      status: { type: String, enum: ['none', 'sent', 'in_progress', 'completed'], default: 'none' },
+      sentAt: Date,
+      completedAt: Date,
+      repairNotes: String,
+    },
+    returnDetails: {
+      returnedAt: Date,
+      reason: String,
+      refundAmount: Number,
+    },
     // Notes
     notes: {
       type: String,
@@ -623,18 +623,16 @@ productSchema.pre('save', function (next) {
 
   // Calculate net weight
   const gross = Number(this.weight?.grossWeight) || 0;
-const stone = Number(this.weight?.stoneWeight) || 0;
-this.weight.netWeight = Math.max(0, gross - stone);
-
+  const stone = Number(this.weight?.stoneWeight) || 0;
+  this.weight.netWeight = Math.max(0, gross - stone);
 
   // Calculate total stone value
   if (this.stones && this.stones.length > 0) {
-this.pricing = this.pricing || {};
+    this.pricing = this.pricing || {};
 
-this.pricing.stoneValue = Array.isArray(this.stones)
-  ? this.stones.reduce((sum, s) => sum + (s.totalStonePrice || 0), 0)
-  : 0;
-
+    this.pricing.stoneValue = Array.isArray(this.stones)
+      ? this.stones.reduce((sum, s) => sum + (s.totalStonePrice || 0), 0)
+      : 0;
   }
 
   next();
@@ -781,9 +779,7 @@ productSchema.statics.generateProductCode = async function (shopId, prefix = 'PR
       .lean();
 
     // Step 2: Extract number
-    const lastNumber = lastProduct
-      ? parseInt(lastProduct.productCode.replace(prefix, '')) || 0
-      : 0;
+    const lastNumber = lastProduct ? parseInt(lastProduct.productCode.replace(prefix, '')) || 0 : 0;
 
     // Step 3: next number
     const newNumber = lastNumber + 1 + attempts;
@@ -801,7 +797,6 @@ productSchema.statics.generateProductCode = async function (shopId, prefix = 'PR
   // Step 6: FINAL fallback (never fails)
   return `${prefix}${Date.now().toString().slice(-6)}`;
 };
-
 
 productSchema.statics.findByShop = function (shopId, options = {}) {
   return this.find({ shopId, deletedAt: null, ...options });

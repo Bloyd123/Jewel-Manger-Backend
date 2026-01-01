@@ -59,7 +59,7 @@ export const createCustomerValidation = [
     .optional()
     .isISO8601()
     .withMessage('Invalid date of birth')
-    .custom((value) => {
+    .custom(value => {
       const dob = new Date(value);
       const now = new Date();
       const age = now.getFullYear() - dob.getFullYear();
@@ -74,10 +74,7 @@ export const createCustomerValidation = [
     .isIn(['male', 'female', 'other'])
     .withMessage('Gender must be male, female, or other'),
 
-  body('anniversaryDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid anniversary date'),
+  body('anniversaryDate').optional().isISO8601().withMessage('Invalid anniversary date'),
 
   // Address
   body('address.street')
@@ -110,7 +107,7 @@ export const createCustomerValidation = [
     .trim()
     .matches(/^[2-9][0-9]{11}$/)
     .withMessage('Invalid Aadhar number (must be 12 digits)')
-    .custom((value) => {
+    .custom(value => {
       // Remove spaces if any
       const cleaned = value.replace(/\s/g, '');
       if (cleaned.length !== 12) {
@@ -167,10 +164,7 @@ export const createCustomerValidation = [
     .isIn(['walk_in', 'referral', 'online', 'phone', 'social_media', 'advertisement', 'other'])
     .withMessage('Invalid customer source'),
 
-  body('referredBy')
-    .optional()
-    .isMongoId()
-    .withMessage('Invalid referral customer ID'),
+  body('referredBy').optional().isMongoId().withMessage('Invalid referral customer ID'),
 
   // Notes
   body('notes')
@@ -179,10 +173,7 @@ export const createCustomerValidation = [
     .isLength({ max: 1000 })
     .withMessage('Notes cannot exceed 1000 characters'),
 
-  body('tags')
-    .optional()
-    .isArray()
-    .withMessage('Tags must be an array'),
+  body('tags').optional().isArray().withMessage('Tags must be an array'),
 
   body('tags.*')
     .optional()
@@ -195,9 +186,7 @@ export const createCustomerValidation = [
  * Validation for updating customer
  */
 export const updateCustomerValidation = [
-  param('customerId')
-    .isMongoId()
-    .withMessage('Invalid customer ID'),
+  param('customerId').isMongoId().withMessage('Invalid customer ID'),
 
   // Same as create but all optional
   body('firstName')
@@ -218,21 +207,14 @@ export const updateCustomerValidation = [
     .matches(/^[6-9][0-9]{9}$/)
     .withMessage('Invalid phone number'),
 
-  body('email')
-    .optional()
-    .trim()
-    .isEmail()
-    .withMessage('Invalid email address'),
+  body('email').optional().trim().isEmail().withMessage('Invalid email address'),
 
   body('customerType')
     .optional()
     .isIn(['retail', 'wholesale', 'vip', 'regular'])
     .withMessage('Invalid customer type'),
 
-  body('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be a boolean'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 
   body('creditLimit')
     .optional()
@@ -240,47 +222,30 @@ export const updateCustomerValidation = [
     .withMessage('Credit limit must be a positive number'),
 
   // Prevent updating these fields
-  body('customerCode')
-    .not()
-    .exists()
-    .withMessage('Customer code cannot be updated'),
+  body('customerCode').not().exists().withMessage('Customer code cannot be updated'),
 
-  body('totalPurchases')
-    .not()
-    .exists()
-    .withMessage('Total purchases cannot be updated directly'),
+  body('totalPurchases').not().exists().withMessage('Total purchases cannot be updated directly'),
 
-  body('loyaltyPoints')
-    .not()
-    .exists()
-    .withMessage('Loyalty points cannot be updated directly'),
+  body('loyaltyPoints').not().exists().withMessage('Loyalty points cannot be updated directly'),
 ];
 
 /**
  * Validation for customer ID parameter
  */
 export const customerIdValidation = [
-  param('customerId')
-    .isMongoId()
-    .withMessage('Invalid customer ID'),
+  param('customerId').isMongoId().withMessage('Invalid customer ID'),
 ];
 
 /**
  * Validation for shop ID parameter
  */
-export const shopIdValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
-];
+export const shopIdValidation = [param('shopId').isMongoId().withMessage('Invalid shop ID')];
 
 /**
  * Validation for search query
  */
 export const searchCustomerValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
   query('search')
     .optional()
@@ -294,30 +259,18 @@ export const searchCustomerValidation = [
     .matches(/^[0-9]{10}$/)
     .withMessage('Phone must be 10 digits'),
 
-  query('email')
-    .optional()
-    .trim()
-    .isEmail()
-    .withMessage('Invalid email format'),
+  query('email').optional().trim().isEmail().withMessage('Invalid email format'),
 
-  query('customerCode')
-    .optional()
-    .trim()
-    .toUpperCase(),
+  query('customerCode').optional().trim().toUpperCase(),
 ];
 
 /**
  * Validation for customer listing with filters
  */
 export const getCustomersValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
   query('limit')
     .optional()
@@ -340,25 +293,13 @@ export const getCustomersValidation = [
     .isIn(['standard', 'silver', 'gold', 'platinum'])
     .withMessage('Invalid membership tier'),
 
-  query('isActive')
-    .optional()
-    .isBoolean()
-    .withMessage('isActive must be true or false'),
+  query('isActive').optional().isBoolean().withMessage('isActive must be true or false'),
 
-  query('hasBalance')
-    .optional()
-    .isBoolean()
-    .withMessage('hasBalance must be true or false'),
+  query('hasBalance').optional().isBoolean().withMessage('hasBalance must be true or false'),
 
-  query('startDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid start date'),
+  query('startDate').optional().isISO8601().withMessage('Invalid start date'),
 
-  query('endDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid end date'),
+  query('endDate').optional().isISO8601().withMessage('Invalid end date'),
 
   query('sort')
     .optional()
@@ -371,9 +312,7 @@ export const getCustomersValidation = [
  * Validation for blacklist/unblacklist
  */
 export const blacklistCustomerValidation = [
-  param('customerId')
-    .isMongoId()
-    .withMessage('Invalid customer ID'),
+  param('customerId').isMongoId().withMessage('Invalid customer ID'),
 
   body('reason')
     .trim()
@@ -387,13 +326,9 @@ export const blacklistCustomerValidation = [
  * Validation for loyalty points operations
  */
 export const loyaltyPointsValidation = [
-  param('customerId')
-    .isMongoId()
-    .withMessage('Invalid customer ID'),
+  param('customerId').isMongoId().withMessage('Invalid customer ID'),
 
-  body('points')
-    .isInt({ min: 1 })
-    .withMessage('Points must be a positive integer'),
+  body('points').isInt({ min: 1 }).withMessage('Points must be a positive integer'),
 
   body('reason')
     .optional()
@@ -406,9 +341,7 @@ export const loyaltyPointsValidation = [
  * Validation for bulk import
  */
 export const bulkImportValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
   body('customers')
     .isArray({ min: 1, max: 1000 })
@@ -431,50 +364,33 @@ export const bulkImportValidation = [
  * Validation for bulk update
  */
 export const bulkUpdateValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
   body('customerIds')
     .isArray({ min: 1, max: 100 })
     .withMessage('Customer IDs must be an array with 1-100 items'),
 
-  body('customerIds.*')
-    .isMongoId()
-    .withMessage('Invalid customer ID in array'),
+  body('customerIds.*').isMongoId().withMessage('Invalid customer ID in array'),
 
-  body('updateData')
-    .isObject()
-    .withMessage('Update data must be an object'),
+  body('updateData').isObject().withMessage('Update data must be an object'),
 
-  body('updateData.customerCode')
-    .not()
-    .exists()
-    .withMessage('Cannot bulk update customer codes'),
+  body('updateData.customerCode').not().exists().withMessage('Cannot bulk update customer codes'),
 
-  body('updateData.phone')
-    .not()
-    .exists()
-    .withMessage('Cannot bulk update phone numbers'),
+  body('updateData.phone').not().exists().withMessage('Cannot bulk update phone numbers'),
 ];
 
 /**
  * Validation for export
  */
 export const exportCustomersValidation = [
-  param('shopId')
-    .isMongoId()
-    .withMessage('Invalid shop ID'),
+  param('shopId').isMongoId().withMessage('Invalid shop ID'),
 
   query('format')
     .optional()
     .isIn(['csv', 'excel', 'pdf'])
     .withMessage('Format must be csv, excel, or pdf'),
 
-  query('fields')
-    .optional()
-    .isString()
-    .withMessage('Fields must be a comma-separated string'),
+  query('fields').optional().isString().withMessage('Fields must be a comma-separated string'),
 ];
 
 export default {

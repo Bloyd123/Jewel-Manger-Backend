@@ -72,12 +72,7 @@ class PaymentController {
     }
 
     const { shopId, paymentId } = req.params;
-    const result = await paymentService.updatePayment(
-      paymentId,
-      shopId,
-      req.user._id,
-      req.body
-    );
+    const result = await paymentService.updatePayment(paymentId, shopId, req.user._id, req.body);
 
     return sendSuccess(res, 200, result.message, result.data);
   });
@@ -145,12 +140,7 @@ class PaymentController {
       return sendBadRequest(res, 'Cancellation reason is required');
     }
 
-    const result = await paymentService.cancelPayment(
-      paymentId,
-      shopId,
-      req.user._id,
-      reason
-    );
+    const result = await paymentService.cancelPayment(paymentId, shopId, req.user._id, reason);
 
     return sendSuccess(res, 200, result.message, result.data);
   });
@@ -290,11 +280,7 @@ class PaymentController {
     const { shopId } = req.params;
     const { startDate, endDate } = req.query;
 
-    const result = await paymentService.getReconciliationSummary(
-      shopId,
-      startDate,
-      endDate
-    );
+    const result = await paymentService.getReconciliationSummary(shopId, startDate, endDate);
 
     return sendSuccess(res, 200, result.message, result.data);
   });
@@ -341,11 +327,7 @@ class PaymentController {
   // ============================================================================
   regenerateReceipt = catchAsync(async (req, res) => {
     const { shopId, paymentId } = req.params;
-    const result = await paymentService.regenerateReceipt(
-      paymentId,
-      shopId,
-      req.user._id
-    );
+    const result = await paymentService.regenerateReceipt(paymentId, shopId, req.user._id);
 
     return sendSuccess(res, 200, result.message, result.data);
   });
@@ -447,12 +429,7 @@ class PaymentController {
     const { shopId } = req.params;
     const { startDate, endDate, groupBy } = req.query;
 
-    const result = await paymentService.getPaymentAnalytics(
-      shopId,
-      startDate,
-      endDate,
-      groupBy
-    );
+    const result = await paymentService.getPaymentAnalytics(shopId, startDate, endDate, groupBy);
 
     return sendSuccess(res, 200, result.message, result.data);
   });
@@ -674,12 +651,7 @@ class PaymentController {
     const { shopId, paymentId } = req.params;
     const { notes } = req.body;
 
-    const result = await paymentService.approvePayment(
-      paymentId,
-      shopId,
-      req.user._id,
-      notes
-    );
+    const result = await paymentService.approvePayment(paymentId, shopId, req.user._id, notes);
 
     return sendSuccess(res, 200, result.message, result.data);
   });
@@ -697,12 +669,7 @@ class PaymentController {
     const { shopId, paymentId } = req.params;
     const { reason } = req.body;
 
-    const result = await paymentService.rejectPayment(
-      paymentId,
-      shopId,
-      req.user._id,
-      reason
-    );
+    const result = await paymentService.rejectPayment(paymentId, shopId, req.user._id, reason);
 
     return sendSuccess(res, 200, result.message, result.data);
   });
