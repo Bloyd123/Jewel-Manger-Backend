@@ -478,49 +478,6 @@ export const updateShopSettings = async (shopId, settings, userId, userRole) => 
 // UPDATE METAL RATES
 // ============================================================================
 
-export const updateMetalRates = async (shopId, rates, userId, userRole) => {
-  // 1. Find shop
-  const shop = await JewelryShop.findById(shopId);
-  if (!shop) {
-    throw new AppError('Shop not found', 404);
-  }
-
-  // 2. Check permission
-  if (userRole !== 'super_admin') {
-    const userAccess = await UserShopAccess.findOne({
-      userId,
-      shopId,
-      isActive: true,
-    });
-
-    if (!userAccess || !userAccess.hasPermission('canUpdateMetalRates')) {
-      throw new AppError('You do not have permission to update metal rates', 403);
-    }
-  }
-
-  // 3. Update metal rates
-  await shop.updateMetalRates(rates, userId);
-
-  // 4. Log activity
-  await ActivityLog.create({
-    userId,
-    organizationId: shop.organizationId,
-    shopId: shop._id,
-    action: 'update_metal_rates',
-    module: 'shop',
-    description: 'Metal rates updated',
-    level: 'info',
-    status: 'success',
-    metadata: rates,
-  });
-
-  return {
-    success: true,
-    data: shop,
-    message: 'Metal rates updated successfully',
-  };
-};
-
 // ============================================================================
 // GET SHOP STATISTICS
 // ============================================================================
@@ -565,6 +522,5 @@ export default {
   updateShop,
   deleteShop,
   updateShopSettings,
-  updateMetalRates,
 getShopStatistics,
 };

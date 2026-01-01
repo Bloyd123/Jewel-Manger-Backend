@@ -359,22 +359,6 @@ export const updateShopSettingsValidation = [
 // UPDATE METAL RATES VALIDATION
 // ============================================================================
 
-export const updateMetalRatesValidation = [
-  param('id').custom(isValidObjectId).withMessage('Invalid shop ID'),
-
-  body('gold.rate24K').optional().isFloat({ min: 0 }).withMessage('Invalid gold 24K rate'),
-
-  body('gold.rate22K').optional().isFloat({ min: 0 }).withMessage('Invalid gold 22K rate'),
-
-  body('gold.rate18K').optional().isFloat({ min: 0 }).withMessage('Invalid gold 18K rate'),
-
-  body('silver.rate999').optional().isFloat({ min: 0 }).withMessage('Invalid silver 999 rate'),
-
-  body('silver.rate925').optional().isFloat({ min: 0 }).withMessage('Invalid silver 925 rate'),
-
-  body('platinum.rate').optional().isFloat({ min: 0 }).withMessage('Invalid platinum rate'),
-];
-
 // ============================================================================
 // EXPORT ALL VALIDATIONS
 // ============================================================================
@@ -386,5 +370,4 @@ export default {
   getShopValidation,
   deleteShopValidation,
   updateShopSettingsValidation,
-  updateMetalRatesValidation,
 };

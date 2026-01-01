@@ -113,19 +113,6 @@ router.patch(
   shopController.updateShopSettings
 );
 
-/**
- * @route   PATCH /api/v1/shops/:id/metal-rates
- * @desc    Update metal rates
- * @access  Super Admin, Shop Admin, Manager (with canUpdateMetalRates)
- */
-router.patch(
-  '/:id/metal-rates',
-  shopValidation.updateMetalRatesValidation,
-  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
-  checkShopAccess,
-  checkPermission('canUpdateMetalRates'), //   CHANGED: Specific permission check
-  shopController.updateMetalRates
-);
 
 // ============================================================================
 // SHOP STATISTICS & REPORTS

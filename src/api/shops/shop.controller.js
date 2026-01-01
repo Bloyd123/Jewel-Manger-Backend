@@ -162,22 +162,6 @@ export const updateShopSettings = catchAsync(async (req, res, next) => {
 // UPDATE METAL RATES
 // ============================================================================
 
-export const updateMetalRates = catchAsync(async (req, res, next) => {
-  // 1. Validate request
-  handleValidationErrors(req);
-
-  // 2. Update metal rates via service
-  const result = await shopService.updateMetalRates(
-    req.params.id,
-    req.body,
-    req.user._id,
-    req.user.role
-  );
-
-  // 3. Send response
-  res.status(200).json(result);
-});
-
 // ============================================================================
 // GET SHOP STATISTICS
 // ============================================================================
@@ -208,6 +192,5 @@ export default {
   updateShop,
   deleteShop,
   updateShopSettings,
-  updateMetalRates,
   getShopStatistics,
 };
