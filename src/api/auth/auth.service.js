@@ -97,7 +97,7 @@ class AuthService {
         userId: user._id,
         shopId: primaryShop,
         organizationId,
-        role: role,
+        role,
         permissions: defaultPermissions,
         isActive: true,
         grantedBy: currentUser?._id || null,

@@ -17,7 +17,7 @@ import { ValidationError } from '../../utils/AppError.js';
 const validate = validations => {
   return async (req, res, next) => {
     // Run all validations
-    for (let validation of validations) {
+    for (const validation of validations) {
       await validation.run(req);
     }
 

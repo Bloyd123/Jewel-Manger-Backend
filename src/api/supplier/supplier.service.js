@@ -497,8 +497,8 @@ class SupplierService {
       const stats = await Supplier.aggregate([
         {
           $match: {
-            shopId: shopId,
-            organizationId: organizationId,
+            shopId,
+            organizationId,
             deletedAt: null,
           },
         },
