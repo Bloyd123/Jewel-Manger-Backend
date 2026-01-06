@@ -31,126 +31,66 @@ const userShopAccessSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Permissions
+    // ALL PERMISSIONS - 237 Total
     permissions: {
-      // Inventory & Product Management
-      canViewInventory: { type: Boolean, default: true },
-      canEditInventory: { type: Boolean, default: false },
-      canManageProducts: { type: Boolean, default: false },
-      canDeleteProducts: { type: Boolean, default: false },
-      canImportProducts: { type: Boolean, default: false },
-      canExportProducts: { type: Boolean, default: false },
-
-      // Purchase Management
-      canViewPurchases: { type: Boolean, default: true },
-      canCreatePurchases: { type: Boolean, default: false },
-      canEditPurchases: { type: Boolean, default: false },
-      canDeletePurchases: { type: Boolean, default: false },
-      canApprovePurchases: { type: Boolean, default: false },
-
-      // Sales Management
-      canViewSales: { type: Boolean, default: true },
-      canCreateSales: { type: Boolean, default: false },
-      canEditSales: { type: Boolean, default: false },
-      canDeleteSales: { type: Boolean, default: false },
-      canApproveSales: { type: Boolean, default: false },
-      canGenerateInvoices: { type: Boolean, default: false },
-      canCancelInvoices: { type: Boolean, default: false },
-      canApplyDiscounts: { type: Boolean, default: false },
-
-      // Order Management
-      canManageOrders: { type: Boolean, default: false },
-      canViewOrders: { type: Boolean, default: true },
-      canCreateOrders: { type: Boolean, default: false },
-      canEditOrders: { type: Boolean, default: false },
-      canCancelOrders: { type: Boolean, default: false },
-
-      // Customer Management
-      canManageCustomers: { type: Boolean, default: false },
+      // Customer Management (13)
+      canCreateCustomer: { type: Boolean, default: false },
+      canSearchCustomer: { type: Boolean, default: true },
       canViewCustomers: { type: Boolean, default: true },
-      canCreateCustomers: { type: Boolean, default: false },
-      canEditCustomers: { type: Boolean, default: false },
+      canGetSingleCustomer: { type: Boolean, default: true },
+      canUpdateCustomer: { type: Boolean, default: false },
       canDeleteCustomers: { type: Boolean, default: false },
-      canViewCustomerHistory: { type: Boolean, default: true },
-
-      // Supplier Management
-      canManageSuppliers: { type: Boolean, default: false },
-      canViewSuppliers: { type: Boolean, default: true },
-      canCreateSuppliers: { type: Boolean, default: false },
-      canEditSuppliers: { type: Boolean, default: false },
-      canDeleteSuppliers: { type: Boolean, default: false },
-
-      // Party Management (Customers + Suppliers)
-      canManageParties: { type: Boolean, default: false },
-      canViewPartyLedger: { type: Boolean, default: false },
-
-      // Financial & Billing
-      canViewBilling: { type: Boolean, default: false },
-      canViewFinancials: { type: Boolean, default: false },
-      canApproveTransactions: { type: Boolean, default: false },
-      canViewPayments: { type: Boolean, default: false },
-      canReceivePayments: { type: Boolean, default: false },
-      canMakePayments: { type: Boolean, default: false },
-      canViewProfitLoss: { type: Boolean, default: false },
-
-      // Schemes & Offers
-      canManageSchemes: { type: Boolean, default: false },
-      canViewSchemes: { type: Boolean, default: true },
-      canCreateSchemes: { type: Boolean, default: false },
-      canEditSchemes: { type: Boolean, default: false },
-      canDeleteSchemes: { type: Boolean, default: false },
-
-      // Reports & Analytics
-      canViewReports: { type: Boolean, default: false },
-      canGenerateReports: { type: Boolean, default: false },
-      canExportReports: { type: Boolean, default: false },
-      canViewAnalytics: { type: Boolean, default: false },
-      canViewDashboard: { type: Boolean, default: true },
-
-      // User Management
-      canManageUsers: { type: Boolean, default: false },
-      canViewUsers: { type: Boolean, default: true },
-      canCreateUsers: { type: Boolean, default: false },
-      canEditUsers: { type: Boolean, default: false },
-      canDeleteUsers: { type: Boolean, default: false },
-      canAssignRoles: { type: Boolean, default: false },
-
-      // Shop Settings
-      canManageShopSettings: { type: Boolean, default: false },
-      canUpdateMetalRates: { type: Boolean, default: false },
-      canManageTaxSettings: { type: Boolean, default: false },
-
-      // Advanced Features
-      canManageRepairs: { type: Boolean, default: false },
-      canManageCustomOrders: { type: Boolean, default: false },
-      canManageHallmarking: { type: Boolean, default: false },
-      canManageOldGold: { type: Boolean, default: false },
-
-      // System
-      canViewAuditLog: { type: Boolean, default: false },
-      canBackupData: { type: Boolean, default: false },
-      canRestoreData: { type: Boolean, default: false },
-      // Composite/High-Level Permissions
-      canManageInventory: { type: Boolean, default: false },
-      canManageSales: { type: Boolean, default: false },
-      canManagePurchases: { type: Boolean, default: false },
-      canManageExpenses: { type: Boolean, default: false },
-      canManageReports: { type: Boolean, default: false },
-      canManageSettings: { type: Boolean, default: false },
-
-      // Additional System Permissions
-      canExportData: { type: Boolean, default: false },
-      canDeleteRecords: { type: Boolean, default: false },
-      canManageMetalRates: { type: Boolean, default: false },
-      canAccessPOS: { type: Boolean, default: false },
-      canManageBilling: { type: Boolean, default: false },
       canBlacklistCustomer: { type: Boolean, default: false },
       canRemoveCustomerBlacklist: { type: Boolean, default: false },
       canAddLoyaltyPoints: { type: Boolean, default: false },
       canRedeemLoyaltyPoints: { type: Boolean, default: false },
       canViewCustomerAnalytics: { type: Boolean, default: false },
+      canManageCustomers: { type: Boolean, default: false },
+      canViewCustomerHistory: { type: Boolean, default: true },
 
-      // Supplier (9)
+      // Product Management (24)
+      canCreateProduct: { type: Boolean, default: false },
+      canViewProducts: { type: Boolean, default: true },
+      canSearchProducts: { type: Boolean, default: true },
+      canGetSingleProduct: { type: Boolean, default: true },
+      canUpdateProduct: { type: Boolean, default: false },
+      canDeleteProducts: { type: Boolean, default: false },
+      canUpdateStock: { type: Boolean, default: false },
+      canReserveProduct: { type: Boolean, default: false },
+      canCancelReservation: { type: Boolean, default: false },
+      canMarkAsSold: { type: Boolean, default: false },
+      canCalculatePrice: { type: Boolean, default: false },
+      canGetLowStock: { type: Boolean, default: false },
+      canViewProductHistory: { type: Boolean, default: false },
+      canViewProductAnalytics: { type: Boolean, default: false },
+      canBulkDeleteProducts: { type: Boolean, default: false },
+      canBulkUpdateStatus: { type: Boolean, default: false },
+      canManageProducts: { type: Boolean, default: false },
+      canManageInventory: { type: Boolean, default: false },
+      canViewInventory: { type: Boolean, default: true },
+      canEditInventory: { type: Boolean, default: false },
+      canImportProducts: { type: Boolean, default: false },
+      canExportProducts: { type: Boolean, default: false },
+
+      // Shop Management (11)
+      canCreateShop: { type: Boolean, default: false },
+      canViewShops: { type: Boolean, default: true },
+      canViewSingleShop: { type: Boolean, default: true },
+      canUpdateShop: { type: Boolean, default: false },
+      canDeleteShop: { type: Boolean, default: false },
+      canUpdateSettings: { type: Boolean, default: false },
+      canUpdateMetalRates: { type: Boolean, default: false },
+      canViewShopStatistics: { type: Boolean, default: false },
+      canManageShopSettings: { type: Boolean, default: false },
+      canManageMetalRates: { type: Boolean, default: false },
+      canTransferInventory: { type: Boolean, default: false },
+
+      // Supplier Management (14)
+      canCreateSupplier: { type: Boolean, default: false },
+      canViewSuppliers: { type: Boolean, default: true },
+      canGetSingleSupplier: { type: Boolean, default: true },
+      canUpdateSupplier: { type: Boolean, default: false },
+      canDeleteSuppliers: { type: Boolean, default: false },
       canRestoreSupplier: { type: Boolean, default: false },
       canUpdateSupplierRating: { type: Boolean, default: false },
       canBlacklistSupplier: { type: Boolean, default: false },
@@ -160,15 +100,221 @@ const userShopAccessSchema = new mongoose.Schema(
       canUpdateSupplierBalance: { type: Boolean, default: false },
       canViewSupplierStatistics: { type: Boolean, default: false },
       canViewTopSuppliers: { type: Boolean, default: false },
+      canManageSuppliers: { type: Boolean, default: false },
 
-      // Shop (7)
-      canCreateShop: { type: Boolean, default: false },
-      canViewShops: { type: Boolean, default: true },
-      canViewSingleShop: { type: Boolean, default: true },
-      canUpdateShop: { type: Boolean, default: false },
-      canDeleteShop: { type: Boolean, default: false },
-      canViewShopStatistics: { type: Boolean, default: false },
-      canTransferInventory: { type: Boolean, default: false },
+      // Metal Rate Management (11)
+      canCreateUpdateRate: { type: Boolean, default: false },
+      canGetCurrentRate: { type: Boolean, default: true },
+      canGetRateHistory: { type: Boolean, default: false },
+      canGetRateByDate: { type: Boolean, default: false },
+      canCompareRates: { type: Boolean, default: false },
+      canGetTrendData: { type: Boolean, default: false },
+      canGetRateForPurity: { type: Boolean, default: true },
+      canGetAverageRate: { type: Boolean, default: false },
+      canSyncToAllShops: { type: Boolean, default: false },
+      canDeactivateRate: { type: Boolean, default: false },
+      canDeleteRate: { type: Boolean, default: false },
+
+      // Purchase Management (21)
+      canCreatePurchase: { type: Boolean, default: false },
+      canViewPurchases: { type: Boolean, default: true },
+      canGetSinglePurchase: { type: Boolean, default: true },
+      canUpdatePurchase: { type: Boolean, default: false },
+      canDeletePurchases: { type: Boolean, default: false },
+      canUpdatePurchaseStatus: { type: Boolean, default: false },
+      canMarkAsReceived: { type: Boolean, default: false },
+      canCancelPurchase: { type: Boolean, default: false },
+      canApprovePurchases: { type: Boolean, default: false },
+      canRejectPurchase: { type: Boolean, default: false },
+      canAddPurchasePayment: { type: Boolean, default: false },
+      canGetPurchasePayments: { type: Boolean, default: false },
+      canGetBySupplier: { type: Boolean, default: false },
+      canViewPurchaseAnalytics: { type: Boolean, default: false },
+      canViewPendingPurchases: { type: Boolean, default: false },
+      canViewUnpaidPurchases: { type: Boolean, default: false },
+      canBulkDeletePurchases: { type: Boolean, default: false },
+      canBulkApprovePurchases: { type: Boolean, default: false },
+      canUploadPurchaseDocuments: { type: Boolean, default: false },
+      canGetPurchaseDocuments: { type: Boolean, default: false },
+      canManagePurchases: { type: Boolean, default: false },
+
+      // Sale Management (35)
+      canCreateSale: { type: Boolean, default: false },
+      canViewSales: { type: Boolean, default: true },
+      canGetSingleSale: { type: Boolean, default: true },
+      canUpdateSale: { type: Boolean, default: false },
+      canDeleteSales: { type: Boolean, default: false },
+      canUpdateSaleStatus: { type: Boolean, default: false },
+      canConfirmSale: { type: Boolean, default: false },
+      canMarkAsDelivered: { type: Boolean, default: false },
+      canCompleteSale: { type: Boolean, default: false },
+      canCancelSale: { type: Boolean, default: false },
+      canAddSalePayment: { type: Boolean, default: false },
+      canGetSalePayments: { type: Boolean, default: false },
+      canGenerateInvoices: { type: Boolean, default: false },
+      canSendInvoice: { type: Boolean, default: false },
+      canPrintInvoice: { type: Boolean, default: false },
+      canProcessReturn: { type: Boolean, default: false },
+      canAddOldGold: { type: Boolean, default: false },
+      canRemoveOldGold: { type: Boolean, default: false },
+      canApplyDiscounts: { type: Boolean, default: false },
+      canRemoveDiscount: { type: Boolean, default: false },
+      canGetByCustomer: { type: Boolean, default: false },
+      canViewSalesPersonSales: { type: Boolean, default: false },
+      canViewSalesAnalytics: { type: Boolean, default: false },
+      canViewSalesDashboard: { type: Boolean, default: true },
+      canViewTodaysSales: { type: Boolean, default: false },
+      canViewPendingSales: { type: Boolean, default: false },
+      canViewUnpaidSales: { type: Boolean, default: false },
+      canViewOverdueSales: { type: Boolean, default: false },
+      canApproveSales: { type: Boolean, default: false },
+      canRejectSale: { type: Boolean, default: false },
+      canBulkDeleteSales: { type: Boolean, default: false },
+      canBulkPrintInvoices: { type: Boolean, default: false },
+      canSendReminders: { type: Boolean, default: false },
+      canManageSales: { type: Boolean, default: false },
+      canCancelInvoices: { type: Boolean, default: false },
+      canAccessPOS: { type: Boolean, default: false },
+
+      // Payment Management (38)
+      canCreatePayment: { type: Boolean, default: false },
+      canGetPaymentsList: { type: Boolean, default: false },
+      canGetSinglePayment: { type: Boolean, default: false },
+      canUpdatePayment: { type: Boolean, default: false },
+      canDeletePayment: { type: Boolean, default: false },
+      canUpdatePaymentStatus: { type: Boolean, default: false },
+      canCompletePayment: { type: Boolean, default: false },
+      canCancelPayment: { type: Boolean, default: false },
+      canViewPendingCheques: { type: Boolean, default: false },
+      canClearCheque: { type: Boolean, default: false },
+      canBounceCheque: { type: Boolean, default: false },
+      canViewBouncedCheques: { type: Boolean, default: false },
+      canViewClearedCheques: { type: Boolean, default: false },
+      canReconcilePayment: { type: Boolean, default: false },
+      canViewPendingReconciliation: { type: Boolean, default: false },
+      canViewReconciliationSummary: { type: Boolean, default: false },
+      canGenerateReceipt: { type: Boolean, default: false },
+      canSendReceipt: { type: Boolean, default: false },
+      canGetByParty: { type: Boolean, default: false },
+      canGetByReference: { type: Boolean, default: false },
+      canViewPaymentByMode: { type: Boolean, default: false },
+      canViewCashCollection: { type: Boolean, default: false },
+      canViewDigitalCollection: { type: Boolean, default: false },
+      canViewPaymentAnalytics: { type: Boolean, default: false },
+      canViewPaymentDashboard: { type: Boolean, default: false },
+      canViewTodaysPayments: { type: Boolean, default: false },
+      canViewPendingPayments: { type: Boolean, default: false },
+      canViewFailedPayments: { type: Boolean, default: false },
+      canApprovePayment: { type: Boolean, default: false },
+      canRejectPayment: { type: Boolean, default: false },
+      canProcessRefund: { type: Boolean, default: false },
+      canGetRefunds: { type: Boolean, default: false },
+      canBulkReconcile: { type: Boolean, default: false },
+      canBulkExportPayments: { type: Boolean, default: false },
+      canBulkPrintReceipts: { type: Boolean, default: false },
+      canViewPayments: { type: Boolean, default: false },
+      canReceivePayments: { type: Boolean, default: false },
+      canMakePayments: { type: Boolean, default: false },
+
+      // Order Management (42)
+      canCreateOrder: { type: Boolean, default: false },
+      canViewOrders: { type: Boolean, default: true },
+      canGetSingleOrder: { type: Boolean, default: true },
+      canUpdateOrder: { type: Boolean, default: false },
+      canCancelOrders: { type: Boolean, default: false },
+      canUpdateOrderStatus: { type: Boolean, default: false },
+      canConfirmOrder: { type: Boolean, default: false },
+      canStartOrder: { type: Boolean, default: false },
+      canHoldOrder: { type: Boolean, default: false },
+      canResumeOrder: { type: Boolean, default: false },
+      canMarkAsReady: { type: Boolean, default: false },
+      canMarkOrderAsDelivered: { type: Boolean, default: false },
+      canCompleteOrder: { type: Boolean, default: false },
+      canAssignOrder: { type: Boolean, default: false },
+      canReassignOrder: { type: Boolean, default: false },
+      canGetAssignedOrders: { type: Boolean, default: false },
+      canAddProgressUpdate: { type: Boolean, default: false },
+      canGetProgress: { type: Boolean, default: false },
+      canQualityCheck: { type: Boolean, default: false },
+      canGetQualityCheck: { type: Boolean, default: false },
+      canAddOrderPayment: { type: Boolean, default: false },
+      canGetOrderPayments: { type: Boolean, default: false },
+      canGenerateBill: { type: Boolean, default: false },
+      canAddFeedback: { type: Boolean, default: false },
+      canGetFeedback: { type: Boolean, default: false },
+      canViewOverdueOrders: { type: Boolean, default: false },
+      canViewDueSoonOrders: { type: Boolean, default: false },
+      canViewPendingOrders: { type: Boolean, default: false },
+      canViewCompletedOrders: { type: Boolean, default: false },
+      canViewOrdersByType: { type: Boolean, default: false },
+      canViewOrdersByPriority: { type: Boolean, default: false },
+      canViewOrderAnalytics: { type: Boolean, default: false },
+      canViewOrderDashboard: { type: Boolean, default: false },
+      canViewCustomerOrders: { type: Boolean, default: false },
+      canApproveOrder: { type: Boolean, default: false },
+      canRejectOrder: { type: Boolean, default: false },
+      canUploadDocuments: { type: Boolean, default: false },
+      canGetDocuments: { type: Boolean, default: false },
+      canDeleteDocument: { type: Boolean, default: false },
+      canSendReminder: { type: Boolean, default: false },
+      canBulkStatusUpdate: { type: Boolean, default: false },
+      canBulkAssign: { type: Boolean, default: false },
+      canBulkExportOrders: { type: Boolean, default: false },
+      canManageOrders: { type: Boolean, default: false },
+      canManageRepairs: { type: Boolean, default: false },
+      canManageCustomOrders: { type: Boolean, default: false },
+
+      // Parties & Billing (4)
+      canManageParties: { type: Boolean, default: false },
+      canViewPartyLedger: { type: Boolean, default: false },
+      canManageBilling: { type: Boolean, default: false },
+      canViewBilling: { type: Boolean, default: false },
+
+      // Financial (3)
+      canViewFinancials: { type: Boolean, default: false },
+      canViewProfitLoss: { type: Boolean, default: false },
+      canApproveTransactions: { type: Boolean, default: false },
+
+      // Expenses (1)
+      canManageExpenses: { type: Boolean, default: false },
+
+      // Schemes (5)
+      canManageSchemes: { type: Boolean, default: false },
+      canViewSchemes: { type: Boolean, default: true },
+      canCreateSchemes: { type: Boolean, default: false },
+      canEditSchemes: { type: Boolean, default: false },
+      canDeleteSchemes: { type: Boolean, default: false },
+
+      // Reports & Analytics (6)
+      canManageReports: { type: Boolean, default: false },
+      canViewReports: { type: Boolean, default: false },
+      canGenerateReports: { type: Boolean, default: false },
+      canExportReports: { type: Boolean, default: false },
+      canViewAnalytics: { type: Boolean, default: false },
+      canViewDashboard: { type: Boolean, default: true },
+
+      // Users (6)
+      canManageUsers: { type: Boolean, default: false },
+      canViewUsers: { type: Boolean, default: false },
+      canCreateUsers: { type: Boolean, default: false },
+      canEditUsers: { type: Boolean, default: false },
+      canDeleteUsers: { type: Boolean, default: false },
+      canAssignRoles: { type: Boolean, default: false },
+
+      // Settings (1)
+      canManageTaxSettings: { type: Boolean, default: false },
+
+      // Advanced Features (2)
+      canManageHallmarking: { type: Boolean, default: false },
+      canManageOldGold: { type: Boolean, default: false },
+
+      // System (7)
+      canManageSettings: { type: Boolean, default: false },
+      canExportData: { type: Boolean, default: false },
+      canDeleteRecords: { type: Boolean, default: false },
+      canViewAuditLog: { type: Boolean, default: false },
+      canBackupData: { type: Boolean, default: false },
+      canRestoreData: { type: Boolean, default: false },
     },
 
     // Access Status
@@ -177,7 +323,7 @@ const userShopAccessSchema = new mongoose.Schema(
       default: true,
     },
 
-    // Access Period (Optional - for temporary access)
+    // Access Period
     accessStartDate: {
       type: Date,
       default: Date.now,
@@ -291,13 +437,11 @@ userShopAccessSchema.virtual('organization', {
   justOne: true,
 });
 
-// Virtual to check if access is expired
 userShopAccessSchema.virtual('isExpired').get(function () {
   if (!this.accessEndDate) return false;
   return new Date() > this.accessEndDate;
 });
 
-// Virtual to check if access is currently valid
 userShopAccessSchema.virtual('isValid').get(function () {
   if (!this.isActive || this.deletedAt || this.revokedAt) return false;
   if (this.isExpired) return false;
@@ -313,33 +457,27 @@ userShopAccessSchema.pre(/^find/, function (next) {
 });
 
 // Instance Methods
-
-// Check if user has specific permission
 userShopAccessSchema.methods.hasPermission = function (permission) {
   if (!this.isValid) return false;
   return this.permissions[permission] || false;
 };
 
-// Check if user has any of the specified permissions
 userShopAccessSchema.methods.hasAnyPermission = function (permissionArray) {
   if (!this.isValid) return false;
   return permissionArray.some(permission => this.permissions[permission]);
 };
 
-// Check if user has all specified permissions
 userShopAccessSchema.methods.hasAllPermissions = function (permissionArray) {
   if (!this.isValid) return false;
   return permissionArray.every(permission => this.permissions[permission]);
 };
 
-// Update last access
 userShopAccessSchema.methods.updateLastAccess = function (ipAddress = null) {
   this.lastAccessedAt = new Date();
   if (ipAddress) this.lastAccessIP = ipAddress;
   return this.save();
 };
 
-// Revoke access
 userShopAccessSchema.methods.revoke = function (revokedBy, reason = '') {
   this.revokedAt = new Date();
   this.revokedBy = revokedBy;
@@ -348,7 +486,6 @@ userShopAccessSchema.methods.revoke = function (revokedBy, reason = '') {
   return this.save();
 };
 
-// Restore access
 userShopAccessSchema.methods.restoreAccess = function () {
   this.revokedAt = null;
   this.revokedBy = null;
@@ -357,7 +494,6 @@ userShopAccessSchema.methods.restoreAccess = function () {
   return this.save();
 };
 
-// Extend access period
 userShopAccessSchema.methods.extendAccess = function (days) {
   if (this.accessEndDate) {
     this.accessEndDate = new Date(this.accessEndDate.getTime() + days * 24 * 60 * 60 * 1000);
@@ -367,34 +503,29 @@ userShopAccessSchema.methods.extendAccess = function (days) {
   return this.save();
 };
 
-// Update permissions
 userShopAccessSchema.methods.updatePermissions = function (permissions) {
   Object.assign(this.permissions, permissions);
   return this.save();
 };
 
-// Update role with default permissions
 userShopAccessSchema.methods.updateRole = function (newRole) {
   this.role = newRole;
   this.permissions = this.constructor.getDefaultPermissions(newRole);
   return this.save();
 };
 
-// Soft delete
 userShopAccessSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   this.isActive = false;
   return this.save();
 };
 
-// Restore
 userShopAccessSchema.methods.restore = function () {
   this.deletedAt = null;
   this.isActive = true;
   return this.save();
 };
 
-// Get permission summary
 userShopAccessSchema.methods.getPermissionSummary = function () {
   const granted = [];
   const denied = [];
@@ -411,13 +542,10 @@ userShopAccessSchema.methods.getPermissionSummary = function () {
 };
 
 // Static Methods
-
-// Get default permissions based on role
 userShopAccessSchema.statics.getDefaultPermissions = function (role) {
   return getPermissionsByRole(role);
 };
 
-// Find user's shop accesses
 userShopAccessSchema.statics.findByUser = function (userId, options = {}) {
   return this.find({
     userId,
@@ -428,7 +556,6 @@ userShopAccessSchema.statics.findByUser = function (userId, options = {}) {
   });
 };
 
-// Find shop's user accesses
 userShopAccessSchema.statics.findByShop = function (shopId, options = {}) {
   return this.find({
     shopId,
@@ -439,7 +566,6 @@ userShopAccessSchema.statics.findByShop = function (shopId, options = {}) {
   });
 };
 
-// Find by organization
 userShopAccessSchema.statics.findByOrganization = function (organizationId, options = {}) {
   return this.find({
     organizationId,
@@ -449,7 +575,6 @@ userShopAccessSchema.statics.findByOrganization = function (organizationId, opti
   });
 };
 
-// Find by role
 userShopAccessSchema.statics.findByRole = function (shopId, role) {
   return this.find({
     shopId,
@@ -460,7 +585,6 @@ userShopAccessSchema.statics.findByRole = function (shopId, role) {
   });
 };
 
-// Find users with specific permission
 userShopAccessSchema.statics.findByPermission = function (shopId, permission) {
   return this.find({
     shopId,
@@ -471,7 +595,6 @@ userShopAccessSchema.statics.findByPermission = function (shopId, permission) {
   });
 };
 
-// Find expired accesses
 userShopAccessSchema.statics.findExpired = function () {
   return this.find({
     accessEndDate: { $lte: new Date() },
@@ -481,7 +604,6 @@ userShopAccessSchema.statics.findExpired = function () {
   });
 };
 
-// Find revoked accesses
 userShopAccessSchema.statics.findRevoked = function (shopId = null) {
   const query = {
     revokedAt: { $ne: null },
@@ -490,7 +612,6 @@ userShopAccessSchema.statics.findRevoked = function (shopId = null) {
   return this.find(query).setOptions({ includeDeleted: true });
 };
 
-// Find deleted accesses
 userShopAccessSchema.statics.findDeleted = function (shopId = null) {
   const query = {
     deletedAt: { $ne: null },
@@ -499,7 +620,6 @@ userShopAccessSchema.statics.findDeleted = function (shopId = null) {
   return this.find(query).setOptions({ includeDeleted: true });
 };
 
-// Grant access to user
 userShopAccessSchema.statics.grantAccess = async function (
   userId,
   shopId,
@@ -507,12 +627,10 @@ userShopAccessSchema.statics.grantAccess = async function (
   role,
   assignedBy = null
 ) {
-  // Check if access already exists
   const existing = await this.findOne({ userId, shopId });
 
   if (existing) {
     if (existing.deletedAt || existing.revokedAt) {
-      // Restore and update
       existing.deletedAt = null;
       existing.revokedAt = null;
       existing.revokedBy = null;
@@ -525,14 +643,12 @@ userShopAccessSchema.statics.grantAccess = async function (
       return existing.save();
     }
 
-    // Update existing active access
     existing.role = role;
     existing.permissions = this.getDefaultPermissions(role);
     existing.updatedBy = assignedBy;
     return existing.save();
   }
 
-  // Create new access
   return this.create({
     userId,
     shopId,
