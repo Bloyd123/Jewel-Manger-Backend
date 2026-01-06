@@ -13,7 +13,7 @@ import {
   sendInternalError,
   sendValidationError,
 } from '../../utils/sendResponse.js';
-import { catchAsync } from '../../middlewares/errorHandler.js';
+import { catchAsync } from '../middlewares/errorHandler.js';
 
 class PaymentController {
   // ============================================================================

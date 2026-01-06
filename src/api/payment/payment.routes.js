@@ -5,9 +5,9 @@
 
 import express from 'express';
 import paymentController from './payment.controller.js';
-import { authenticate } from '../../middlewares/auth.js';
-import { restrictTo } from '../../middlewares/restrictTo.js';
-import { checkShopAccess, checkPermission } from '../../middlewares/checkShopAccess.js';
+import { authenticate } from '../middlewares/auth.js';
+import { restrictTo } from '../middlewares/restrictTo.js';
+import { checkShopAccess, checkPermission } from '../middlewares/checkShopAccess.js';
 import {
   createPaymentValidation,
   updatePaymentValidation,
