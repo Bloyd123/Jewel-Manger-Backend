@@ -19,7 +19,8 @@ const activityLogSchema = new mongoose.Schema(
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
-      required: [true, 'Organization ID is required'],
+      // required: [true, 'Organization ID is required'],
+        required: false, // Change from true to false
       index: true,
     },
     shopId: {

@@ -1292,7 +1292,307 @@ export const getDeniedPermissions = role => {
   const rolePermissions = getPermissionsByRole(role);
   return Object.keys(rolePermissions).filter(key => rolePermissions[key] === false);
 };
+// ============================================================================
+// HELPER FUNCTIONS FOR ORG-LEVEL ROLES
+// ============================================================================
 
+/**
+ * Get all permissions for super admin (everything = true)
+ */
+export const getAllPermissions = () => {
+  return getPermissionsByRole('shop_admin'); // Reuse shop_admin (all true)
+};
+
+/**
+ * Get organization-level permissions for org_admin
+ * Based on your table: org_admin column
+ */
+export const getOrgAdminPermissions = () => {
+  return {
+    // Customer Management - Full Access
+    canCreateCustomer: true,
+    canSearchCustomer: true,
+    canViewCustomers: true,
+    canGetSingleCustomer: true,
+    canUpdateCustomer: true,
+    canDeleteCustomers: true,
+    canBlacklistCustomer: true,
+    canRemoveCustomerBlacklist: true,
+    canAddLoyaltyPoints: true,
+    canRedeemLoyaltyPoints: true,
+    canViewCustomerAnalytics: true,
+    canManageCustomers: true,
+    canViewCustomerHistory: true,
+
+    // Product Management - Full Access
+    canCreateProduct: true,
+    canViewProducts: true,
+    canSearchProducts: true,
+    canGetSingleProduct: true,
+    canUpdateProduct: true,
+    canDeleteProducts: true,
+    canUpdateStock: true,
+    canReserveProduct: true,
+    canCancelReservation: true,
+    canMarkAsSold: true,
+    canCalculatePrice: true,
+    canGetLowStock: true,
+    canViewProductHistory: true,
+    canViewProductAnalytics: true,
+    canBulkDeleteProducts: true,
+    canBulkUpdateStatus: true,
+    canManageProducts: true,
+    canManageInventory: true,
+    canViewInventory: true,
+    canEditInventory: true,
+    canImportProducts: true,
+    canExportProducts: true,
+
+    // Shop Management - Can manage shops but not create
+    canCreateShop: true,
+    canViewShops: true,
+    canViewSingleShop: true,
+    canUpdateShop: true,
+    canDeleteShop: true,
+    canUpdateSettings: true,
+    canUpdateMetalRates: true,
+    canViewShopStatistics: true,
+    canManageShopSettings: true,
+    canManageMetalRates: true,
+    canTransferInventory: true,
+
+    // Supplier Management - Full Access
+    canCreateSupplier: true,
+    canViewSuppliers: true,
+    canGetSingleSupplier: true,
+    canUpdateSupplier: true,
+    canDeleteSuppliers: true,
+    canRestoreSupplier: true,
+    canUpdateSupplierRating: true,
+    canBlacklistSupplier: true,
+    canRemoveSupplierBlacklist: true,
+    canMarkPreferredSupplier: true,
+    canRemovePreferredSupplier: true,
+    canUpdateSupplierBalance: true,
+    canViewSupplierStatistics: true,
+    canViewTopSuppliers: true,
+    canManageSuppliers: true,
+
+    // Metal Rate Management - Full Access
+    canCreateUpdateRate: true,
+    canGetCurrentRate: true,
+    canGetRateHistory: true,
+    canGetRateByDate: true,
+    canCompareRates: true,
+    canGetTrendData: true,
+    canGetRateForPurity: true,
+    canGetAverageRate: true,
+    canSyncToAllShops: true,
+    canDeactivateRate: true,
+    canDeleteRate: true,
+
+    // Purchase Management - Full Access
+    canCreatePurchase: true,
+    canViewPurchases: true,
+    canGetSinglePurchase: true,
+    canUpdatePurchase: true,
+    canDeletePurchases: true,
+    canUpdatePurchaseStatus: true,
+    canMarkAsReceived: true,
+    canCancelPurchase: true,
+    canApprovePurchases: true,
+    canRejectPurchase: true,
+    canAddPurchasePayment: true,
+    canGetPurchasePayments: true,
+    canGetBySupplier: true,
+    canViewPurchaseAnalytics: true,
+    canViewPendingPurchases: true,
+    canViewUnpaidPurchases: true,
+    canBulkDeletePurchases: true,
+    canBulkApprovePurchases: true,
+    canUploadPurchaseDocuments: true,
+    canGetPurchaseDocuments: true,
+    canManagePurchases: true,
+
+    // Sale Management - Full Access
+    canCreateSale: true,
+    canViewSales: true,
+    canGetSingleSale: true,
+    canUpdateSale: true,
+    canDeleteSales: true,
+    canUpdateSaleStatus: true,
+    canConfirmSale: true,
+    canMarkAsDelivered: true,
+    canCompleteSale: true,
+    canCancelSale: true,
+    canAddSalePayment: true,
+    canGetSalePayments: true,
+    canGenerateInvoices: true,
+    canSendInvoice: true,
+    canPrintInvoice: true,
+    canProcessReturn: true,
+    canAddOldGold: true,
+    canRemoveOldGold: true,
+    canApplyDiscounts: true,
+    canRemoveDiscount: true,
+    canGetByCustomer: true,
+    canViewSalesPersonSales: true,
+    canViewSalesAnalytics: true,
+    canViewSalesDashboard: true,
+    canViewTodaysSales: true,
+    canViewPendingSales: true,
+    canViewUnpaidSales: true,
+    canViewOverdueSales: true,
+    canApproveSales: true,
+    canRejectSale: true,
+    canBulkDeleteSales: true,
+    canBulkPrintInvoices: true,
+    canSendReminders: true,
+    canManageSales: true,
+    canCancelInvoices: true,
+    canAccessPOS: true,
+
+    // Payment Management - Full Access
+    canCreatePayment: true,
+    canGetPaymentsList: true,
+    canGetSinglePayment: true,
+    canUpdatePayment: true,
+    canDeletePayment: true,
+    canUpdatePaymentStatus: true,
+    canCompletePayment: true,
+    canCancelPayment: true,
+    canViewPendingCheques: true,
+    canClearCheque: true,
+    canBounceCheque: true,
+    canViewBouncedCheques: true,
+    canViewClearedCheques: true,
+    canReconcilePayment: true,
+    canViewPendingReconciliation: true,
+    canViewReconciliationSummary: true,
+    canGenerateReceipt: true,
+    canSendReceipt: true,
+    canGetByParty: true,
+    canGetByReference: true,
+    canViewPaymentByMode: true,
+    canViewCashCollection: true,
+    canViewDigitalCollection: true,
+    canViewPaymentAnalytics: true,
+    canViewPaymentDashboard: true,
+    canViewTodaysPayments: true,
+    canViewPendingPayments: true,
+    canViewFailedPayments: true,
+    canApprovePayment: true,
+    canRejectPayment: true,
+    canProcessRefund: true,
+    canGetRefunds: true,
+    canBulkReconcile: true,
+    canBulkExportPayments: true,
+    canBulkPrintReceipts: true,
+    canViewPayments: true,
+    canReceivePayments: true,
+    canMakePayments: true,
+
+    // Order Management - Full Access
+    canCreateOrder: true,
+    canViewOrders: true,
+    canGetSingleOrder: true,
+    canUpdateOrder: true,
+    canCancelOrders: true,
+    canUpdateOrderStatus: true,
+    canConfirmOrder: true,
+    canStartOrder: true,
+    canHoldOrder: true,
+    canResumeOrder: true,
+    canMarkAsReady: true,
+    canMarkOrderAsDelivered: true,
+    canCompleteOrder: true,
+    canAssignOrder: true,
+    canReassignOrder: true,
+    canGetAssignedOrders: true,
+    canAddProgressUpdate: true,
+    canGetProgress: true,
+    canQualityCheck: true,
+    canGetQualityCheck: true,
+    canAddOrderPayment: true,
+    canGetOrderPayments: true,
+    canGenerateBill: true,
+    canAddFeedback: true,
+    canGetFeedback: true,
+    canViewOverdueOrders: true,
+    canViewDueSoonOrders: true,
+    canViewPendingOrders: true,
+    canViewCompletedOrders: true,
+    canViewOrdersByType: true,
+    canViewOrdersByPriority: true,
+    canViewOrderAnalytics: true,
+    canViewOrderDashboard: true,
+    canViewCustomerOrders: true,
+    canApproveOrder: true,
+    canRejectOrder: true,
+    canUploadDocuments: true,
+    canGetDocuments: true,
+    canDeleteDocument: true,
+    canSendReminder: true,
+    canBulkStatusUpdate: true,
+    canBulkAssign: true,
+    canBulkExportOrders: true,
+    canManageOrders: true,
+    canManageRepairs: true,
+    canManageCustomOrders: true,
+
+    // Parties & Billing
+    canManageParties: true,
+    canViewPartyLedger: true,
+    canManageBilling: true,
+    canViewBilling: true,
+
+    // Financial
+    canViewFinancials: true,
+    canViewProfitLoss: true,
+    canApproveTransactions: true,
+
+    // Expenses
+    canManageExpenses: true,
+
+    // Schemes
+    canManageSchemes: true,
+    canViewSchemes: true,
+    canCreateSchemes: true,
+    canEditSchemes: true,
+    canDeleteSchemes: true,
+
+    // Reports & Analytics
+    canManageReports: true,
+    canViewReports: true,
+    canGenerateReports: true,
+    canExportReports: true,
+    canViewAnalytics: true,
+    canViewDashboard: true,
+
+    // Users - Can manage users in their organization
+    canManageUsers: true,
+    canViewUsers: true,
+    canCreateUsers: true,
+    canEditUsers: true,
+    canDeleteUsers: true,
+    canAssignRoles: true,
+
+    // Settings
+    canManageTaxSettings: true,
+
+    // Advanced Features
+    canManageHallmarking: true,
+    canManageOldGold: true,
+
+    // System
+    canManageSettings: true,
+    canExportData: true,
+    canDeleteRecords: true,
+    canViewAuditLog: true,
+    canBackupData: true,
+    canRestoreData: true,
+  };
+};
 export const compareRoles = (role1, role2) => {
   const perms1 = getPermissionsByRole(role1);
   const perms2 = getPermissionsByRole(role2);

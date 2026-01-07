@@ -6,7 +6,7 @@ import tokenManager from '../../utils/tokenManager.js';
 import eventLogger from '../../utils/eventLogger.js';
 import cache from '../../utils/cache.js';
 import { sendEmail } from '../../utils/email.js';
-import { getPermissionsByRole } from '../../config/permissions.config.js';
+import { getPermissionsByRole ,  getAllPermissions, getOrgAdminPermissions } from '../../config/permissions.config.js';
 import {
   OrganizationNotFoundError,
   DuplicateEmailError,
@@ -198,7 +198,10 @@ class AuthService {
 
     // Generate token pair
     const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
-
+  // ✅ NEW: Role-based permission handling
+  let shopAccesses = [];
+  let effectivePermissions = null;
+  
     // Update last login
     await user.updateLastLogin(ipAddress);
 
@@ -206,6 +209,25 @@ class AuthService {
     await eventLogger.logAuth(user._id, user.organizationId, 'login', 'success', ipAddress, {
       browser: userAgent,
     });
+// For shop-level users: Fetch from database
+  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
+    shopAccesses = await UserShopAccess.find({
+      userId: user._id,
+      isActive: true,
+      deletedAt: null,
+      revokedAt: null,
+    })
+      .select('shopId role permissions isActive')
+      .populate('shopId', 'name displayName');
+  } 
+  // For super admin: All permissions
+  else if (user.role === 'super_admin') {
+    effectivePermissions = getAllPermissions();
+  } 
+  // For org admin: Organization-level permissions
+  else if (user.role === 'org_admin') {
+    effectivePermissions = getOrgAdminPermissions();
+  }
 
     // Cache user
     cache.set(cache.userKey(user._id), user.toJSON(), 600);
@@ -213,6 +235,8 @@ class AuthService {
     return {
       user: user.toJSON(),
       ...tokens,
+       shopAccesses,           // ✅ Always array (empty or with data)
+    effectivePermissions,   // ✅ null or permissions object
     };
   }
 
