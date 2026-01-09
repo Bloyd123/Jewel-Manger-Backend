@@ -279,6 +279,69 @@ export const revokeSession = catchAsync(async (req, res) => {
 
   return sendSuccess(res, 200, 'Session revoked successfully');
 });
+// ========================================
+// 15. ENABLE 2FA
+// ========================================
+export const enable2FA = catchAsync(async (req, res) => {
+  const result = await authService.enable2FA(req.user._id);
+  return sendSuccess(res, 200, '2FA setup initiated', result);
+});
+
+// ========================================
+// 16. VERIFY 2FA SETUP
+// ========================================
+export const verify2FA = catchAsync(async (req, res) => {
+  const { token } = req.body;
+  
+  if (!token) {
+    throw new ValidationError('Verification code is required');
+  }
+  
+  const result = await authService.verify2FA(req.user._id, token);
+  return sendSuccess(res, 200, '2FA enabled successfully', result);
+});
+
+// ========================================
+// 17. DISABLE 2FA
+// ========================================
+export const disable2FA = catchAsync(async (req, res) => {
+  const { password, token } = req.body;
+  
+  if (!password || !token) {
+    throw new ValidationError('Password and 2FA code are required');
+  }
+  
+  await authService.disable2FA(req.user._id, password, token, req.ip);
+  return sendSuccess(res, 200, '2FA disabled successfully');
+});
+
+// ========================================
+// 18. VERIFY 2FA DURING LOGIN
+// ========================================
+export const verify2FALogin = catchAsync(async (req, res) => {
+  const { tempToken, token } = req.body;
+  
+  if (!tempToken || !token) {
+    throw new ValidationError('Temporary token and 2FA code are required');
+  }
+  
+  const result = await authService.verify2FALogin(tempToken, token, req.ip, req.headers['user-agent']);
+  return sendSuccess(res, 200, 'Login successful', result);
+});
+
+// ========================================
+// 19. VERIFY BACKUP CODE DURING LOGIN
+// ========================================
+export const verifyBackupCode = catchAsync(async (req, res) => {
+  const { tempToken, backupCode } = req.body;
+  
+  if (!tempToken || !backupCode) {
+    throw new ValidationError('Temporary token and backup code are required');
+  }
+  
+  const result = await authService.verifyBackupCode(tempToken, backupCode, req.ip, req.headers['user-agent']);
+  return sendSuccess(res, 200, 'Login successful', result);
+});
 
 export default {
   register,
@@ -295,4 +358,10 @@ export default {
   resendVerificationEmail,
   getActiveSessions,
   revokeSession,
+    enable2FA,
+  verify2FA,
+  disable2FA,
+  verify2FALogin,
+  verifyBackupCode,
+
 };

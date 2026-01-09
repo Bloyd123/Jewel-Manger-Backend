@@ -526,7 +526,67 @@ class TokenManager {
       throw new InternalServerError('Token verification failed');
     }
   }
+  /**
+ * Generate temporary session token (for 2FA)
+ * @param {String} userId - User ID
+ * @returns {String} Temporary session token
+ */
+generateTempSessionToken(userId) {
+  try {
+    const token = jwt.sign(
+      { 
+        userId, 
+        type: 'temp_session',
+        tokenId: crypto.randomBytes(8).toString('hex')
+      },
+      this.accessTokenSecret,
+      { 
+        expiresIn: '5m',
+        issuer: 'jewelry-erp',
+        audience: 'jewelry-erp-users',
+      }
+    );
+
+    logger.debug(`Temporary session token generated for user: ${userId}`);
+    return token;
+  } catch (error) {
+    logger.error('Error generating temporary session token:', error);
+    throw new InternalServerError('Failed to generate temporary session token');
+  }
 }
+
+/**
+ * Verify temporary session token
+ * @param {String} token - Temporary session token
+ * @returns {Object} Decoded token payload
+ */
+verifyTempSessionToken(token) {
+  try {
+    const decoded = jwt.verify(token, this.accessTokenSecret, {
+      issuer: 'jewelry-erp',
+      audience: 'jewelry-erp-users',
+    });
+
+    if (decoded.type !== 'temp_session') {
+      throw new InvalidTokenError('Invalid token type');
+    }
+
+    return decoded;
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      logger.debug('Temporary session token expired');
+      throw new TokenExpiredError('Session expired. Please login again.');
+    } else if (error.name === 'JsonWebTokenError') {
+      logger.warn('Invalid temporary session token');
+      throw new InvalidTokenError('Invalid session token');
+    }
+
+    logger.error('Error verifying temporary session token:', error);
+    throw new InvalidTokenError('Session verification failed');
+  }
+}
+}
+
 
 // Export singleton instance
 export default new TokenManager();

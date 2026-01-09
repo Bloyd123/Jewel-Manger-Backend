@@ -181,5 +181,45 @@ router.delete(
   authValidation.revokeSessionValidation,
   authController.revokeSession
 );
+// ========================================
+// 2FA ROUTES (Authentication required)
+// ========================================
+
+// Enable 2FA
+router.post(
+  '/2fa/enable',
+  authenticate,
+  authController.enable2FA
+);
+
+// Verify and activate 2FA
+router.post(
+  '/2fa/verify',
+  
+  authenticate,
+  authController.verify2FA
+);
+
+// Disable 2FA
+router.post(
+  '/2fa/disable',
+  authenticate,
+  rateLimiter({ max: 5, windowMs: 60 * 60 * 1000 }),
+  authController.disable2FA
+);
+
+// Login with 2FA code
+router.post(
+  '/login/2fa',
+  rateLimiter({ max: 10, windowMs: 15 * 60 * 1000 }),
+  authController.verify2FALogin
+);
+
+// Login with backup code
+router.post(
+  '/login/backup-code',
+  rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),
+  authController.verifyBackupCode
+);
 
 export default router;

@@ -121,6 +121,11 @@ const userSchema = new mongoose.Schema(
       type: [String],
       select: false,
     },
+    // 🆕 ADD THESE NEW FIELDS:
+backupCodesUsed: {
+  type: [String],
+  select: false,
+},
 
     // Additional Fields for Jewelry Business
     designation: {

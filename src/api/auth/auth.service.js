@@ -184,6 +184,23 @@ class AuthService {
       if (!organization || !organization.isActive) {
         throw new UnauthorizedError('Organization is inactive');
       }
+       if (user.twoFactorEnabled) {
+    // Generate temporary session token (5 min expiry)
+    const tempToken = tokenManager.generateTempSessionToken(user._id);
+    
+    await eventLogger.logAuth(
+      user._id, 
+      user.organizationId, 
+      'login_2fa_required', 
+      'success', 
+      ipAddress
+    );
+    
+    return {
+      requires2FA: true,
+      tempToken,
+    };
+  }
       // !important
       // // Check subscription status
       // if (!organization.isSubscriptionActive()) {
@@ -618,6 +635,245 @@ class AuthService {
       `,
     });
   }
+  // ========================================
+// ENABLE 2FA
+// ========================================
+async enable2FA(userId) {
+  const speakeasy = (await import('speakeasy')).default;
+  const QRCode = (await import('qrcode')).default;
+  
+  const user = await User.findById(userId);
+  if (!user) throw new UserNotFoundError();
+  
+  // Generate secret
+  const secret = speakeasy.generateSecret({
+    name: `JewelryERP (${user.email})`,
+    length: 32,
+  });
+  
+  // Generate QR code
+  const qrCodeDataURL = await QRCode.toDataURL(secret.otpauth_url);
+  
+  // Store secret temporarily (not enabled yet)
+  user.twoFactorSecret = secret.base32;
+  user.twoFactorEnabled = false;
+  await user.save();
+  
+  return {
+    secret: secret.base32,
+    qrCodeDataURL,
+  };
+}
+
+// ========================================
+// VERIFY & ACTIVATE 2FA
+// ========================================
+async verify2FA(userId, token) {
+  const speakeasy = (await import('speakeasy')).default;
+  const bcrypt = (await import('bcryptjs')).default;
+  
+  const user = await User.findById(userId).select('+twoFactorSecret');
+  if (!user) throw new UserNotFoundError();
+  
+  // Verify token
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token,
+    window: 2,
+  });
+  
+  if (!verified) {
+    throw new ValidationError('Invalid verification code');
+  }
+  
+  // Generate 10 backup codes
+  const backupCodes = [];
+  const hashedBackupCodes = [];
+  
+  for (let i = 0; i < 10; i++) {
+    const code = crypto.randomBytes(6).toString('hex').toUpperCase();
+    const formatted = `${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8, 12)}`;
+    backupCodes.push(formatted);
+    hashedBackupCodes.push(await bcrypt.hash(formatted, 10));
+  }
+  
+  // Save and enable 2FA
+  user.twoFactorEnabled = true;
+  user.backupCodes = hashedBackupCodes;
+  user.backupCodesUsed = [];
+  await user.save();
+  
+  await eventLogger.logAuth(userId, user.organizationId, '2fa_enabled', 'success', null);
+  
+  return { success: true, backupCodes };
+}
+
+// ========================================
+// DISABLE 2FA
+// ========================================
+async disable2FA(userId, password, token, ipAddress) {
+  const speakeasy = (await import('speakeasy')).default;
+  
+  const user = await User.findById(userId).select('+password +twoFactorSecret');
+  if (!user) throw new UserNotFoundError();
+  
+  // Verify password
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) throw new InvalidCredentialsError('Incorrect password');
+  
+  // Verify 2FA token
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token,
+    window: 2,
+  });
+  
+  if (!verified) throw new ValidationError('Invalid 2FA code');
+  
+  // Disable 2FA
+  user.twoFactorEnabled = false;
+  user.twoFactorSecret = undefined;
+  user.backupCodes = undefined;
+  user.backupCodesUsed = undefined;
+  await user.save();
+  
+  await eventLogger.logAuth(userId, user.organizationId, '2fa_disabled', 'success', ipAddress);
+  
+  return { success: true };
+}
+
+// ========================================
+// VERIFY 2FA DURING LOGIN
+// ========================================
+async verify2FALogin(tempToken, token, ipAddress, userAgent) {
+  const speakeasy = (await import('speakeasy')).default;
+  
+  // Verify temp token
+  const decoded = tokenManager.verifyTempSessionToken(tempToken);
+  
+  const user = await User.findById(decoded.userId).select('+twoFactorSecret');
+  if (!user || !user.isActive) throw new UnauthorizedError('Invalid session');
+  
+  // Verify 2FA code
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token,
+    window: 2,
+  });
+  
+  if (!verified) throw new ValidationError('Invalid 2FA code');
+  
+  // Generate real tokens
+  const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
+  
+  await user.updateLastLogin(ipAddress);
+  await eventLogger.logAuth(user._id, user.organizationId, 'login_2fa_success', 'success', ipAddress);
+  
+  // Get shop accesses and permissions (same as login)
+  let shopAccesses = [];
+  let effectivePermissions = null;
+  
+  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
+    const UserShopAccess = mongoose.model('UserShopAccess');
+    shopAccesses = await UserShopAccess.find({
+      userId: user._id,
+      isActive: true,
+      deletedAt: null,
+      revokedAt: null,
+    })
+      .select('shopId role permissions isActive')
+      .populate('shopId', 'name displayName');
+  } else if (user.role === 'super_admin') {
+    effectivePermissions = getAllPermissions();
+  } else if (user.role === 'org_admin') {
+    effectivePermissions = getOrgAdminPermissions();
+  }
+  
+  cache.set(cache.userKey(user._id), user.toJSON(), 600);
+  
+  return {
+    user: user.toJSON(),
+    ...tokens,
+    shopAccesses,
+    effectivePermissions,
+  };
+}
+
+// ========================================
+// VERIFY BACKUP CODE DURING LOGIN
+// ========================================
+async verifyBackupCode(tempToken, backupCode, ipAddress, userAgent) {
+  const bcrypt = (await import('bcryptjs')).default;
+  
+  const decoded = tokenManager.verifyTempSessionToken(tempToken);
+  
+  const user = await User.findById(decoded.userId).select('+backupCodes +backupCodesUsed');
+  if (!user || !user.isActive) throw new UnauthorizedError('Invalid session');
+  
+  // Check backup codes
+  let codeFound = false;
+  let codeIndex = -1;
+  
+  for (let i = 0; i < user.backupCodes.length; i++) {
+    const isMatch = await bcrypt.compare(backupCode, user.backupCodes[i]);
+    if (isMatch) {
+      // Check if already used
+      if (user.backupCodesUsed.includes(user.backupCodes[i])) {
+        throw new ValidationError('This backup code has already been used');
+      }
+      codeFound = true;
+      codeIndex = i;
+      break;
+    }
+  }
+  
+  if (!codeFound) throw new ValidationError('Invalid backup code');
+  
+  // Mark as used
+  user.backupCodesUsed.push(user.backupCodes[codeIndex]);
+  await user.save();
+  
+  // Generate tokens
+  const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
+  
+  await user.updateLastLogin(ipAddress);
+  await eventLogger.logAuth(user._id, user.organizationId, 'backup_code_used', 'success', ipAddress);
+  
+  const remainingCodes = user.backupCodes.length - user.backupCodesUsed.length;
+  
+  // Get shop accesses and permissions (same as login)
+  let shopAccesses = [];
+  let effectivePermissions = null;
+  
+  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
+    const UserShopAccess = mongoose.model('UserShopAccess');
+    shopAccesses = await UserShopAccess.find({
+      userId: user._id,
+      isActive: true,
+      deletedAt: null,
+      revokedAt: null,
+    })
+      .select('shopId role permissions isActive')
+      .populate('shopId', 'name displayName');
+  } else if (user.role === 'super_admin') {
+    effectivePermissions = getAllPermissions();
+  } else if (user.role === 'org_admin') {
+    effectivePermissions = getOrgAdminPermissions();
+  }
+  
+  cache.set(cache.userKey(user._id), user.toJSON(), 600);
+  
+  return {
+    user: user.toJSON(),
+    ...tokens,
+    remainingBackupCodes: remainingCodes,
+    shopAccesses,
+    effectivePermissions,
+  };
+}
 }
 
 export default new AuthService();

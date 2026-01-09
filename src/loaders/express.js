@@ -40,10 +40,11 @@ const loadExpressApp = app => {
   const corsOptions = {
     origin(origin, callback) {
       const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-        'http://localhost:5173',
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://192.168.1.36:3000',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://192.168.1.36:3000',
+  'http://192.168.1.37:3000' 
       ];
 
       if (!origin || allowedOrigins.includes(origin)) {
