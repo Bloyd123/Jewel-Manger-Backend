@@ -1,6 +1,4 @@
-// ============================================================================
 // FILE: middleware/errorHandler.js
-// ============================================================================
 
 import logger from '../../utils/logger.js';
 import AppError from '../../utils/AppError.js';

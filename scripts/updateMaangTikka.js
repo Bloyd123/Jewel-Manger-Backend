@@ -54,7 +54,7 @@ const run = async () => {
       );
     }
 
-    console.log('✅ Maang Tikka updated successfully');
+    console.log('Maang Tikka updated successfully');
     await mongoose.disconnect();
     process.exit(0);
   } catch (err) {

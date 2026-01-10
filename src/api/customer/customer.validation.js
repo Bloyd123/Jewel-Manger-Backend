@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/customer/customer.validation.js
 // Customer Validation Rules
-// ============================================================================
 
 import { body, param, query } from 'express-validator';
 

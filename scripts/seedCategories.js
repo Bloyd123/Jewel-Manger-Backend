@@ -4,9 +4,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// ============================================
+
 // MAIN CATEGORIES (parentId: null)
-// ============================================
+
 const mainCategories = [
   {
     code: 'RING',
@@ -154,9 +154,9 @@ const mainCategories = [
   },
 ];
 
-// ============================================
+
 // SUBCATEGORIES (mapped to parentId)
-// ============================================
+
 const subCategories = {
   RING: [
     {
@@ -413,16 +413,16 @@ const subCategories = {
   OTHER: [{ code: 'OTHER_MISC', name: { default: 'Miscellaneous', localized: { hi: 'विविध' } } }],
 };
 
-// ============================================
+
 // SEED FUNCTION
-// ============================================
+
 export const seedCategories = async () => {
   try {
     console.log('🔄 Starting category seeding...');
 
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
+    console.log('Connected to MongoDB');
 
     // // Clear existing categories
     // await Category.deleteMany({});
@@ -430,7 +430,7 @@ export const seedCategories = async () => {
 
     // Insert main categories
     const insertedMainCategories = await Category.insertMany(mainCategories);
-    console.log(`✅ Inserted ${insertedMainCategories.length} main categories`);
+    console.log(`Inserted ${insertedMainCategories.length} main categories`);
 
     // Create a map of code -> _id
     const categoryMap = {};
@@ -455,7 +455,7 @@ export const seedCategories = async () => {
 
     // Insert subcategories
     const insertedSubCategories = await Category.insertMany(allSubCategories);
-    console.log(`✅ Inserted ${insertedSubCategories.length} subcategories`);
+    console.log(`Inserted ${insertedSubCategories.length} subcategories`);
 
     // Print OTHER category IDs for .env
     const otherCategory = insertedMainCategories.find(c => c.code === 'OTHER');
@@ -465,10 +465,10 @@ export const seedCategories = async () => {
     console.log(`OTHER_CATEGORY_ID=${otherCategory._id}`);
     console.log(`OTHER_SUBCATEGORY_ID=${otherSubCategory._id}`);
 
-    console.log('\n✅ Category seeding completed successfully!');
+    console.log('\nCategory seeding completed successfully!');
 
     await mongoose.disconnect();
-    console.log('✅ Disconnected from MongoDB');
+    console.log('Disconnected from MongoDB');
   } catch (error) {
     console.error('❌ Error seeding categories:', error);
     process.exit(1);

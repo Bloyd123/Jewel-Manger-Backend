@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: models/ActivityLog.js
 // Activity Log Model - Separated from User Model
-// ============================================================================
 
 import mongoose from 'mongoose';
 
@@ -20,7 +18,7 @@ const activityLogSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
       // required: [true, 'Organization ID is required'],
-        required: false, // Change from true to false
+      required: false, // Change from true to false
       index: true,
     },
     shopId: {
@@ -99,9 +97,7 @@ const activityLogSchema = new mongoose.Schema(
   }
 );
 
-// ============================================================================
 // INDEXES
-// ============================================================================
 
 // Compound indexes for common queries
 activityLogSchema.index({ userId: 1, createdAt: -1 });
@@ -115,9 +111,7 @@ activityLogSchema.index({ status: 1, createdAt: -1 });
 // Uncomment to auto-delete logs older than 90 days
 // activityLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7776000 }); // 90 days
 
-// ============================================================================
 // VIRTUALS
-// ============================================================================
 
 // Virtual to check if activity was successful
 activityLogSchema.virtual('isSuccessful').get(function () {
@@ -134,9 +128,7 @@ activityLogSchema.virtual('formattedDate').get(function () {
   return this.createdAt.toLocaleString();
 });
 
-// ============================================================================
 // STATIC METHODS
-// ============================================================================
 
 /**
  * Find activity logs by user
@@ -369,9 +361,7 @@ activityLogSchema.statics.getRecentActivities = function (
     .lean();
 };
 
-// ============================================================================
 // INSTANCE METHODS
-// ============================================================================
 
 /**
  * Check if log is recent (within last hour)
@@ -389,8 +379,6 @@ activityLogSchema.methods.getFormattedMessage = function () {
   return `[${this.module.toUpperCase()}] ${this.action} - ${this.description}`;
 };
 
-// ============================================================================
 // EXPORT MODEL
-// ============================================================================
 
 export default mongoose.model('ActivityLog', activityLogSchema);

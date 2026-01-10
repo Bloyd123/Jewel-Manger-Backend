@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: services/sales.service.js
 // Sales Service - 100% COMPLETE Business Logic Layer
-// ============================================================================
 
 import mongoose from 'mongoose';
 import Sale from '../../models/Sale.js';
@@ -20,9 +18,7 @@ import eventLogger from '../../utils/eventLogger.js';
 import { businessLogger } from '../../utils/logger.js';
 import cache from '../../utils/cache.js';
 
-// ============================================================================
 // 1. CREATE SALE (Complete with Transaction Management)
-// ============================================================================
 
 export const createSale = async (shopId, saleData, userId, organizationId, ipAddress) => {
   const session = await mongoose.startSession();
@@ -166,9 +162,7 @@ export const createSale = async (shopId, saleData, userId, organizationId, ipAdd
   }
 };
 
-// ============================================================================
 // 2. GET ALL SALES WITH FILTERS
-// ============================================================================
 
 export const getAllSales = async (shopId, filters) => {
   const query = { shopId, deletedAt: null };
@@ -222,9 +216,7 @@ export const getAllSales = async (shopId, filters) => {
   return { sales, total, page, limit };
 };
 
-// ============================================================================
 // 3. GET SINGLE SALE
-// ============================================================================
 
 export const getSaleById = async (shopId, saleId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null })
@@ -238,9 +230,7 @@ export const getSaleById = async (shopId, saleId) => {
   return sale;
 };
 
-// ============================================================================
 // 4. UPDATE SALE
-// ============================================================================
 
 export const updateSale = async (shopId, saleId, updateData, userId, organizationId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
@@ -269,9 +259,7 @@ export const updateSale = async (shopId, saleId, updateData, userId, organizatio
   return sale;
 };
 
-// ============================================================================
 // 5. DELETE SALE (WITH STOCK RESTORATION)
-// ============================================================================
 
 export const deleteSale = async (shopId, saleId, reason, userId, organizationId) => {
   const session = await mongoose.startSession();
@@ -339,9 +327,7 @@ export const deleteSale = async (shopId, saleId, reason, userId, organizationId)
   }
 };
 
-// ============================================================================
 // 6-10. STATUS MANAGEMENT
-// ============================================================================
 
 export const updateSaleStatus = async (shopId, saleId, status, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
@@ -424,9 +410,7 @@ export const cancelSale = async (shopId, saleId, reason, refundAmount, userId) =
   }
 };
 
-// ============================================================================
 // 11-13. PAYMENT MANAGEMENT
-// ============================================================================
 
 export const addPayment = async (shopId, saleId, paymentData, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
@@ -464,9 +448,7 @@ export const generateReceipt = async (shopId, saleId) => {
   return receipt;
 };
 
-// ============================================================================
 // 14-15. RETURN & EXCHANGE (FULL IMPLEMENTATION)
-// ============================================================================
 
 export const returnSale = async (shopId, saleId, returnData, userId) => {
   const session = await mongoose.startSession();
@@ -567,9 +549,7 @@ export const getReturnDetails = async (shopId, saleId) => {
   return sale.return;
 };
 
-// ============================================================================
 // 16-17. OLD GOLD EXCHANGE (FULL IMPLEMENTATION)
-// ============================================================================
 
 export const addOldGold = async (shopId, saleId, oldGoldData, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
@@ -647,9 +627,7 @@ export const removeOldGold = async (shopId, saleId, userId) => {
   return sale;
 };
 
-// ============================================================================
 // 18-25. ANALYTICS & REPORTS
-// ============================================================================
 
 export const getSalesAnalytics = async (shopId, startDate, endDate, groupBy = 'day') => {
   const matchStage = { shopId: mongoose.Types.ObjectId(shopId), deletedAt: null };
@@ -752,9 +730,7 @@ export const getOverdueSales = async shopId => {
   }).lean();
 };
 
-// ============================================================================
 // 26-27. CUSTOMER & SALES PERSON
-// ============================================================================
 
 export const getCustomerSales = async (shopId, customerId, filters) => {
   const query = { shopId, customerId, deletedAt: null };
@@ -815,9 +791,7 @@ export const getSalesPersonPerformance = async (shopId, userId, startDate, endDa
   };
 };
 
-// ============================================================================
 // 28-30. INVOICE MANAGEMENT (FULL IMPLEMENTATION)
-// ============================================================================
 
 export const generateInvoice = async (shopId, saleId) => {
   const sale = await getSaleById(shopId, saleId);
@@ -878,9 +852,7 @@ export const printInvoice = async (shopId, saleId, printerType = 'A4') => {
   return printData;
 };
 
-// ============================================================================
 // 31-33. DISCOUNT MANAGEMENT (FULL IMPLEMENTATION)
-// ============================================================================
 
 export const applyDiscount = async (shopId, saleId, discountData, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
@@ -950,9 +922,7 @@ export const removeDiscount = async (shopId, saleId, userId) => {
   return sale;
 };
 
-// ============================================================================
 // 34-36. BULK OPERATIONS (FULL IMPLEMENTATION)
-// ============================================================================
 
 export const bulkDeleteSales = async (shopId, saleIds, reason, userId) => {
   const session = await mongoose.startSession();
@@ -1054,9 +1024,7 @@ export const bulkSendReminders = async (shopId, saleIds, method) => {
   return { sentCount, totalRequested: saleIds.length, method };
 };
 
-// ============================================================================
 // 37-39. SEARCH & FILTERS
-// ============================================================================
 
 export const searchSales = async (shopId, searchQuery, limit = 20) => {
   const regex = new RegExp(searchQuery, 'i');
@@ -1082,9 +1050,7 @@ export const getSalesByAmountRange = async (shopId, minAmount, maxAmount, filter
   return getAllSales(shopId, { ...filters, minAmount, maxAmount });
 };
 
-// ============================================================================
 // 40-41. DOCUMENTS (FULL IMPLEMENTATION)
-// ============================================================================
 
 export const uploadDocument = async (shopId, saleId, documentData, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
@@ -1123,9 +1089,7 @@ export const getDocuments = async (shopId, saleId) => {
   return sale.documents || [];
 };
 
-// ============================================================================
 // 42-43. APPROVAL (FULL IMPLEMENTATION)
-// ============================================================================
 
 export const approveSale = async (shopId, saleId, notes, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });

@@ -26,6 +26,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Top-level tenant entity representing a jewelry business organization
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `name`: String - Organization name
 - `slug`: String - URL-friendly identifier (unique)
@@ -46,6 +47,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `updatedAt`: Date
 
 **Methods**:
+
 - `generateSlug(name)`: String - Generate unique slug from name
 - `isSubscriptionActive()`: Boolean - Check if subscription is valid
 - `hasFeature(featureName)`: Boolean - Check feature availability
@@ -61,6 +63,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: System user with role-based access control
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `username`: String - Unique username
 - `email`: String - Email address (unique)
@@ -82,6 +85,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `updatedAt`: Date
 
 **Methods**:
+
 - `comparePassword(password)`: Boolean - Verify password
 - `hasShopAccess(shopId)`: Boolean - Check shop access
 - `getShopPermissions(shopId)`: Object - Get permissions for shop
@@ -98,6 +102,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Granular permission management for users across shops
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `userId`: ObjectId - Reference to User
 - `shopId`: ObjectId - Reference to JewelryShop
@@ -119,6 +124,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `revokedAt`: Date
 
 **Methods**:
+
 - `hasPermission(permission)`: Boolean - Check single permission
 - `hasAnyPermission(array)`: Boolean - Check if has any permission
 - `hasAllPermissions(array)`: Boolean - Check if has all permissions
@@ -134,6 +140,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: JWT refresh token management with device tracking
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `userId`: ObjectId - Reference to User
 - `organizationId`: ObjectId - Reference to Organization
@@ -151,6 +158,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `usageCount`: Number
 
 **Methods**:
+
 - `revoke(reason)`: Promise - Revoke token
 - `updateLastUsed(ipAddress)`: Promise - Update usage
 - `belongsTo(userId)`: Boolean - Check ownership
@@ -165,6 +173,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Individual shop/branch location
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `code`: String - Shop code (unique)
 - `name`: String - Shop name
@@ -194,6 +203,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `updateMetalRates(rates, userId)`: Promise - Update current rates
 - `getNextInvoiceNumber()`: String - Generate next invoice number
 - `updateStatistics()`: Promise - Refresh shop statistics
@@ -212,6 +222,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Jewelry product/item in inventory
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `productCode`: String - Product code (unique per shop)
 - `shopId`: ObjectId - Reference to JewelryShop
@@ -254,6 +265,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `calculatePrice(metalRate)`: Promise - Calculate pricing
 - `updateStock(quantity, operation)`: Promise - Update inventory
 - `markAsSold(customerId)`: Promise - Mark as sold
@@ -268,6 +280,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Track all inventory movements
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `productId`: ObjectId - Reference to Product
 - `shopId`: ObjectId - Reference to JewelryShop
@@ -284,6 +297,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Static Methods**:
+
 - `getProductHistory(productId, limit)`: Promise - Get product history
 - `getByDateRange(shopId, startDate, endDate)`: Promise - Get transactions by date
 - `getInboundTransactions(shopId, days)`: Promise - Get stock additions
@@ -296,6 +310,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Daily metal rate management with trend tracking
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `shopId`: ObjectId - Reference to JewelryShop
 - `organizationId`: ObjectId - Reference to Organization
@@ -319,11 +334,13 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `makeCurrentRate()`: Promise - Set as current rate
 - `getRateForPurity(metalType, purity)`: Object - Get rate for specific purity
 - `getTrendData(metalType)`: Object - Get trend analytics
 
 **Static Methods**:
+
 - `getCurrentRate(shopId)`: Promise - Get current active rate
 - `getRateByDate(shopId, date)`: Promise - Get historical rate
 - `calculateMovingAverage(shopId, metalType, days)`: Promise - Calculate MA
@@ -338,6 +355,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Customer/party management with loyalty tracking
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `customerCode`: String - Customer code (unique per shop)
 - `shopId`: ObjectId - Reference to JewelryShop
@@ -362,6 +380,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `addLoyaltyPoints(points)`: Promise - Add loyalty points
 - `redeemLoyaltyPoints(points)`: Promise - Redeem points
 - `updateBalance(amount)`: Promise - Update account balance
@@ -370,6 +389,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `softDelete()`: Promise - Soft delete customer
 
 **Static Methods**:
+
 - `generateCustomerCode(shopId, prefix)`: Promise - Generate unique code
 - `findByPhone(phone)`: Promise - Find by phone number
 - `findVIPCustomers(shopId)`: Promise - Find VIP customers
@@ -382,6 +402,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Supplier/vendor management
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `supplierCode`: String - Supplier code (unique per shop)
 - `shopId`: ObjectId - Reference to JewelryShop
@@ -407,6 +428,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `updateBalance(amount)`: Promise - Update balance
 - `blacklist(reason)`: Promise - Blacklist supplier
 - `removeBlacklist()`: Promise - Remove blacklist
@@ -415,6 +437,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `softDelete()`: Promise - Soft delete
 
 **Static Methods**:
+
 - `generateSupplierCode(shopId, prefix)`: Promise - Generate unique code
 - `findPreferred(shopId)`: Promise - Find preferred suppliers
 - `findTopSuppliers(shopId, limit)`: Promise - Top suppliers by volume
@@ -428,6 +451,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Sales transaction/invoice management
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `invoiceNumber`: String - Invoice number (unique)
 - `shopId`: ObjectId - Reference to JewelryShop
@@ -460,6 +484,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `addPayment(paymentData)`: Promise - Add payment
 - `markAsDelivered(userId)`: Promise - Mark as delivered
 - `markAsCompleted()`: Promise - Complete sale
@@ -468,6 +493,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `softDelete()`: Promise - Soft delete
 
 **Static Methods**:
+
 - `generateInvoiceNumber(shopId, prefix)`: Promise - Generate invoice number
 - `findByCustomer(customerId)`: Promise - Find customer sales
 - `findUnpaid(shopId)`: Promise - Find unpaid invoices
@@ -479,6 +505,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Custom order/repair order management
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `orderNumber`: String - Order number (unique)
 - `shopId`: ObjectId - Reference to JewelryShop
@@ -500,6 +527,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `addPayment(paymentData)`: Promise - Add payment
 - `assignTo(userId, assignedBy)`: Promise - Assign to user
 - `startWork()`: Promise - Start work
@@ -509,6 +537,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `cancel(cancelData)`: Promise - Cancel order
 
 **Static Methods**:
+
 - `generateOrderNumber(shopId, orderType, prefix)`: Promise - Generate order number
 - `findOverdue(shopId)`: Promise - Find overdue orders
 - `findDueSoon(shopId, days)`: Promise - Find orders due soon
@@ -520,6 +549,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Purchase transaction from suppliers
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `purchaseNumber`: String - Purchase number (unique)
 - `shopId`: ObjectId - Reference to JewelryShop
@@ -543,6 +573,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `addPayment(paymentData)`: Promise - Add payment
 - `approve(userId)`: Promise - Approve purchase
 - `reject(userId, reason)`: Promise - Reject purchase
@@ -550,6 +581,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `cancel()`: Promise - Cancel purchase
 
 **Static Methods**:
+
 - `generatePurchaseNumber(shopId, prefix)`: Promise - Generate number
 - `findBySupplier(supplierId)`: Promise - Find by supplier
 - `findUnpaid(shopId)`: Promise - Find unpaid purchases
@@ -563,6 +595,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Payment transaction tracking
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `paymentNumber`: String - Payment number (unique)
 - `shopId`: ObjectId - Reference to JewelryShop
@@ -583,6 +616,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `markAsCompleted()`: Promise - Mark as completed
 - `markAsFailed(reason)`: Promise - Mark as failed
 - `cancel(reason)`: Promise - Cancel payment
@@ -591,6 +625,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `generateReceipt(receiptUrl)`: Promise - Generate receipt
 
 **Static Methods**:
+
 - `generatePaymentNumber(shopId, prefix)`: Promise - Generate number
 - `findPendingCheques(shopId)`: Promise - Find pending cheques
 - `findUnreconciled(shopId)`: Promise - Find unreconciled payments
@@ -603,6 +638,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: Savings scheme/installment plan management
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `schemeCode`: String - Scheme code (unique)
 - `shopId`: ObjectId - Reference to JewelryShop
@@ -629,6 +665,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `activate()`: Promise - Activate scheme
 - `pause()`: Promise - Pause scheme
 - `approve(userId)`: Promise - Approve scheme
@@ -637,6 +674,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `calculateEarlyRedemptionValue(paidInstallments)`: Object - Calculate early redemption
 
 **Static Methods**:
+
 - `generateSchemeCode(shopId, prefix)`: Promise - Generate code
 - `findActive(shopId)`: Promise - Find active schemes
 - `findExpiringSoon(shopId, days)`: Promise - Find expiring schemes
@@ -650,6 +688,7 @@ This document presents the complete class structure for a multi-tenant jewelry m
 **Purpose**: System-wide activity and audit logging
 
 **Attributes**:
+
 - `_id`: ObjectId (Primary Key)
 - `userId`: ObjectId - Reference to User (optional)
 - `organizationId`: ObjectId - Reference to Organization
@@ -665,10 +704,12 @@ This document presents the complete class structure for a multi-tenant jewelry m
 - `createdAt`: Date
 
 **Methods**:
+
 - `isRecent()`: Boolean - Check if recent (within last hour)
 - `getFormattedMessage()`: String - Get formatted log message
 
 **Static Methods**:
+
 - `findByUser(userId, options)`: Promise - Find user's activity
 - `findByOrganization(organizationId, options)`: Promise - Find org activity
 - `findByShop(shopId, options)`: Promise - Find shop activity
@@ -736,31 +777,37 @@ Scheme (1) ──────── (*) Sale
 ## Key Design Patterns
 
 ### 1. **Multi-Tenancy Pattern**
+
 - Organization → JewelryShop → All Operations
 - Data isolation at organization level
 - Shop-specific configurations and settings
 
 ### 2. **Soft Delete Pattern**
+
 - All major entities have `deletedAt` field
 - Pre-find middleware filters deleted records
 - Restore functionality available
 
 ### 3. **Audit Trail Pattern**
+
 - ActivityLog tracks all system operations
 - User actions logged with context
 - IP address and metadata captured
 
 ### 4. **Role-Based Access Control (RBAC)**
+
 - UserShopAccess provides granular permissions
 - 50+ permission flags
 - Shop-specific role assignments
 
 ### 5. **Financial Reconciliation Pattern**
+
 - Payment entity tracks all money movements
 - Reconciliation status tracking
 - Payment mode-specific details
 
 ### 6. **State Machine Pattern**
+
 - Sale: draft → confirmed → delivered → completed
 - Order: draft → in_progress → ready → delivered
 - Purchase: draft → pending → received → completed
@@ -770,12 +817,14 @@ Scheme (1) ──────── (*) Sale
 ## Technical Implementation Notes
 
 ### Technology Stack
+
 - **Backend**: Node.js with Express.js
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT with refresh tokens
 - **Security**: bcrypt for password hashing
 
 ### Key Features
+
 - Multi-tenant SaaS architecture
 - Role-based access control
 - Comprehensive audit logging
@@ -787,6 +836,7 @@ Scheme (1) ──────── (*) Sale
 - Scheme/installment management
 
 ### Performance Considerations
+
 - Compound indexes on frequently queried fields
 - Lean queries for list operations
 - Virtual fields for calculated properties
@@ -805,10 +855,11 @@ Scheme (1) ──────── (*) Sale
 ## Contact & Support
 
 For questions or clarifications about this class structure:
+
 - Review the mongoose schema files in `/models` directory
 - Check API documentation for endpoint details
 - Refer to permissions config for RBAC details
 
 ---
 
-*This document represents the complete class structure of the Jewelry Management ERP System.*
+_This document represents the complete class structure of the Jewelry Management ERP System._

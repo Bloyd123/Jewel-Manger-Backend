@@ -310,9 +310,8 @@ const metalRateSchema = new mongoose.Schema(
   }
 );
 
-// ============================================================================
 // INDEXES
-// ============================================================================
+
 metalRateSchema.index({ shopId: 1, rateDate: -1 });
 metalRateSchema.index({ shopId: 1, isCurrent: 1 });
 metalRateSchema.index({ shopId: 1, isActive: 1 });
@@ -331,9 +330,8 @@ metalRateSchema.index(
   }
 );
 
-// ============================================================================
 // VIRTUALS
-// ============================================================================
+
 metalRateSchema.virtual('gold24KSpread').get(function () {
   return this.gold.gold24K.sellingRate - this.gold.gold24K.buyingRate;
 });
@@ -346,9 +344,8 @@ metalRateSchema.virtual('silverSpread').get(function () {
   return this.silver.pure.sellingRate - this.silver.pure.buyingRate;
 });
 
-// ============================================================================
 // PRE-SAVE MIDDLEWARE (ENHANCED)
-// ============================================================================
+
 metalRateSchema.pre('save', async function (next) {
   //   STEP 1: Auto-calculate base rates (for trend analytics)
   this.baseRates.gold24K = this.gold.gold24K.sellingRate;
@@ -467,9 +464,8 @@ metalRateSchema.pre('save', async function (next) {
   next();
 });
 
-// ============================================================================
 // SOFT DELETE MIDDLEWARE
-// ============================================================================
+
 metalRateSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null });
@@ -477,9 +473,8 @@ metalRateSchema.pre(/^find/, function (next) {
   next();
 });
 
-// ============================================================================
 // INSTANCE METHODS
-// ============================================================================
+
 metalRateSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   this.isActive = false;
@@ -555,9 +550,8 @@ metalRateSchema.methods.getTrendData = function (metalType) {
   return null;
 };
 
-// ============================================================================
 // STATIC METHODS (EXISTING)
-// ============================================================================
+
 metalRateSchema.statics.getCurrentRate = function (shopId) {
   return this.findOne({
     shopId,
@@ -677,9 +671,7 @@ metalRateSchema.statics.createOrUpdateTodayRate = async function (shopId, rateDa
   });
 };
 
-// ============================================================================
 //   NEW STATIC METHODS (TREND ANALYTICS & MULTI-SHOP SYNC)
-// ============================================================================
 
 /**
  * Calculate moving average for trend analytics

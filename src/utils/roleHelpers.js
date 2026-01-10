@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/utils/roleHelpers.js
 // Role-based authorization helpers
-// ============================================================================
 
 export const canCreateShop = (user, organizationId) => {
   if (user.role === 'super_admin') return true;

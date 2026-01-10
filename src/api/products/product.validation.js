@@ -1,9 +1,7 @@
 import { body, param, query } from 'express-validator';
 import mongoose from 'mongoose';
 
-// ============================================
 // HELPER VALIDATORS
-// ============================================
 
 const isValidObjectId = value => {
   if (!mongoose.Types.ObjectId.isValid(value)) {
@@ -19,9 +17,8 @@ const isPositiveNumber = value => {
   return true;
 };
 
-// ============================================
 // CREATE PRODUCT VALIDATION
-// ============================================
+
 export const createProductValidation = [
   // Basic fields
   body('name')
@@ -197,9 +194,8 @@ export const createProductValidation = [
     .withMessage('HUID cannot exceed 50 characters'),
 ];
 
-// ============================================
 // UPDATE PRODUCT VALIDATION
-// ============================================
+
 export const updateProductValidation = [
   param('id').custom(isValidObjectId),
 
@@ -241,9 +237,8 @@ export const updateProductValidation = [
   body('isActive').optional().isBoolean().withMessage('isActive must be boolean'),
 ];
 
-// ============================================
 // GET PRODUCTS VALIDATION (Query params)
-// ============================================
+
 export const getProductsValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
@@ -254,8 +249,8 @@ export const getProductsValidation = [
 
   query('sort').optional().isString().withMessage('Sort must be a string'),
 
-  query('category') // ✅ QUERY PARAM
-    .optional() // ✅ OPTIONAL FOR FILTERING
+  query('category') // QUERY PARAM
+    .optional() // OPTIONAL FOR FILTERING
     .custom(isValidObjectId)
     .withMessage('Invalid category ID'),
 
@@ -294,19 +289,16 @@ export const getProductsValidation = [
     .withMessage('Invalid gender'),
 ];
 
-// ============================================
 // GET SINGLE PRODUCT VALIDATION
-// ============================================
+
 export const getProductByIdValidation = [param('id').custom(isValidObjectId)];
 
-// ============================================
 // DELETE PRODUCT VALIDATION
-// ============================================
+
 export const deleteProductValidation = [param('id').custom(isValidObjectId)];
 
-// ============================================
 // UPDATE STOCK VALIDATION
-// ============================================
+
 export const updateStockValidation = [
   param('id').custom(isValidObjectId),
 
@@ -346,9 +338,8 @@ export const updateStockValidation = [
   body('referenceId').optional().custom(isValidObjectId),
 ];
 
-// ============================================
 // RESERVE PRODUCT VALIDATION
-// ============================================
+
 export const reserveProductValidation = [
   param('id').custom(isValidObjectId),
 
@@ -366,9 +357,8 @@ export const reserveProductValidation = [
     .withMessage('Notes cannot exceed 500 characters'),
 ];
 
-// ============================================
 // MARK AS SOLD VALIDATION
-// ============================================
+
 export const markAsSoldValidation = [
   param('id').custom(isValidObjectId),
 
@@ -377,9 +367,8 @@ export const markAsSoldValidation = [
   body('saleId').optional().custom(isValidObjectId),
 ];
 
-// ============================================
 // CALCULATE PRICE VALIDATION
-// ============================================
+
 export const calculatePriceValidation = [
   param('id').custom(isValidObjectId),
 
@@ -388,9 +377,8 @@ export const calculatePriceValidation = [
   body('customRate').optional().isFloat({ min: 0 }).withMessage('Custom rate must be positive'),
 ];
 
-// ============================================
 // SEARCH PRODUCTS VALIDATION
-// ============================================
+
 export const searchProductsValidation = [
   query('q')
     .notEmpty()
@@ -405,9 +393,8 @@ export const searchProductsValidation = [
     .withMessage('Limit must be between 1 and 50'),
 ];
 
-// ============================================
 // LOW STOCK VALIDATION
-// ============================================
+
 export const getLowStockValidation = [
   query('threshold')
     .optional()
@@ -415,9 +402,8 @@ export const getLowStockValidation = [
     .withMessage('Threshold must be a positive integer'),
 ];
 
-// ============================================
 // BULK OPERATIONS VALIDATION
-// ============================================
+
 export const bulkDeleteValidation = [
   body('productIds')
     .notEmpty()

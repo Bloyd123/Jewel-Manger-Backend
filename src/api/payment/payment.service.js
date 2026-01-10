@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/payment/payment.service.js
 // Payment Service - Business Logic Layer
-// ============================================================================
 
 import Payment from '../../models/Payment.js';
 import Sale from '../../models/Sale.js';
@@ -15,9 +13,8 @@ import { paginate } from '../../utils/pagination.js';
 import APIFeatures from '../../utils/apiFeatures.js';
 
 class PaymentService {
-  // ============================================================================
   // 1. CREATE PAYMENT
-  // ============================================================================
+
   async createPayment(shopId, organizationId, userId, paymentData) {
     try {
       // Generate payment number
@@ -86,9 +83,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 2. GET ALL PAYMENTS (WITH FILTERS)
-  // ============================================================================
+
   async getAllPayments(shopId, queryParams) {
     try {
       const {
@@ -173,9 +169,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 3. GET SINGLE PAYMENT
-  // ============================================================================
+
   async getPaymentById(paymentId, shopId) {
     try {
       const payment = await Payment.findOne({
@@ -203,9 +198,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 4. UPDATE PAYMENT (Only pending status)
-  // ============================================================================
+
   async updatePayment(paymentId, shopId, userId, updateData) {
     try {
       const payment = await Payment.findOne({
@@ -250,9 +244,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 5. DELETE PAYMENT (Soft delete - only pending)
-  // ============================================================================
+
   async deletePayment(paymentId, shopId, userId, organizationId) {
     try {
       const payment = await Payment.findOne({
@@ -301,9 +294,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 6. UPDATE PAYMENT STATUS
-  // ============================================================================
+
   async updatePaymentStatus(paymentId, shopId, userId, status, reason = null) {
     try {
       const payment = await Payment.findOne({
@@ -347,9 +339,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 7. MARK PAYMENT AS COMPLETED
-  // ============================================================================
+
   async markAsCompleted(paymentId, shopId, userId) {
     try {
       return await this.updatePaymentStatus(
@@ -365,9 +356,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 8. CANCEL PAYMENT
-  // ============================================================================
+
   async cancelPayment(paymentId, shopId, userId, reason) {
     try {
       const payment = await Payment.findOne({
@@ -419,9 +409,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 9. GET PENDING CHEQUES
-  // ============================================================================
+
   async getPendingCheques(shopId) {
     try {
       const payments = await Payment.find({
@@ -446,9 +435,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 10. CLEAR CHEQUE
-  // ============================================================================
+
   async clearCheque(paymentId, shopId, userId, clearanceDate, notes) {
     try {
       const payment = await Payment.findOne({
@@ -501,9 +489,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 11. BOUNCE CHEQUE
-  // ============================================================================
+
   async bounceCheque(paymentId, shopId, userId, bounceReason, notes) {
     try {
       const payment = await Payment.findOne({
@@ -554,9 +541,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 12. GET BOUNCED CHEQUES
-  // ============================================================================
+
   async getBouncedCheques(shopId) {
     try {
       const payments = await Payment.find({
@@ -581,9 +567,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 13. GET CLEARED CHEQUES
-  // ============================================================================
+
   async getClearedCheques(shopId, startDate, endDate) {
     try {
       const query = {
@@ -620,9 +605,7 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // HELPER METHODS
-  // ============================================================================
 
   /**
    * Update reference (sale/purchase) payment status
@@ -754,9 +737,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 14. GET UNRECONCILED PAYMENTS
-  // ============================================================================
+
   async getUnreconciledPayments(shopId) {
     try {
       const payments = await Payment.find({
@@ -781,9 +763,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 15. RECONCILE PAYMENT
-  // ============================================================================
+
   async reconcilePayment(paymentId, shopId, userId, reconciledWith, discrepancy = 0, notes) {
     try {
       const payment = await Payment.findOne({
@@ -831,9 +812,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 16. GET RECONCILIATION SUMMARY
-  // ============================================================================
+
   async getReconciliationSummary(shopId, startDate, endDate) {
     try {
       const query = {
@@ -898,9 +878,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 17. GENERATE/GET RECEIPT
-  // ============================================================================
+
   async getReceipt(paymentId, shopId) {
     try {
       const payment = await Payment.findOne({
@@ -934,9 +913,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 18. SEND RECEIPT
-  // ============================================================================
+
   async sendReceipt(paymentId, shopId, userId, method, recipient) {
     try {
       const payment = await Payment.findOne({
@@ -979,9 +957,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 19. REGENERATE RECEIPT
-  // ============================================================================
+
   async regenerateReceipt(paymentId, shopId, userId) {
     try {
       const payment = await Payment.findOne({
@@ -1021,9 +998,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 20. GET PARTY PAYMENTS
-  // ============================================================================
+
   async getPartyPayments(shopId, partyId, queryParams) {
     try {
       const { page = 1, limit = 20, paymentType, status } = queryParams;
@@ -1056,9 +1032,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 21. GET PARTY PAYMENT SUMMARY
-  // ============================================================================
+
   async getPartyPaymentSummary(shopId, partyId) {
     try {
       const payments = await Payment.find({
@@ -1117,9 +1092,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 22. GET CUSTOMER PAYMENTS
-  // ============================================================================
+
   async getCustomerPayments(shopId, customerId, queryParams) {
     try {
       return await this.getPartyPayments(shopId, customerId, queryParams);
@@ -1129,9 +1103,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 23. GET SUPPLIER PAYMENTS
-  // ============================================================================
+
   async getSupplierPayments(shopId, supplierId, queryParams) {
     try {
       return await this.getPartyPayments(shopId, supplierId, queryParams);
@@ -1141,9 +1114,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 24. GET PAYMENT BY MODE
-  // ============================================================================
+
   async getPaymentsByMode(shopId, startDate, endDate) {
     try {
       const query = {
@@ -1185,9 +1157,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 25. GET CASH COLLECTION
-  // ============================================================================
+
   async getCashCollection(shopId, date) {
     try {
       const targetDate = date ? new Date(date) : new Date();
@@ -1250,9 +1221,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 26. GET DIGITAL COLLECTION
-  // ============================================================================
+
   async getDigitalCollection(shopId, startDate, endDate) {
     try {
       const query = {
@@ -1300,9 +1270,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 27. GET PAYMENT ANALYTICS
-  // ============================================================================
+
   async getPaymentAnalytics(shopId, startDate, endDate, groupBy = 'day') {
     try {
       const query = {
@@ -1402,9 +1371,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 28. GET PAYMENT DASHBOARD
-  // ============================================================================
+
   async getPaymentDashboard(shopId) {
     try {
       const today = new Date();
@@ -1485,9 +1453,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 29. GET TODAY'S PAYMENTS
-  // ============================================================================
+
   async getTodayPayments(shopId) {
     try {
       const today = new Date();
@@ -1535,9 +1502,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 30. GET PENDING PAYMENTS
-  // ============================================================================
+
   async getPendingPayments(shopId) {
     try {
       const payments = await Payment.find({
@@ -1561,9 +1527,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 31. GET FAILED PAYMENTS
-  // ============================================================================
+
   async getFailedPayments(shopId) {
     try {
       const payments = await Payment.find({
@@ -1587,9 +1552,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 32. GET SALE PAYMENTS
-  // ============================================================================
+
   async getSalePayments(shopId, saleId) {
     try {
       const payments = await Payment.find({
@@ -1613,9 +1577,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 33. GET PURCHASE PAYMENTS
-  // ============================================================================
+
   async getPurchasePayments(shopId, purchaseId) {
     try {
       const payments = await Payment.find({
@@ -1639,9 +1602,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 34. SEARCH PAYMENTS
-  // ============================================================================
+
   async searchPayments(shopId, searchQuery, limit = 50) {
     try {
       const regex = new RegExp(searchQuery, 'i');
@@ -1675,9 +1637,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 35. GET PAYMENTS BY DATE RANGE
-  // ============================================================================
+
   async getPaymentsByDateRange(shopId, startDate, endDate, queryParams) {
     try {
       const { page = 1, limit = 50 } = queryParams;
@@ -1717,9 +1678,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 36. GET PAYMENTS BY AMOUNT RANGE
-  // ============================================================================
+
   async getPaymentsByAmountRange(shopId, minAmount, maxAmount, queryParams) {
     try {
       const { page = 1, limit = 50 } = queryParams;
@@ -1755,9 +1715,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 37. BULK RECONCILE PAYMENTS
-  // ============================================================================
+
   async bulkReconcilePayments(shopId, userId, paymentIds, reconciledWith, notes) {
     try {
       const payments = await Payment.find({
@@ -1805,9 +1764,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 38. BULK EXPORT PAYMENTS
-  // ============================================================================
+
   async bulkExportPayments(shopId, paymentIds, format) {
     try {
       let payments;
@@ -1846,9 +1804,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 39. BULK PRINT RECEIPTS
-  // ============================================================================
+
   async bulkPrintReceipts(shopId, paymentIds) {
     try {
       const payments = await Payment.find({
@@ -1879,9 +1836,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 40. APPROVE PAYMENT
-  // ============================================================================
+
   async approvePayment(paymentId, shopId, userId, notes) {
     try {
       const payment = await Payment.findOne({
@@ -1927,9 +1883,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 41. REJECT PAYMENT
-  // ============================================================================
+
   async rejectPayment(paymentId, shopId, userId, reason) {
     try {
       const payment = await Payment.findOne({
@@ -1972,9 +1927,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 42. PROCESS REFUND
-  // ============================================================================
+
   async processRefund(paymentId, shopId, organizationId, userId, refundData) {
     try {
       const originalPayment = await Payment.findOne({
@@ -2051,9 +2005,8 @@ class PaymentService {
     }
   }
 
-  // ============================================================================
   // 43. GET REFUNDS
-  // ============================================================================
+
   async getRefunds(shopId) {
     try {
       const refunds = await Payment.find({

@@ -3,7 +3,6 @@ import authController from './auth.controller.js';
 import authValidation from './auth.validation.js';
 import { authenticate } from '../middlewares/auth.js';
 import { rateLimiter } from '../middlewares/rateLimiter.js';
-// Add these imports at the top
 import { checkRegistrationPermission } from '../middlewares/checkRegistrationPermission.js';
 import { allowOnlyIfNoSuperAdmin } from '../middlewares/allowOnlyIfNoSuperAdmin.js';
 
@@ -14,9 +13,7 @@ const router = express.Router();
  * Base path: /api/auth
  */
 
-// ========================================
 // PUBLIC ROUTES (No authentication required)
-// ========================================
 
 /**
  * @route   POST /api/auth/register
@@ -101,9 +98,7 @@ router.post(
   authController.verifyEmail
 );
 
-// ========================================
 // PROTECTED ROUTES (Authentication required)
-// ========================================
 
 /**
  * @route   GET /api/auth/me
@@ -181,21 +176,16 @@ router.delete(
   authValidation.revokeSessionValidation,
   authController.revokeSession
 );
-// ========================================
+
 // 2FA ROUTES (Authentication required)
-// ========================================
 
 // Enable 2FA
-router.post(
-  '/2fa/enable',
-  authenticate,
-  authController.enable2FA
-);
+router.post('/2fa/enable', authenticate, authController.enable2FA);
 
 // Verify and activate 2FA
 router.post(
   '/2fa/verify',
-  
+
   authenticate,
   authController.verify2FA
 );

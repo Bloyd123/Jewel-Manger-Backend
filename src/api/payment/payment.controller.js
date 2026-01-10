@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/payment/payment.controller.js
 // Payment Controller - Request Handlers
-// ============================================================================
 
 import { validationResult } from 'express-validator';
 import paymentService from './payment.service.js';
@@ -16,10 +14,9 @@ import {
 import { catchAsync } from '../middlewares/errorHandler.js';
 
 class PaymentController {
-  // ============================================================================
   // 1. CREATE PAYMENT
   // POST /api/v1/shops/:shopId/payments
-  // ============================================================================
+
   createPayment = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -37,10 +34,9 @@ class PaymentController {
     return sendCreated(res, result.message, result.data);
   });
 
-  // ============================================================================
   // 2. GET ALL PAYMENTS
   // GET /api/v1/shops/:shopId/payments
-  // ============================================================================
+
   getAllPayments = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const result = await paymentService.getAllPayments(shopId, req.query);
@@ -50,10 +46,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 3. GET SINGLE PAYMENT
   // GET /api/v1/shops/:shopId/payments/:paymentId
-  // ============================================================================
+
   getPaymentById = catchAsync(async (req, res) => {
     const { shopId, paymentId } = req.params;
     const result = await paymentService.getPaymentById(paymentId, shopId);
@@ -61,10 +56,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 4. UPDATE PAYMENT
   // PUT /api/v1/shops/:shopId/payments/:paymentId
-  // ============================================================================
+
   updatePayment = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -77,10 +71,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 5. DELETE PAYMENT
   // DELETE /api/v1/shops/:shopId/payments/:paymentId
-  // ============================================================================
+
   deletePayment = catchAsync(async (req, res) => {
     const { shopId, paymentId } = req.params;
     const result = await paymentService.deletePayment(
@@ -93,10 +86,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message);
   });
 
-  // ============================================================================
   // 6. UPDATE PAYMENT STATUS
   // PATCH /api/v1/shops/:shopId/payments/:paymentId/status
-  // ============================================================================
+
   updatePaymentStatus = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -117,10 +109,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 7. MARK PAYMENT AS COMPLETED
   // PATCH /api/v1/shops/:shopId/payments/:paymentId/complete
-  // ============================================================================
+
   markAsCompleted = catchAsync(async (req, res) => {
     const { shopId, paymentId } = req.params;
     const result = await paymentService.markAsCompleted(paymentId, shopId, req.user._id);
@@ -128,10 +119,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 8. CANCEL PAYMENT
   // PATCH /api/v1/shops/:shopId/payments/:paymentId/cancel
-  // ============================================================================
+
   cancelPayment = catchAsync(async (req, res) => {
     const { shopId, paymentId } = req.params;
     const { reason } = req.body;
@@ -145,10 +135,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 9. GET PENDING CHEQUES
   // GET /api/v1/shops/:shopId/payments/cheques/pending
-  // ============================================================================
+
   getPendingCheques = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const result = await paymentService.getPendingCheques(shopId);
@@ -158,10 +147,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 10. CLEAR CHEQUE
   // PATCH /api/v1/shops/:shopId/payments/:paymentId/cheque/clear
-  // ============================================================================
+
   clearCheque = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -182,10 +170,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 11. BOUNCE CHEQUE
   // PATCH /api/v1/shops/:shopId/payments/:paymentId/cheque/bounce
-  // ============================================================================
+
   bounceCheque = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -206,10 +193,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 12. GET BOUNCED CHEQUES
   // GET /api/v1/shops/:shopId/payments/cheques/bounced
-  // ============================================================================
+
   getBouncedCheques = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const result = await paymentService.getBouncedCheques(shopId);
@@ -219,10 +205,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 13. GET CLEARED CHEQUES
   // GET /api/v1/shops/:shopId/payments/cheques/cleared
-  // ============================================================================
+
   getClearedCheques = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { startDate, endDate } = req.query;
@@ -234,10 +219,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 14. GET UNRECONCILED PAYMENTS
   // GET /api/v1/shops/:shopId/payments/reconciliation/pending
-  // ============================================================================
+
   getUnreconciledPayments = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const result = await paymentService.getUnreconciledPayments(shopId);
@@ -247,10 +231,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 15. RECONCILE PAYMENT
   // POST /api/v1/shops/:shopId/payments/:paymentId/reconcile
-  // ============================================================================
+
   reconcilePayment = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -272,10 +255,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 16. GET RECONCILIATION SUMMARY
   // GET /api/v1/shops/:shopId/payments/reconciliation/summary
-  // ============================================================================
+
   getReconciliationSummary = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { startDate, endDate } = req.query;
@@ -285,10 +267,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 17. GET RECEIPT
   // GET /api/v1/shops/:shopId/payments/:paymentId/receipt
-  // ============================================================================
+
   getReceipt = catchAsync(async (req, res) => {
     const { shopId, paymentId } = req.params;
     const result = await paymentService.getReceipt(paymentId, shopId);
@@ -297,10 +278,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 18. SEND RECEIPT
   // POST /api/v1/shops/:shopId/payments/:paymentId/receipt/send
-  // ============================================================================
+
   sendReceipt = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -321,10 +301,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message);
   });
 
-  // ============================================================================
   // 19. REGENERATE RECEIPT
   // POST /api/v1/shops/:shopId/payments/:paymentId/receipt/regenerate
-  // ============================================================================
+
   regenerateReceipt = catchAsync(async (req, res) => {
     const { shopId, paymentId } = req.params;
     const result = await paymentService.regenerateReceipt(paymentId, shopId, req.user._id);
@@ -332,10 +311,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 20. GET PARTY PAYMENTS
   // GET /api/v1/shops/:shopId/payments/party/:partyId
-  // ============================================================================
+
   getPartyPayments = catchAsync(async (req, res) => {
     const { shopId, partyId } = req.params;
     const result = await paymentService.getPartyPayments(shopId, partyId, req.query);
@@ -345,10 +323,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 21. GET PARTY PAYMENT SUMMARY
   // GET /api/v1/shops/:shopId/payments/party/:partyId/summary
-  // ============================================================================
+
   getPartyPaymentSummary = catchAsync(async (req, res) => {
     const { shopId, partyId } = req.params;
     const result = await paymentService.getPartyPaymentSummary(shopId, partyId);
@@ -356,10 +333,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 22. GET CUSTOMER PAYMENTS
   // GET /api/v1/shops/:shopId/payments/customers/:customerId
-  // ============================================================================
+
   getCustomerPayments = catchAsync(async (req, res) => {
     const { shopId, customerId } = req.params;
     const result = await paymentService.getCustomerPayments(shopId, customerId, req.query);
@@ -369,10 +345,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 23. GET SUPPLIER PAYMENTS
   // GET /api/v1/shops/:shopId/payments/suppliers/:supplierId
-  // ============================================================================
+
   getSupplierPayments = catchAsync(async (req, res) => {
     const { shopId, supplierId } = req.params;
     const result = await paymentService.getSupplierPayments(shopId, supplierId, req.query);
@@ -382,10 +357,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 24. GET PAYMENT BY MODE
   // GET /api/v1/shops/:shopId/payments/by-mode
-  // ============================================================================
+
   getPaymentsByMode = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { startDate, endDate } = req.query;
@@ -395,10 +369,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 25. GET CASH COLLECTION
   // GET /api/v1/shops/:shopId/payments/cash-collection
-  // ============================================================================
+
   getCashCollection = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { date } = req.query;
@@ -408,10 +381,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 26. GET DIGITAL COLLECTION
   // GET /api/v1/shops/:shopId/payments/digital-collection
-  // ============================================================================
+
   getDigitalCollection = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { startDate, endDate } = req.query;
@@ -421,10 +393,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 27. GET PAYMENT ANALYTICS
   // GET /api/v1/shops/:shopId/payments/analytics
-  // ============================================================================
+
   getPaymentAnalytics = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { startDate, endDate, groupBy } = req.query;
@@ -434,10 +405,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 28. GET PAYMENT DASHBOARD
   // GET /api/v1/shops/:shopId/payments/dashboard
-  // ============================================================================
+
   getPaymentDashboard = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const result = await paymentService.getPaymentDashboard(shopId);
@@ -445,10 +415,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 29. GET TODAY'S PAYMENTS
   // GET /api/v1/shops/:shopId/payments/today
-  // ============================================================================
+
   getTodayPayments = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const result = await paymentService.getTodayPayments(shopId);
@@ -456,10 +425,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 30. GET PENDING PAYMENTS
   // GET /api/v1/shops/:shopId/payments/pending
-  // ============================================================================
+
   getPendingPayments = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const result = await paymentService.getPendingPayments(shopId);
@@ -469,10 +437,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 31. GET FAILED PAYMENTS
   // GET /api/v1/shops/:shopId/payments/failed
-  // ============================================================================
+
   getFailedPayments = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const result = await paymentService.getFailedPayments(shopId);
@@ -482,10 +449,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 32. GET SALE PAYMENTS
   // GET /api/v1/shops/:shopId/payments/reference/sale/:saleId
-  // ============================================================================
+
   getSalePayments = catchAsync(async (req, res) => {
     const { shopId, saleId } = req.params;
     const result = await paymentService.getSalePayments(shopId, saleId);
@@ -495,10 +461,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 33. GET PURCHASE PAYMENTS
   // GET /api/v1/shops/:shopId/payments/reference/purchase/:purchaseId
-  // ============================================================================
+
   getPurchasePayments = catchAsync(async (req, res) => {
     const { shopId, purchaseId } = req.params;
     const result = await paymentService.getPurchasePayments(shopId, purchaseId);
@@ -508,10 +473,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 34. SEARCH PAYMENTS
   // GET /api/v1/shops/:shopId/payments/search
-  // ============================================================================
+
   searchPayments = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { q, limit } = req.query;
@@ -527,10 +491,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 35. GET PAYMENTS BY DATE RANGE
   // GET /api/v1/shops/:shopId/payments/by-date-range
-  // ============================================================================
+
   getPaymentsByDateRange = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -552,10 +515,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 36. GET PAYMENTS BY AMOUNT RANGE
   // GET /api/v1/shops/:shopId/payments/by-amount-range
-  // ============================================================================
+
   getPaymentsByAmountRange = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -577,10 +539,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 37. BULK RECONCILE PAYMENTS
   // POST /api/v1/shops/:shopId/payments/bulk-reconcile
-  // ============================================================================
+
   bulkReconcilePayments = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -601,10 +562,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 38. BULK EXPORT PAYMENTS
   // POST /api/v1/shops/:shopId/payments/bulk-export
-  // ============================================================================
+
   bulkExportPayments = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -623,10 +583,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 39. BULK PRINT RECEIPTS
   // POST /api/v1/shops/:shopId/payments/bulk-print-receipts
-  // ============================================================================
+
   bulkPrintReceipts = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { paymentIds } = req.body;
@@ -643,10 +602,9 @@ class PaymentController {
     });
   });
 
-  // ============================================================================
   // 40. APPROVE PAYMENT
   // POST /api/v1/shops/:shopId/payments/:paymentId/approve
-  // ============================================================================
+
   approvePayment = catchAsync(async (req, res) => {
     const { shopId, paymentId } = req.params;
     const { notes } = req.body;
@@ -656,10 +614,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 41. REJECT PAYMENT
   // POST /api/v1/shops/:shopId/payments/:paymentId/reject
-  // ============================================================================
+
   rejectPayment = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -674,10 +631,9 @@ class PaymentController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // ============================================================================
   // 42. PROCESS REFUND
   // POST /api/v1/shops/:shopId/payments/:paymentId/refund
-  // ============================================================================
+
   processRefund = catchAsync(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -697,10 +653,9 @@ class PaymentController {
     return sendCreated(res, result.message, result.data);
   });
 
-  // ============================================================================
   // 43. GET REFUNDS
   // GET /api/v1/shops/:shopId/payments/refunds
-  // ============================================================================
+
   getRefunds = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const result = await paymentService.getRefunds(shopId);

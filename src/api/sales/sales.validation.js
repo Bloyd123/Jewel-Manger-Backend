@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: validations/sales.validation.js
 // Request Validation Middleware for Sales Module
-// ============================================================================
 
 import { body, param, query, validationResult } from 'express-validator';
 import { sendValidationError } from '../../utils/sendResponse.js';
@@ -33,9 +31,7 @@ const isValidObjectId = value => {
   return true;
 };
 
-// ============================================================================
 // 1. CREATE SALE VALIDATION
-// ============================================================================
 
 export const createSale = [
   body('customerId').notEmpty().withMessage('Customer ID is required').custom(isValidObjectId),
@@ -67,9 +63,7 @@ export const createSale = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 2. GET SALES VALIDATION
-// ============================================================================
 
 export const getSales = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
@@ -111,9 +105,7 @@ export const getSales = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 3. GET SINGLE SALE VALIDATION
-// ============================================================================
 
 export const getSale = [
   param('shopId').notEmpty().withMessage('Shop ID is required').custom(isValidObjectId),
@@ -123,9 +115,7 @@ export const getSale = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 4. UPDATE SALE VALIDATION
-// ============================================================================
 
 export const updateSale = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -140,9 +130,7 @@ export const updateSale = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 5. DELETE SALE VALIDATION
-// ============================================================================
 
 export const deleteSale = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -157,9 +145,7 @@ export const deleteSale = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 6. STATUS UPDATE VALIDATION
-// ============================================================================
 
 export const updateStatus = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -173,9 +159,7 @@ export const updateStatus = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 7. CONFIRM SALE VALIDATION
-// ============================================================================
 
 export const confirmSale = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -190,9 +174,7 @@ export const confirmSale = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 8. DELIVER SALE VALIDATION
-// ============================================================================
 
 export const deliverSale = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -210,9 +192,7 @@ export const deliverSale = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 9. COMPLETE SALE VALIDATION
-// ============================================================================
 
 export const completeSale = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -220,9 +200,7 @@ export const completeSale = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 10. CANCEL SALE VALIDATION
-// ============================================================================
 
 export const cancelSale = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -243,9 +221,7 @@ export const cancelSale = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 11. ADD PAYMENT VALIDATION
-// ============================================================================
 
 export const addPayment = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -269,9 +245,7 @@ export const addPayment = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 12. RETURN SALE VALIDATION
-// ============================================================================
 
 export const returnSale = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -300,9 +274,7 @@ export const returnSale = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 13. OLD GOLD VALIDATION
-// ============================================================================
 
 export const addOldGold = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -329,9 +301,7 @@ export const addOldGold = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 14. ANALYTICS VALIDATION
-// ============================================================================
 
 export const getAnalytics = [
   query('startDate').optional().isISO8601().withMessage('Invalid start date format'),
@@ -346,9 +316,7 @@ export const getAnalytics = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 15. SEND INVOICE VALIDATION
-// ============================================================================
 
 export const sendInvoice = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -375,9 +343,7 @@ export const sendInvoice = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 16. PRINT INVOICE VALIDATION
-// ============================================================================
 
 export const printInvoice = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -390,9 +356,7 @@ export const printInvoice = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 17. APPLY DISCOUNT VALIDATION
-// ============================================================================
 
 export const applyDiscount = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -420,9 +384,7 @@ export const applyDiscount = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 18. BULK OPERATIONS VALIDATION
-// ============================================================================
 
 export const bulkDelete = [
   body('saleIds')
@@ -484,9 +446,7 @@ export const bulkReminders = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 19. SEARCH VALIDATION
-// ============================================================================
 
 export const searchSales = [
   query('q')
@@ -549,9 +509,7 @@ export const amountRange = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 20. DOCUMENT UPLOAD VALIDATION
-// ============================================================================
 
 export const uploadDocument = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),
@@ -565,9 +523,7 @@ export const uploadDocument = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // 21. APPROVAL VALIDATION
-// ============================================================================
 
 export const approveSale = [
   param('saleId').notEmpty().withMessage('Sale ID is required').custom(isValidObjectId),

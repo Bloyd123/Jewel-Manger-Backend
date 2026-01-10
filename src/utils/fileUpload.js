@@ -1,6 +1,4 @@
-// ============================================================================
 // FILE: utils/fileUpload.js - ImageKit Implementation
-// ============================================================================
 
 import ImageKit from 'imagekit';
 import multer from 'multer';

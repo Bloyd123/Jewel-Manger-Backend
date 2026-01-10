@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: middleware/checkRegistrationPermission.js
 // Middleware to control WHO CAN REGISTER WHOM - Hierarchy Control
-// ============================================================================
 
 import JewelryShop from '../../models/Shop.js';
 import Organization from '../../models/Organization.js';
@@ -14,9 +12,8 @@ export const checkRegistrationPermission = async (req, res, next) => {
   const { role, organizationId, primaryShop } = req.body;
   const currentUser = req.user; // Logged-in user who is registering
 
-  // ============================================
   // NEW: Validate Organization First
-  // ============================================
+
   if (role !== 'super_admin' && organizationId) {
     const organization = await Organization.findById(organizationId);
 
@@ -35,9 +32,8 @@ export const checkRegistrationPermission = async (req, res, next) => {
     }
   }
 
-  // ============================================
   // RULE 1: Super Admin
-  // ============================================
+
   if (currentUser.role === 'super_admin') {
     // Super admin can register ANYONE
     // - Org admins
@@ -46,9 +42,8 @@ export const checkRegistrationPermission = async (req, res, next) => {
     return next();
   }
 
-  // ============================================
   // RULE 2: Org Admin
-  // ============================================
+
   if (currentUser.role === 'org_admin') {
     // Check: Same organization ka user bana raha hai?
     if (organizationId !== currentUser.organizationId.toString()) {
@@ -85,9 +80,8 @@ export const checkRegistrationPermission = async (req, res, next) => {
     return next();
   }
 
-  // ============================================
   // RULE 3: Shop Admin
-  // ============================================
+
   if (currentUser.role === 'shop_admin') {
     // Check: Same organization
     if (organizationId !== currentUser.organizationId.toString()) {
@@ -117,9 +111,8 @@ export const checkRegistrationPermission = async (req, res, next) => {
     return next();
   }
 
-  // ============================================
   // RULE 4: Manager
-  // ============================================
+
   if (currentUser.role === 'manager') {
     // Check: Same shop
     if (primaryShop !== currentUser.primaryShop?.toString()) {
@@ -141,9 +134,8 @@ export const checkRegistrationPermission = async (req, res, next) => {
     return next();
   }
 
-  // ============================================
   // DEFAULT: No permission
-  // ============================================
+
   return res.status(403).json({
     success: false,
     message: 'You do not have permission to create users',

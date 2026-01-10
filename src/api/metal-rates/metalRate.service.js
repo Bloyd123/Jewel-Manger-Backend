@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/metal-rates/metalRate.service.js
 // Metal Rate Management - Business Logic Layer
-// ============================================================================
 
 import MetalRate from '../../models/MetalRate.js';
 import JewelryShop from '../../models/Shop.js';
@@ -11,9 +9,8 @@ import eventLogger from '../../utils/eventLogger.js';
 import { NotFoundError, ValidationError, ConflictError } from '../../utils/AppError.js';
 
 class MetalRateService {
-  // =========================================================================
   // CREATE OR UPDATE TODAY'S RATE
-  // =========================================================================
+
   async createOrUpdateTodayRate(shopId, rateData, userId) {
     try {
       // 1. Normalize today's date (start of day)
@@ -131,9 +128,8 @@ class MetalRateService {
     }
   }
 
-  // =========================================================================
   // GET CURRENT RATE (MOST USED - HEAVILY CACHED)
-  // =========================================================================
+
   async getCurrentRate(shopId) {
     try {
       // 1. Try cache first
@@ -174,9 +170,8 @@ class MetalRateService {
     }
   }
 
-  // =========================================================================
   // GET RATE HISTORY WITH PAGINATION
-  // =========================================================================
+
   async getRateHistory(shopId, filters = {}) {
     try {
       const { startDate, endDate, page = 1, limit = 10, sort = '-rateDate' } = filters;
@@ -238,9 +233,8 @@ class MetalRateService {
     }
   }
 
-  // =========================================================================
   // GET RATE BY SPECIFIC DATE
-  // =========================================================================
+
   async getRateByDate(shopId, date) {
     try {
       // Normalize date
@@ -271,9 +265,8 @@ class MetalRateService {
     }
   }
 
-  // =========================================================================
   // COMPARE RATES BETWEEN TWO DATES
-  // =========================================================================
+
   async compareRates(shopId, fromDate, toDate) {
     try {
       // Get rates for both dates
@@ -336,9 +329,8 @@ class MetalRateService {
     }
   }
 
-  // =========================================================================
   // GET TREND CHART DATA (NEW FEATURE)
-  // =========================================================================
+
   async getTrendChartData(shopId, metalType = 'gold', days = 90) {
     try {
       // Validate metalType
@@ -406,9 +398,8 @@ class MetalRateService {
     }
   }
 
-  // =========================================================================
   // MULTI-SHOP SYNC (ORGANIZATION LEVEL)
-  // =========================================================================
+
   async syncToAllShops(organizationId, rateData, userId) {
     try {
       // 1. Get all active shops in organization
@@ -478,9 +469,8 @@ class MetalRateService {
     }
   }
 
-  // =========================================================================
   // GET ORGANIZATION MASTER RATE
-  // =========================================================================
+
   async getOrganizationRate(organizationId) {
     try {
       const orgRate = await MetalRate.getOrganizationRate(organizationId);
@@ -500,9 +490,8 @@ class MetalRateService {
     }
   }
 
-  // =========================================================================
   // DEACTIVATE RATE
-  // =========================================================================
+
   async deactivateRate(rateId, userId) {
     try {
       const rate = await MetalRate.findById(rateId);
@@ -540,9 +529,8 @@ class MetalRateService {
     }
   }
 
-  // =========================================================================
   // SOFT DELETE RATE
-  // =========================================================================
+
   async deleteRate(rateId, userId) {
     try {
       const rate = await MetalRate.findById(rateId);
@@ -584,9 +572,7 @@ class MetalRateService {
     }
   }
 
-  // =========================================================================
   // HELPER METHODS
-  // =========================================================================
 
   /**
    * Calculate rate change between two values

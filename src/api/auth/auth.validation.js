@@ -1,8 +1,7 @@
 import { body, param, validationResult } from 'express-validator';
 
-// ========================================
 // VALIDATION HELPER
-// ========================================
+
 import { ValidationError } from '../../utils/AppError.js';
 
 export const validate = (req, res, next) => {
@@ -21,9 +20,8 @@ export const validate = (req, res, next) => {
   next();
 };
 
-// ========================================
 // REGISTER VALIDATION
-// ========================================
+
 export const registerValidation = [
   body('username')
     .trim()
@@ -114,9 +112,8 @@ export const registerValidation = [
   validate,
 ];
 
-// ========================================
 // LOGIN VALIDATION
-// ========================================
+
 export const loginValidation = [
   body('email')
     .trim()
@@ -129,9 +126,8 @@ export const loginValidation = [
   validate,
 ];
 
-// ========================================
 // CHANGE PASSWORD VALIDATION
-// ========================================
+
 export const changePasswordValidation = [
   body('currentPassword').notEmpty().withMessage('Current password is required'),
 
@@ -156,9 +152,8 @@ export const changePasswordValidation = [
   validate,
 ];
 
-// ========================================
 // FORGOT PASSWORD VALIDATION
-// ========================================
+
 export const forgotPasswordValidation = [
   body('email')
     .trim()
@@ -169,9 +164,8 @@ export const forgotPasswordValidation = [
   validate,
 ];
 
-// ========================================
 // RESET PASSWORD VALIDATION
-// ========================================
+
 export const resetPasswordValidation = [
   body('token').notEmpty().withMessage('Reset token is required'),
 
@@ -196,27 +190,24 @@ export const resetPasswordValidation = [
   validate,
 ];
 
-// ========================================
 // VERIFY EMAIL VALIDATION
-// ========================================
+
 export const verifyEmailValidation = [
   body('token').notEmpty().withMessage('Verification token is required'),
 
   validate,
 ];
 
-// ========================================
 // REFRESH TOKEN VALIDATION
-// ========================================
+
 export const refreshTokenValidation = [
   body('refreshToken').notEmpty().withMessage('Refresh token is required'),
 
   validate,
 ];
 
-// ========================================
 // UPDATE PROFILE VALIDATION
-// ========================================
+
 export const updateProfileValidation = [
   body('firstName')
     .optional()
@@ -266,9 +257,8 @@ export const updateProfileValidation = [
   validate,
 ];
 
-// ========================================
 // REVOKE SESSION VALIDATION
-// ========================================
+
 export const revokeSessionValidation = [
   param('tokenId')
     .notEmpty()

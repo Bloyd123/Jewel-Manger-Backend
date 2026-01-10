@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: config/redis.js
 // Redis Configuration and Connection
-// ============================================================================
 
 import { createClient } from 'redis';
 import logger from '../utils/logger.js';

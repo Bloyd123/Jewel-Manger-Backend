@@ -11,9 +11,8 @@ import catchAsync from '../../utils/catchAsync.js';
 import { ValidationError } from '../../utils/AppError.js';
 
 class ProductController {
-  // ============================================
   // CREATE PRODUCT
-  // ============================================
+
   createProduct = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -30,9 +29,8 @@ class ProductController {
     return sendCreated(res, 'Product created successfully', product);
   });
 
-  // ============================================
   // GET ALL PRODUCTS
-  // ============================================
+
   getProducts = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -60,9 +58,8 @@ class ProductController {
     );
   });
 
-  // ============================================
   // GET SINGLE PRODUCT
-  // ============================================
+
   getProductById = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -79,9 +76,8 @@ class ProductController {
     return sendSuccess(res, 200, 'Product retrieved successfully', product);
   });
 
-  // ============================================
   // UPDATE PRODUCT
-  // ============================================
+
   updateProduct = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -105,9 +101,8 @@ class ProductController {
     return sendSuccess(res, 200, 'Product updated successfully', product);
   });
 
-  // ============================================
   // DELETE PRODUCT
-  // ============================================
+
   deleteProduct = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -125,9 +120,8 @@ class ProductController {
     return sendNoContent(res);
   });
 
-  // ============================================
   // UPDATE STOCK
-  // ============================================
+
   updateStock = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -145,9 +139,8 @@ class ProductController {
     return sendSuccess(res, 200, 'Stock updated successfully', result);
   });
 
-  // ============================================
   // RESERVE PRODUCT
-  // ============================================
+
   reserveProduct = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -171,9 +164,8 @@ class ProductController {
     return sendSuccess(res, 200, 'Product reserved successfully', result);
   });
 
-  // ============================================
   // CANCEL RESERVATION
-  // ============================================
+
   cancelReservation = catchAsync(async (req, res, next) => {
     const { id } = req.params;
     const shopId = req.params.shopId || req.body.shopId;
@@ -184,9 +176,9 @@ class ProductController {
 
     return sendSuccess(res, 200, 'Reservation cancelled successfully', result);
   });
-  // ============================================
+
   // MARK AS SOLD
-  // ============================================
+
   markAsSold = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -204,9 +196,8 @@ class ProductController {
     return sendSuccess(res, 200, 'Product marked as sold successfully', result);
   });
 
-  // ============================================
   // CALCULATE/RECALCULATE PRICE
-  // ============================================
+
   calculatePrice = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -230,9 +221,8 @@ class ProductController {
     return sendSuccess(res, 200, 'Price recalculated successfully', result);
   });
 
-  // ============================================
   // GET LOW STOCK PRODUCTS
-  // ============================================
+
   getLowStock = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -251,9 +241,8 @@ class ProductController {
     });
   });
 
-  // ============================================
   // SEARCH PRODUCTS (QUICK SEARCH FOR POS)
-  // ============================================
+
   searchProducts = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -275,9 +264,8 @@ class ProductController {
     return sendSuccess(res, 200, 'Search results', products);
   });
 
-  // ============================================
   // GET PRODUCT HISTORY
-  // ============================================
+
   getProductHistory = catchAsync(async (req, res, next) => {
     const { id } = req.params;
     const shopId = req.params.shopId || req.query.shopId;
@@ -289,9 +277,8 @@ class ProductController {
     return sendSuccess(res, 200, 'Product history retrieved successfully', result);
   });
 
-  // ============================================
   // BULK DELETE PRODUCTS
-  // ============================================
+
   bulkDeleteProducts = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -314,9 +301,8 @@ class ProductController {
     return sendSuccess(res, 200, `${result.deletedCount} products deleted successfully`, result);
   });
 
-  // ============================================
   // BULK UPDATE STATUS
-  // ============================================
+
   bulkUpdateStatus = catchAsync(async (req, res, next) => {
     // Validate request
     const errors = validationResult(req);
@@ -340,9 +326,8 @@ class ProductController {
     return sendSuccess(res, 200, `${result.modifiedCount} products updated successfully`, result);
   });
 
-  // ============================================
   // GET PRODUCT ANALYTICS (OPTIONAL)
-  // ============================================
+
   getProductAnalytics = catchAsync(async (req, res, next) => {
     const shopId = req.params.shopId || req.query.shopId;
     const organizationId = req.user.organizationId;
@@ -399,7 +384,7 @@ class ProductController {
           },
         },
         { $sort: { count: -1 } },
-        // ✅ ADD LOOKUP TO GET CATEGORY NAMES
+        // ADD LOOKUP TO GET CATEGORY NAMES
         {
           $lookup: {
             from: 'categories',

@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/metal-rates/metalRate.controller.js
 // Metal Rate Management - API Controllers
-// ============================================================================
 
 import metalRateService from './metalRate.service.js';
 import catchAsync from '../../utils/catchAsync.js';
@@ -9,11 +7,10 @@ import { sendSuccess, sendCreated, sendNoContent } from '../../utils/sendRespons
 import { ValidationError } from '../../utils/AppError.js';
 
 class MetalRateController {
-  // =========================================================================
   // CREATE OR UPDATE TODAY'S RATE
   // POST /api/v1/shops/:shopId/metal-rates
   // Permission: canUpdateMetalRates
-  // =========================================================================
+
   createOrUpdateTodayRate = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const userId = req.user._id;
@@ -25,11 +22,10 @@ class MetalRateController {
     return sendSuccess(res, statusCode, result.message, result.data);
   });
 
-  // =========================================================================
   // GET CURRENT RATE (MOST USED)
   // GET /api/v1/shops/:shopId/metal-rates/current
   // Permission: Public (any shop access)
-  // =========================================================================
+
   getCurrentRate = catchAsync(async (req, res) => {
     const { shopId } = req.params;
 
@@ -40,12 +36,11 @@ class MetalRateController {
     });
   });
 
-  // =========================================================================
   // GET RATE HISTORY
   // GET /api/v1/shops/:shopId/metal-rates/history
   // Permission: canViewReports
   // Query params: ?startDate=2024-11-01&endDate=2024-11-10&page=1&limit=10
-  // =========================================================================
+
   getRateHistory = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { startDate, endDate, page, limit, sort } = req.query;
@@ -61,11 +56,10 @@ class MetalRateController {
     return sendSuccess(res, 200, result.message, result.data, result.meta);
   });
 
-  // =========================================================================
   // GET RATE BY SPECIFIC DATE
   // GET /api/v1/shops/:shopId/metal-rates/date/:date
   // Permission: canViewReports
-  // =========================================================================
+
   getRateByDate = catchAsync(async (req, res) => {
     const { shopId, date } = req.params;
 
@@ -79,12 +73,11 @@ class MetalRateController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // =========================================================================
   // COMPARE RATES BETWEEN TWO DATES
   // GET /api/v1/shops/:shopId/metal-rates/compare
   // Permission: canViewReports
   // Query params: ?fromDate=2024-11-01&toDate=2024-11-10
-  // =========================================================================
+
   compareRates = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { fromDate, toDate } = req.query;
@@ -109,12 +102,11 @@ class MetalRateController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // =========================================================================
   // GET TREND CHART DATA (NEW FEATURE)
   // GET /api/v1/shops/:shopId/metal-rates/trends
   // Permission: canViewReports
   // Query params: ?metalType=gold&days=90
-  // =========================================================================
+
   getTrendChartData = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { metalType = 'gold', days = 90 } = req.query;
@@ -134,11 +126,10 @@ class MetalRateController {
     });
   });
 
-  // =========================================================================
   // MULTI-SHOP SYNC (ORGANIZATION LEVEL)
   // POST /api/v1/organizations/:organizationId/metal-rates/sync
   // Permission: super_admin, org_admin only
-  // =========================================================================
+
   syncToAllShops = catchAsync(async (req, res) => {
     const { organizationId } = req.params;
     const userId = req.user._id;
@@ -155,11 +146,10 @@ class MetalRateController {
     return sendSuccess(res, statusCode, result.message, result.data);
   });
 
-  // =========================================================================
   // GET ORGANIZATION MASTER RATE
   // GET /api/v1/organizations/:organizationId/metal-rates/current
   // Permission: org_admin, super_admin
-  // =========================================================================
+
   getOrganizationRate = catchAsync(async (req, res) => {
     const { organizationId } = req.params;
 
@@ -168,11 +158,10 @@ class MetalRateController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // =========================================================================
   // DEACTIVATE RATE
   // PATCH /api/v1/metal-rates/:rateId/deactivate
   // Permission: canUpdateMetalRates
-  // =========================================================================
+
   deactivateRate = catchAsync(async (req, res) => {
     const { rateId } = req.params;
     const userId = req.user._id;
@@ -182,11 +171,10 @@ class MetalRateController {
     return sendSuccess(res, 200, result.message, result.data);
   });
 
-  // =========================================================================
   // SOFT DELETE RATE
   // DELETE /api/v1/metal-rates/:rateId
   // Permission: canManageShopSettings (or super_admin, org_admin)
-  // =========================================================================
+
   deleteRate = catchAsync(async (req, res) => {
     const { rateId } = req.params;
     const userId = req.user._id;
@@ -196,11 +184,10 @@ class MetalRateController {
     return sendNoContent(res);
   });
 
-  // =========================================================================
   // GET LATEST RATES (RECENT 10)
   // GET /api/v1/shops/:shopId/metal-rates/latest
   // Permission: canViewDashboard
-  // =========================================================================
+
   getLatestRates = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const limit = parseInt(req.query.limit) || 10;
@@ -214,12 +201,11 @@ class MetalRateController {
     return sendSuccess(res, 200, 'Latest rates retrieved', result.data);
   });
 
-  // =========================================================================
   // GET RATE FOR SPECIFIC PURITY
   // GET /api/v1/shops/:shopId/metal-rates/current/purity/:metalType/:purity
   // Permission: Public (any shop access)
   // Example: /api/v1/shops/123/metal-rates/current/purity/gold/22K
-  // =========================================================================
+
   getRateForPurity = catchAsync(async (req, res) => {
     const { shopId, metalType, purity } = req.params;
 
@@ -245,12 +231,11 @@ class MetalRateController {
     });
   });
 
-  // =========================================================================
   // GET AVERAGE RATE (30 DAYS)
   // GET /api/v1/shops/:shopId/metal-rates/average
   // Permission: canViewReports
   // Query params: ?metalType=gold&purity=24K&days=30
-  // =========================================================================
+
   getAverageRate = catchAsync(async (req, res) => {
     const { shopId } = req.params;
     const { metalType = 'gold', purity = '24K', days = 30 } = req.query;

@@ -2,9 +2,8 @@ import mongoose from 'mongoose';
 
 const jewelryShopSchema = new mongoose.Schema(
   {
-    // ============================================
     // BASIC SHOP INFORMATION
-    // ============================================
+
     name: {
       type: String,
       required: [true, 'Shop name is required'],
@@ -25,9 +24,8 @@ const jewelryShopSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ============================================
     // MULTI-TENANT & ORGANIZATION
-    // ============================================
+
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
@@ -35,9 +33,8 @@ const jewelryShopSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ============================================
     // CONTACT INFORMATION
-    // ============================================
+
     email: {
       type: String,
       lowercase: true,
@@ -65,9 +62,8 @@ const jewelryShopSchema = new mongoose.Schema(
       match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit WhatsApp number'],
     },
 
-    // ============================================
     // ADDRESS
-    // ============================================
+
     address: {
       street: {
         type: String,
@@ -115,9 +111,8 @@ const jewelryShopSchema = new mongoose.Schema(
       },
     },
 
-    // ============================================
     // BUSINESS REGISTRATION
-    // ============================================
+
     gstNumber: {
       type: String,
       trim: true,
@@ -154,9 +149,8 @@ const jewelryShopSchema = new mongoose.Schema(
       trim: true,
     },
 
-    // ============================================
     // SHOP TYPE & CATEGORY
-    // ============================================
+
     shopType: {
       type: String,
       enum: ['retail', 'wholesale', 'manufacturing', 'showroom', 'workshop', 'warehouse', 'online'],
@@ -173,9 +167,8 @@ const jewelryShopSchema = new mongoose.Schema(
       max: new Date().getFullYear(),
     },
 
-    // ============================================
     // BRANDING & MEDIA
-    // ============================================
+
     logo: {
       type: String,
       default: null,
@@ -199,9 +192,8 @@ const jewelryShopSchema = new mongoose.Schema(
       },
     ],
 
-    // ============================================
     // SHOP MANAGER/OWNER
-    // ============================================
+
     managerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -209,9 +201,8 @@ const jewelryShopSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ============================================
     // BUSINESS HOURS
-    // ============================================
+
     businessHours: {
       monday: {
         isOpen: { type: Boolean, default: true },
@@ -260,9 +251,8 @@ const jewelryShopSchema = new mongoose.Schema(
       },
     ],
 
-    // ============================================
     // SHOP SETTINGS
-    // ============================================
+
     settings: {
       // Regional Settings
       currency: {
@@ -578,9 +568,8 @@ const jewelryShopSchema = new mongoose.Schema(
       ],
     },
 
-    // ============================================
     // BANKING DETAILS
-    // ============================================
+
     bankDetails: [
       {
         bankName: {
@@ -620,9 +609,8 @@ const jewelryShopSchema = new mongoose.Schema(
       },
     ],
 
-    // ============================================
     // UPI DETAILS
-    // ============================================
+
     upiDetails: [
       {
         upiId: {
@@ -653,9 +641,8 @@ const jewelryShopSchema = new mongoose.Schema(
       },
     ],
 
-    // ============================================
     // COMPLIANCE & CERTIFICATIONS
-    // ============================================
+
     compliance: {
       bis: {
         certified: { type: Boolean, default: false },
@@ -682,9 +669,8 @@ const jewelryShopSchema = new mongoose.Schema(
       },
     },
 
-    // ============================================
     // WAREHOUSE/STORAGE INFO
-    // ============================================
+
     warehouseDetails: {
       hasWarehouse: {
         type: Boolean,
@@ -702,9 +688,8 @@ const jewelryShopSchema = new mongoose.Schema(
       },
     },
 
-    // ============================================
     // SHOP STATISTICS
-    // ============================================
+
     statistics: {
       totalProducts: {
         type: Number,
@@ -752,9 +737,8 @@ const jewelryShopSchema = new mongoose.Schema(
       },
     },
 
-    // ============================================
     // FEATURES ENABLED
-    // ============================================
+
     features: {
       inventoryManagement: { type: Boolean, default: true },
       purchaseManagement: { type: Boolean, default: true },
@@ -773,9 +757,8 @@ const jewelryShopSchema = new mongoose.Schema(
       analytics: { type: Boolean, default: false },
     },
 
-    // ============================================
     // SOCIAL MEDIA & WEBSITE
-    // ============================================
+
     socialMedia: {
       facebook: String,
       instagram: String,
@@ -792,9 +775,8 @@ const jewelryShopSchema = new mongoose.Schema(
       ],
     },
 
-    // ============================================
     // SHOP STATUS
-    // ============================================
+
     isActive: {
       type: Boolean,
       default: true,
@@ -813,9 +795,8 @@ const jewelryShopSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ============================================
     // TEMPORARY CLOSURE
-    // ============================================
+
     temporaryClosure: {
       isClosed: {
         type: Boolean,
@@ -826,9 +807,8 @@ const jewelryShopSchema = new mongoose.Schema(
       closedUntil: Date,
     },
 
-    // ============================================
     // OPENING/CLOSING DETAILS
-    // ============================================
+
     openingDate: {
       type: Date,
       default: Date.now,
@@ -838,9 +818,8 @@ const jewelryShopSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ============================================
     // AUDIT TRAIL
-    // ============================================
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -852,9 +831,8 @@ const jewelryShopSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ============================================
     // METADATA
-    // ============================================
+
     tags: [String],
     notes: {
       type: String,
@@ -872,9 +850,8 @@ const jewelryShopSchema = new mongoose.Schema(
   }
 );
 
-// ============================================
 // INDEXES
-// ============================================
+
 // jewelryShopSchema.index({ code: 1 }, { unique: true });
 // jewelryShopSchema.index({ organizationId: 1 });
 // jewelryShopSchema.index({ managerId: 1 });
@@ -890,9 +867,8 @@ jewelryShopSchema.index({ shopType: 1 });
 jewelryShopSchema.index({ category: 1 });
 jewelryShopSchema.index({ createdAt: -1 });
 
-// ============================================
 // VIRTUALS
-// ============================================
+
 jewelryShopSchema.virtual('organization', {
   ref: 'Organization',
   localField: 'organizationId',
@@ -972,9 +948,7 @@ jewelryShopSchema.virtual('isCurrentlyOpen').get(function () {
   return currentTime >= todayHours.openTime && currentTime <= todayHours.closeTime;
 });
 
-// ============================================
 // MIDDLEWARE
-// ============================================
 
 // Soft delete middleware
 jewelryShopSchema.pre(/^find/, function (next) {
@@ -1031,9 +1005,7 @@ jewelryShopSchema.pre('save', function (next) {
   next();
 });
 
-// ============================================
 // INSTANCE METHODS
-// ============================================
 
 // Get primary bank account
 jewelryShopSchema.methods.getPrimaryBank = function () {
@@ -1236,9 +1208,7 @@ jewelryShopSchema.methods.hasFeature = function (featureName) {
   return this.features[featureName] || false;
 };
 
-// ============================================
 // STATIC METHODS
-// ============================================
 
 // Generate unique shop code
 jewelryShopSchema.statics.generateCode = async function (name, organizationId) {

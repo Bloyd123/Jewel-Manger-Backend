@@ -24,9 +24,7 @@ const loadExpressApp = app => {
   // Trust proxy (for production behind reverse proxy)
   app.set('trust proxy', 1);
 
-  // =====================================
   // SECURITY MIDDLEWARES
-  // =====================================
 
   // Helmet - Security headers
   app.use(
@@ -40,11 +38,11 @@ const loadExpressApp = app => {
   const corsOptions = {
     origin(origin, callback) {
       const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://192.168.1.36:3000',
-  'http://192.168.1.37:3000' 
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://192.168.1.36:3000',
+        'http://192.168.1.37:3000',
       ];
 
       if (!origin || allowedOrigins.includes(origin)) {
@@ -92,9 +90,7 @@ const loadExpressApp = app => {
   });
   app.use('/api/', limiter);
 
-  // =====================================
   // REQUEST PARSING MIDDLEWARES
-  // =====================================
 
   // Body parser
   app.use(express.json({ limit: '10mb' }));
@@ -103,9 +99,7 @@ const loadExpressApp = app => {
   // Compression
   app.use(compression());
 
-  // =====================================
   // LOGGING MIDDLEWARES
-  // =====================================
 
   // Morgan - HTTP request logger (development)
   if (process.env.NODE_ENV === 'development') {
@@ -115,9 +109,8 @@ const loadExpressApp = app => {
   // Custom request logger
   app.use(requestLogger);
 
-  // =====================================
   // HEALTH CHECK ROUTE
-  // =====================================
+
   app.get('/', (req, res) => {
     res.status(200).json({
       success: true,
@@ -149,9 +142,7 @@ const loadExpressApp = app => {
     });
   });
 
-  // =====================================
   // API ROUTES (will be added later)
-  // =====================================
 
   // Import and use routes here
   app.use('/api/v1/auth', authRoutes);
@@ -166,9 +157,7 @@ const loadExpressApp = app => {
 
   // ... more routes
 
-  // =====================================
   // ERROR HANDLING
-  // =====================================
 
   // 404 Handler
   app.use(notFound);

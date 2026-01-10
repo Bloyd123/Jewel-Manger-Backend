@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/customer/customer.routes.js
 // Customer Routes - WITH PERMISSION CHECKS
-// ============================================================================
 
 import express from 'express';
 import {
@@ -41,14 +39,11 @@ import { rateLimiter } from '../middlewares/rateLimiter.js';
 
 const router = express.Router({ mergeParams: true });
 
-// ============================================================================
 // MIDDLEWARE: All routes require authentication
-// ============================================================================
+
 router.use(authenticate);
 
-// ============================================================================
 // CUSTOMER ANALYTICS
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/customers/analytics
@@ -66,9 +61,7 @@ router.get(
   getCustomerAnalytics
 );
 
-// ============================================================================
 // CUSTOMER SEARCH
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/customers/search
@@ -86,9 +79,7 @@ router.get(
   searchCustomer
 );
 
-// ============================================================================
 // CUSTOMER CRUD OPERATIONS
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/customers
@@ -175,9 +166,7 @@ router.delete(
   deleteCustomer
 );
 
-// ============================================================================
 // CUSTOMER BLACKLIST OPERATIONS
-// ============================================================================
 
 /**
  * @route   PATCH /api/v1/shops/:shopId/customers/:customerId/blacklist
@@ -213,9 +202,7 @@ router.patch(
   removeBlacklist
 );
 
-// ============================================================================
 // LOYALTY POINTS OPERATIONS
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/customers/:customerId/loyalty/add
@@ -251,8 +238,6 @@ router.post(
   redeemLoyaltyPoints
 );
 
-// ============================================================================
 // ROUTE EXPORTS
-// ============================================================================
 
 export default router;

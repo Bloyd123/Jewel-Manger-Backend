@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/customer/customer.controller.js
 // Customer Controller - Compatible with existing sendResponse.js
-// ============================================================================
 
 import { validationResult } from 'express-validator';
 import customerService from './customer.service.js';

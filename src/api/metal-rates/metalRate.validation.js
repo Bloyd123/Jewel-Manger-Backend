@@ -1,15 +1,11 @@
-// ============================================================================
 // FILE: src/api/metal-rates/metalRate.validation.js
 // Metal Rate Management - Input Validation
-// ============================================================================
 
 import { body, param, query, validationResult } from 'express-validator';
 import { ValidationError } from '../../utils/AppError.js';
 import mongoose from 'mongoose';
 
-// ============================================================================
 // VALIDATION MIDDLEWARE
-// ============================================================================
 
 /**
  * Middleware to handle validation errors
@@ -30,9 +26,7 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// ============================================================================
 // VALIDATION RULES
-// ============================================================================
 
 /**
  * Validate Metal Rate Object Structure
@@ -190,9 +184,7 @@ const rateObjectValidation = [
     .withMessage('Reference source cannot exceed 200 characters'),
 ];
 
-// ============================================================================
 // ROUTE-SPECIFIC VALIDATIONS
-// ============================================================================
 
 /**
  * CREATE OR UPDATE RATE VALIDATION
@@ -410,9 +402,7 @@ export const rateIdParam = [
   handleValidationErrors,
 ];
 
-// ============================================================================
 // CUSTOM VALIDATORS
-// ============================================================================
 
 /**
  * Validate that selling rate is greater than or equal to buying rate
@@ -439,9 +429,8 @@ export const validateDateRange = () => {
   });
 };
 
-// ============================================================================
 // EXPORTS
-// ============================================================================
+
 export default {
   createOrUpdateRate,
   getRateHistory,

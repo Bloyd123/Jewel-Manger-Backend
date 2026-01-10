@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/routes/purchase.routes.js
 // Purchase Module Routes - All 22 Routes from PDF
-// ============================================================================
 
 import express from 'express';
 import { authenticate } from '../middlewares/auth.js';
@@ -17,14 +15,11 @@ import * as purchaseValidation from './purchase.validation.js';
 
 const router = express.Router({ mergeParams: true }); // mergeParams for nested routes
 
-// ============================================================================
 // APPLY AUTHENTICATION TO ALL ROUTES
-// ============================================================================
+
 router.use(authenticate);
 
-// ============================================================================
 // 1. PURCHASE CRUD OPERATIONS (5 Routes)
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/purchases
@@ -99,9 +94,7 @@ router.delete(
   purchaseController.deletePurchase
 );
 
-// ============================================================================
 // 2. PURCHASE STATUS MANAGEMENT (3 Routes)
-// ============================================================================
 
 /**
  * @route   PATCH /api/v1/shops/:shopId/purchases/:purchaseId/status
@@ -148,9 +141,7 @@ router.patch(
   purchaseController.cancelPurchase
 );
 
-// ============================================================================
 // 3. PURCHASE APPROVAL (2 Routes)
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/purchases/:purchaseId/approve
@@ -182,9 +173,7 @@ router.post(
   purchaseController.rejectPurchase
 );
 
-// ============================================================================
 // 4. PAYMENT MANAGEMENT (2 Routes)
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/purchases/:purchaseId/payments
@@ -215,9 +204,7 @@ router.get(
   purchaseController.getPayments
 );
 
-// ============================================================================
 // 5. SUPPLIER-SPECIFIC PURCHASES (1 Route)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/purchases/supplier/:supplierId
@@ -233,9 +220,7 @@ router.get(
   purchaseController.getPurchasesBySupplier
 );
 
-// ============================================================================
 // 6. PURCHASE ANALYTICS & REPORTS (3 Routes)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/purchases/analytics
@@ -279,9 +264,7 @@ router.get(
   purchaseController.getUnpaidPurchases
 );
 
-// ============================================================================
 // 7. BULK OPERATIONS (2 Routes)
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/purchases/bulk-delete
@@ -313,9 +296,7 @@ router.post(
   purchaseController.bulkApprovePurchases
 );
 
-// ============================================================================
 // 8. PURCHASE DOCUMENTS (2 Routes)
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/purchases/:purchaseId/documents
@@ -346,9 +327,7 @@ router.get(
   purchaseController.getDocuments
 );
 
-// ============================================================================
 // 9. PURCHASE FILTERS & SEARCH (2 Routes)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/purchases/search

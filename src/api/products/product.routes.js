@@ -27,14 +27,11 @@ import { rateLimiter } from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
-// ============================================
 // ALL ROUTES REQUIRE AUTHENTICATION
-// ============================================
+
 router.use(authenticate);
 
-// ============================================
 // PRODUCT CRUD ROUTES
-// ============================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/products
@@ -156,9 +153,7 @@ router.delete(
   productController.deleteProduct
 );
 
-// ============================================
 // STOCK MANAGEMENT ROUTES
-// ============================================
 
 /**
  * @route   PATCH /api/v1/shops/:shopId/products/:id/stock
@@ -189,9 +184,7 @@ router.get(
   productController.getProductHistory
 );
 
-// ============================================
 // PRODUCT STATUS ROUTES
-// ============================================
 
 /**
  * @route   PATCH /api/v1/shops/:shopId/products/:id/reserve
@@ -237,9 +230,7 @@ router.patch(
   productController.markAsSold
 );
 
-// ============================================
 // PRICING ROUTES
-// ============================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/products/:id/calculate-price
@@ -256,9 +247,7 @@ router.post(
   productController.calculatePrice
 );
 
-// ============================================
 // BULK OPERATIONS ROUTES
-// ============================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/products/bulk-delete

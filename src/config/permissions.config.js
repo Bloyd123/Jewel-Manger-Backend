@@ -1,12 +1,9 @@
-// ============================================================================
 // FILE: src/config/permissions.config.js
 // 100% COMPLETE & ACCURATE Role-Based Permissions Configuration
-// ============================================================================
 
 export const PERMISSIONS = {
-  // ============================================================================
   // SHOP ADMIN - Full Shop Access (ALL TRUE)
-  // ============================================================================
+
   shop_admin: {
     canCreateCustomer: true,
     canSearchCustomer: true,
@@ -257,9 +254,8 @@ export const PERMISSIONS = {
     canRestoreData: true,
   },
 
-  // ============================================================================
   // MANAGER
-  // ============================================================================
+
   manager: {
     canCreateCustomer: true,
     canSearchCustomer: true,
@@ -510,9 +506,8 @@ export const PERMISSIONS = {
     canRestoreData: false,
   },
 
-  // ============================================================================
   // STAFF
-  // ============================================================================
+
   staff: {
     canCreateCustomer: true,
     canSearchCustomer: true,
@@ -763,9 +758,8 @@ export const PERMISSIONS = {
     canRestoreData: false,
   },
 
-  // ============================================================================
   // ACCOUNTANT
-  // ============================================================================
+
   accountant: {
     canCreateCustomer: false,
     canSearchCustomer: true,
@@ -1016,9 +1010,8 @@ export const PERMISSIONS = {
     canRestoreData: false,
   },
 
-  // ============================================================================
   // VIEWER - Read-Only Access
-  // ============================================================================
+
   viewer: {
     canCreateCustomer: false,
     canSearchCustomer: true,
@@ -1270,9 +1263,7 @@ export const PERMISSIONS = {
   },
 };
 
-// ============================================================================
 // HELPER FUNCTIONS
-// ============================================================================
 
 export const getPermissionsByRole = role => {
   return PERMISSIONS[role] || PERMISSIONS.viewer;
@@ -1292,9 +1283,8 @@ export const getDeniedPermissions = role => {
   const rolePermissions = getPermissionsByRole(role);
   return Object.keys(rolePermissions).filter(key => rolePermissions[key] === false);
 };
-// ============================================================================
+
 // HELPER FUNCTIONS FOR ORG-LEVEL ROLES
-// ============================================================================
 
 /**
  * Get all permissions for super admin (everything = true)

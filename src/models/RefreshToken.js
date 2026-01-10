@@ -120,9 +120,7 @@ const refreshTokenSchema = new mongoose.Schema(
   }
 );
 
-// =====================================
 // INDEXES
-// =====================================
 
 // Compound indexes for efficient queries
 refreshTokenSchema.index({ userId: 1, isRevoked: 1 });
@@ -138,9 +136,7 @@ refreshTokenSchema.index({ tokenId: 1, isRevoked: 1 });
 // TTL Index - Automatically delete expired tokens after 30 days
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 
-// =====================================
 // VIRTUALS
-// =====================================
 
 // Check if token is expired
 refreshTokenSchema.virtual('isExpired').get(function () {
@@ -166,9 +162,7 @@ refreshTokenSchema.virtual('age').get(function () {
   return Math.floor(diff / (1000 * 60 * 60 * 24)); // days
 });
 
-// =====================================
 // MIDDLEWARE
-// =====================================
 
 // Parse user agent before saving
 refreshTokenSchema.pre('save', function (next) {
@@ -187,9 +181,7 @@ refreshTokenSchema.pre(/^find/, function (next) {
   next();
 });
 
-// =====================================
 // INSTANCE METHODS
-// =====================================
 
 /**
  * Revoke the refresh token
@@ -245,9 +237,7 @@ refreshTokenSchema.methods.getInfo = function () {
   };
 };
 
-// =====================================
 // STATIC METHODS
-// =====================================
 
 /**
  * Find valid token by token string
@@ -451,9 +441,7 @@ refreshTokenSchema.statics.findSuspiciousActivity = async function (userId) {
   };
 };
 
-// =====================================
 // HELPER FUNCTIONS
-// =====================================
 
 /**
  * Parse user agent string to extract device info
@@ -498,8 +486,6 @@ function parseUserAgent(userAgent) {
   return { type, browser, os };
 }
 
-// =====================================
 // EXPORT MODEL
-// =====================================
 
 export default mongoose.model('RefreshToken', refreshTokenSchema);

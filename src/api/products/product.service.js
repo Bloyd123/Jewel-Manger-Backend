@@ -13,9 +13,8 @@ import {
 import Category from '../../models/Category.js';
 
 class ProductService {
-  // ============================================
   // CREATE PRODUCT
-  // ============================================
+
   async createProduct(productData, shopId, organizationId, userId) {
     // 1. Generate product code
     const productCode = await Product.generateProductCode(shopId, 'PRD');
@@ -64,9 +63,9 @@ class ProductService {
     } else if (quantity <= reorderLevel && quantity > 0) {
       stockStatus = 'low_stock';
     }
-    // ===============================
+
     // STEP 1: "OTHER" MAPPING FIRST
-    // ===============================
+
     let finalCategoryId = productData.categoryId;
     let finalSubCategoryId = productData.subCategoryId;
 
@@ -78,9 +77,8 @@ class ProductService {
       finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
     }
 
-    // ===============================
     // STEP 2: CATEGORY VALIDATION
-    // ===============================
+
     const categoryExists = await Category.findOne({
       _id: finalCategoryId,
       isActive: true,
@@ -177,9 +175,8 @@ class ProductService {
     return product;
   }
 
-  // ============================================
   // CALCULATE PRODUCT PRICE
-  // ============================================
+
   async calculateProductPrice(productData, metalRates) {
     const { metal, weight, makingCharges, stones, pricing } = productData;
 
@@ -282,9 +279,8 @@ class ProductService {
     };
   }
 
-  // ============================================
   // GET ALL PRODUCTS
-  // ============================================
+
   async getProducts(shopId, organizationId, filters = {}, options = {}) {
     const {
       page = 1,
@@ -346,8 +342,8 @@ class ProductService {
         .skip(skip)
         .limit(parseInt(limit))
         .populate('supplierId', 'name code contactPerson phone')
-        .populate('categoryId', 'name code') // ✅ ADD THIS
-        .populate('subCategoryId', 'name code') // ✅ ADD THIS
+        .populate('categoryId', 'name code') // ADD THIS
+        .populate('subCategoryId', 'name code') // ADD THIS
         .lean(),
       Product.countDocuments(query),
     ]);
@@ -368,9 +364,8 @@ class ProductService {
     };
   }
 
-  // ============================================
   // GET PRODUCT BY ID
-  // ============================================
+
   async getProductById(productId, shopId, organizationId) {
     // Check cache first
     const cacheKey = cache.productKey(productId);
@@ -384,8 +379,8 @@ class ProductService {
       deletedAt: null,
     })
       .populate('supplierId', 'name code contactPerson phone email')
-      .populate('categoryId', 'name code') // ✅ ADD
-      .populate('subCategoryId', 'name code') // ✅ ADD
+      .populate('categoryId', 'name code') // ADD
+      .populate('subCategoryId', 'name code') // ADD
       .populate('createdBy', 'firstName lastName email')
       .populate('updatedBy', 'firstName lastName email')
       .lean();
@@ -400,9 +395,8 @@ class ProductService {
     return product;
   }
 
-  // ============================================
   // UPDATE PRODUCT
-  // ============================================
+
   async updateProduct(productId, shopId, organizationId, updateData, userId) {
     const product = await Product.findOne({
       _id: productId,
@@ -452,9 +446,9 @@ class ProductService {
         updateData.stock.status = 'in_stock';
       }
     }
-    // ===============================
+
     // CATEGORY VALIDATION (UPDATE)
-    // ===============================
+
     let finalCategoryId = updateData.categoryId;
     let finalSubCategoryId = updateData.subCategoryId;
 
@@ -519,9 +513,8 @@ class ProductService {
     return product;
   }
 
-  // ============================================
   // DELETE PRODUCT (SOFT DELETE)
-  // ============================================
+
   async deleteProduct(productId, shopId, organizationId, userId) {
     const product = await Product.findOne({
       _id: productId,
@@ -569,9 +562,8 @@ class ProductService {
     return { success: true };
   }
 
-  // ============================================
   // UPDATE STOCK
-  // ============================================
+
   async updateStock(productId, shopId, organizationId, stockData, userId) {
     const { operation, quantity, reason, referenceType, referenceId } = stockData;
 
@@ -660,9 +652,8 @@ class ProductService {
     };
   }
 
-  // ============================================
   // RESERVE PRODUCT
-  // ============================================
+
   async reserveProduct(productId, shopId, organizationId, reservationData, userId) {
     const { customerId, reservationDays = 7, notes } = reservationData;
 
@@ -729,9 +720,8 @@ class ProductService {
     };
   }
 
-  // ============================================
   // CANCEL RESERVATION
-  // ============================================
+
   async cancelReservation(productId, shopId, organizationId, userId) {
     const product = await Product.findOne({
       _id: productId,
@@ -787,9 +777,8 @@ class ProductService {
     return { saleStatus: product.saleStatus };
   }
 
-  // ============================================
   // MARK AS SOLD
-  // ============================================
+
   async markAsSold(productId, shopId, organizationId, saleData, userId) {
     const { customerId, saleId } = saleData;
 
@@ -856,9 +845,8 @@ class ProductService {
     };
   }
 
-  // ============================================
   // CALCULATE/RECALCULATE PRICE
-  // ============================================
+
   async recalculatePrice(productId, shopId, organizationId, priceData, userId) {
     const { useCurrentRate = true, customRate } = priceData;
 
@@ -929,9 +917,8 @@ class ProductService {
     };
   }
 
-  // ============================================
   // GET LOW STOCK PRODUCTS
-  // ============================================
+
   async getLowStockProducts(shopId, organizationId, threshold) {
     const query = {
       shopId,
@@ -962,9 +949,8 @@ class ProductService {
     };
   }
 
-  // ============================================
   // SEARCH PRODUCTS (QUICK SEARCH FOR POS)
-  // ============================================
+
   async searchProducts(shopId, organizationId, searchQuery, limit = 10) {
     const query = {
       shopId,
@@ -993,9 +979,8 @@ class ProductService {
     return products;
   }
 
-  // ============================================
   // GET PRODUCT HISTORY
-  // ============================================
+
   async getProductHistory(productId, shopId, organizationId, limit = 50) {
     const product = await Product.findOne({
       _id: productId,
@@ -1020,9 +1005,8 @@ class ProductService {
     };
   }
 
-  // ============================================
   // BULK DELETE PRODUCTS
-  // ============================================
+
   async bulkDeleteProducts(productIds, shopId, organizationId, userId) {
     const products = await Product.find({
       _id: { $in: productIds },
@@ -1067,9 +1051,8 @@ class ProductService {
     return { deletedCount };
   }
 
-  // ============================================
   // BULK UPDATE STATUS
-  // ============================================
+
   async bulkUpdateStatus(productIds, shopId, organizationId, status, userId) {
     const result = await Product.updateMany(
       {

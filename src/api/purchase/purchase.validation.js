@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/purchase/purchase.validation.js
 // Purchase Module Validation - Input Validation Middleware
-// ============================================================================
 
 import { body, param, query, validationResult } from 'express-validator';
 import { sendValidationError, formatValidationErrors } from '../../utils/sendResponse.js';
@@ -17,9 +15,7 @@ const validate = (req, res, next) => {
   next();
 };
 
-// ============================================================================
 // VALIDATION RULES
-// ============================================================================
 
 /**
  * Validate purchase ID parameter

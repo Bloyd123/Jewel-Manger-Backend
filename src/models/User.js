@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: models/User.js
 // User Model - Activity Logs Removed (Now separate model)
-// ============================================================================
 
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
@@ -122,10 +120,10 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
     // 🆕 ADD THESE NEW FIELDS:
-backupCodesUsed: {
-  type: [String],
-  select: false,
-},
+    backupCodesUsed: {
+      type: [String],
+      select: false,
+    },
 
     // Additional Fields for Jewelry Business
     designation: {
@@ -228,9 +226,8 @@ backupCodesUsed: {
   }
 );
 
-// ============================================================================
 // INDEXES
-// ============================================================================
+
 userSchema.index({ organizationId: 1, email: 1 });
 userSchema.index({ organizationId: 1, role: 1 });
 userSchema.index({ organizationId: 1, isActive: 1 });
@@ -238,9 +235,7 @@ userSchema.index({ organizationId: 1, isActive: 1 });
 userSchema.index({ primaryShop: 1 });
 userSchema.index({ email: 1, isActive: 1 });
 
-// ============================================================================
 // VIRTUALS
-// ============================================================================
 
 // Virtual for full name
 userSchema.virtual('fullName').get(function () {
@@ -271,9 +266,7 @@ userSchema.virtual('activityLogs', {
   foreignField: 'userId',
 });
 
-// ============================================================================
 // MIDDLEWARES
-// ============================================================================
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -296,9 +289,7 @@ userSchema.pre(/^find/, function (next) {
   next();
 });
 
-// ============================================================================
 // INSTANCE METHODS
-// ============================================================================
 
 // Compare password
 userSchema.methods.comparePassword = async function (candidatePassword) {
@@ -479,9 +470,7 @@ userSchema.methods.toJSON = function () {
   return userObject;
 };
 
-// ============================================================================
 // STATIC METHODS
-// ============================================================================
 
 // Find user by credentials
 userSchema.statics.findByCredentials = async function (email, password) {

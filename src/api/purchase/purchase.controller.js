@@ -1,16 +1,12 @@
-// ============================================================================
 // FILE: src/api/purchase/purchase.controller.js
 // Purchase Module Controller - All 22 Route Handlers
-// ============================================================================
 
 import { catchAsync } from '../middlewares/errorHandler.js';
 import * as purchaseService from './purchase.service.js';
 import { sendSuccess, sendCreated, sendPaginated, sendNotFound } from '../../utils/sendResponse.js';
 import { NotFoundError } from '../../utils/AppError.js';
 
-// ============================================================================
 // 1. PURCHASE CRUD OPERATIONS
-// ============================================================================
 
 /**
  * Create new purchase order/invoice
@@ -86,9 +82,7 @@ export const deletePurchase = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Purchase deleted successfully', null);
 });
 
-// ============================================================================
 // 2. PURCHASE STATUS MANAGEMENT
-// ============================================================================
 
 /**
  * Update purchase status
@@ -135,9 +129,7 @@ export const cancelPurchase = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Purchase cancelled successfully', purchase);
 });
 
-// ============================================================================
 // 3. PURCHASE APPROVAL
-// ============================================================================
 
 /**
  * Approve purchase
@@ -167,9 +159,7 @@ export const rejectPurchase = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Purchase rejected successfully', purchase);
 });
 
-// ============================================================================
 // 4. PAYMENT MANAGEMENT
-// ============================================================================
 
 /**
  * Add payment to purchase
@@ -196,9 +186,7 @@ export const getPayments = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Payments retrieved successfully', payments);
 });
 
-// ============================================================================
 // 5. SUPPLIER-SPECIFIC PURCHASES
-// ============================================================================
 
 /**
  * Get all purchases from a specific supplier
@@ -220,9 +208,7 @@ export const getPurchasesBySupplier = catchAsync(async (req, res) => {
   );
 });
 
-// ============================================================================
 // 6. PURCHASE ANALYTICS & REPORTS
-// ============================================================================
 
 /**
  * Get purchase analytics & summary
@@ -261,9 +247,7 @@ export const getUnpaidPurchases = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Unpaid purchases retrieved successfully', purchases);
 });
 
-// ============================================================================
 // 7. BULK OPERATIONS
-// ============================================================================
 
 /**
  * Bulk delete multiple purchases (draft only)
@@ -290,9 +274,7 @@ export const bulkApprovePurchases = catchAsync(async (req, res) => {
   sendSuccess(res, 200, `${result.approvedCount} purchases approved successfully`, result);
 });
 
-// ============================================================================
 // 8. PURCHASE DOCUMENTS
-// ============================================================================
 
 /**
  * Upload purchase-related documents
@@ -323,9 +305,7 @@ export const getDocuments = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Documents retrieved successfully', documents);
 });
 
-// ============================================================================
 // 9. PURCHASE FILTERS & SEARCH
-// ============================================================================
 
 /**
  * Quick search purchases

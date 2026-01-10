@@ -237,7 +237,7 @@ class CacheManager {
     logger.info('Cache closed');
   }
 
-  // ==================== Helper Methods ====================
+  //  Helper Methods
 
   /**
    * Generate cache key for user

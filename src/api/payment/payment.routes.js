@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/payment/payment.routes.js
 // Payment Routes - Complete Payment Module (43 Routes)
-// ============================================================================
 
 import express from 'express';
 import paymentController from './payment.controller.js';
@@ -30,14 +28,11 @@ import {
 
 const router = express.Router();
 
-// ============================================================================
 // APPLY AUTHENTICATION TO ALL ROUTES
-// ============================================================================
+
 router.use(authenticate);
 
-// ============================================================================
 // 1. PAYMENT CRUD OPERATIONS (5 routes)
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments
@@ -112,9 +107,7 @@ router.delete(
   paymentController.deletePayment
 );
 
-// ============================================================================
 // 2. PAYMENT STATUS MANAGEMENT (3 routes)
-// ============================================================================
 
 /**
  * @route   PATCH /api/v1/shops/:shopId/payments/:paymentId/status
@@ -159,9 +152,7 @@ router.patch(
   paymentController.cancelPayment
 );
 
-// ============================================================================
 // 3. CHEQUE MANAGEMENT (5 routes)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/cheques/pending
@@ -233,9 +224,7 @@ router.get(
   paymentController.getClearedCheques
 );
 
-// ============================================================================
 // 4. RECONCILIATION (3 routes)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/reconciliation/pending
@@ -279,9 +268,7 @@ router.get(
   paymentController.getReconciliationSummary
 );
 
-// ============================================================================
 // 5. RECEIPT GENERATION (3 routes)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/:paymentId/receipt
@@ -325,9 +312,7 @@ router.post(
   paymentController.regenerateReceipt
 );
 
-// ============================================================================
 // 6. PARTY-SPECIFIC PAYMENTS (4 routes)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/party/:partyId
@@ -382,9 +367,7 @@ router.get(
   paymentController.getSupplierPayments
 );
 
-// ============================================================================
 // 7. PAYMENT MODE ANALYTICS (3 routes)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/by-mode
@@ -428,9 +411,7 @@ router.get(
   paymentController.getDigitalCollection
 );
 
-// ============================================================================
 // 8. PAYMENT ANALYTICS & REPORTS (5 routes)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/analytics
@@ -502,9 +483,7 @@ router.get(
   paymentController.getFailedPayments
 );
 
-// ============================================================================
 // 9. PAYMENT REFERENCES (2 routes)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/reference/sale/:saleId
@@ -532,9 +511,7 @@ router.get(
   paymentController.getPurchasePayments
 );
 
-// ============================================================================
 // 10. ADVANCED SEARCH & FILTERS (3 routes)
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/search
@@ -578,9 +555,7 @@ router.get(
   paymentController.getPaymentsByAmountRange
 );
 
-// ============================================================================
 // 11. BULK OPERATIONS (3 routes)
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/bulk-reconcile
@@ -624,9 +599,7 @@ router.post(
   paymentController.bulkPrintReceipts
 );
 
-// ============================================================================
 // 12. PAYMENT APPROVAL (2 routes)
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/:paymentId/approve
@@ -658,9 +631,7 @@ router.post(
   paymentController.rejectPayment
 );
 
-// ============================================================================
 // 13. REFUND MANAGEMENT (2 routes)
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/:paymentId/refund
@@ -691,7 +662,6 @@ router.get(
   paymentController.getRefunds
 );
 
-// ============================================================================
 // EXPORT ROUTER
-// ============================================================================
+
 export default router;

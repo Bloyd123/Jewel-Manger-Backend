@@ -1,16 +1,12 @@
-// ============================================================================
 // FILE: src/api/shops/shop.controller.js
 // Shop Controller - Request handlers for shop operations
-// ============================================================================
 
 import { validationResult } from 'express-validator';
 import * as shopService from './shop.service.js';
 import AppError from '../../utils/AppError.js';
 import { catchAsync } from '../middlewares/errorHandler.js';
 
-// ============================================================================
 // VALIDATION ERROR HANDLER
-// ============================================================================
 
 const handleValidationErrors = req => {
   const errors = validationResult(req);
@@ -20,9 +16,7 @@ const handleValidationErrors = req => {
   }
 };
 
-// ============================================================================
 // CREATE SHOP
-// ============================================================================
 
 export const createShop = catchAsync(async (req, res, next) => {
   // 1. Validate request
@@ -49,9 +43,7 @@ export const createShop = catchAsync(async (req, res, next) => {
   });
 });
 
-// ============================================================================
 // GET ALL SHOPS
-// ============================================================================
 
 export const getAllShops = catchAsync(async (req, res, next) => {
   // 1. Validate request
@@ -69,9 +61,7 @@ export const getAllShops = catchAsync(async (req, res, next) => {
   res.status(200).json(result);
 });
 
-// ============================================================================
 // GET SINGLE SHOP BY ID
-// ============================================================================
 
 export const getShopById = catchAsync(async (req, res, next) => {
   // 1. Validate request
@@ -92,9 +82,7 @@ export const getShopById = catchAsync(async (req, res, next) => {
   res.status(200).json(result);
 });
 
-// ============================================================================
 // UPDATE SHOP
-// ============================================================================
 
 export const updateShop = catchAsync(async (req, res, next) => {
   // 1. Validate request
@@ -114,9 +102,7 @@ export const updateShop = catchAsync(async (req, res, next) => {
   });
 });
 
-// ============================================================================
 // DELETE SHOP (SOFT DELETE)
-// ============================================================================
 
 export const deleteShop = catchAsync(async (req, res, next) => {
   // 1. Validate request
@@ -129,9 +115,7 @@ export const deleteShop = catchAsync(async (req, res, next) => {
   res.status(200).json(result);
 });
 
-// ============================================================================
 // UPDATE SHOP SETTINGS
-// ============================================================================
 
 export const updateShopSettings = catchAsync(async (req, res, next) => {
   // 1. Validate request
@@ -153,13 +137,9 @@ export const updateShopSettings = catchAsync(async (req, res, next) => {
   });
 });
 
-// ============================================================================
 // UPDATE METAL RATES
-// ============================================================================
 
-// ============================================================================
 // GET SHOP STATISTICS
-// ============================================================================
 
 export const getShopStatistics = catchAsync(async (req, res, next) => {
   // 1. Validate request
@@ -172,9 +152,7 @@ export const getShopStatistics = catchAsync(async (req, res, next) => {
   res.status(200).json(result);
 });
 
-// ============================================================================
 // EXPORT CONTROLLER
-// ============================================================================
 
 export default {
   createShop,

@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/shops/shop.routes.js
 // Shop Routes - UPDATED to use new checkShopAccess middleware
-// ============================================================================
 
 import express from 'express';
 import * as shopController from './shop.controller.js';
@@ -17,16 +15,12 @@ import { restrictTo } from '../middlewares/restrictTo.js';
 
 const router = express.Router();
 
-// ============================================================================
 // PROTECTED ROUTES (Require Authentication)
-// ============================================================================
 
 // Apply authentication middleware to all routes
 router.use(authenticate);
 
-// ============================================================================
 // SHOP CRUD OPERATIONS
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops
@@ -95,9 +89,7 @@ router.delete(
   shopController.deleteShop
 );
 
-// ============================================================================
 // SHOP SETTINGS & CONFIGURATION
-// ============================================================================
 
 /**
  * @route   PATCH /api/v1/shops/:id/settings
@@ -113,9 +105,7 @@ router.patch(
   shopController.updateShopSettings
 );
 
-// ============================================================================
 // SHOP STATISTICS & REPORTS
-// ============================================================================
 
 /**
  * @route   GET /api/v1/shops/:id/statistics
@@ -143,8 +133,7 @@ router.get(
 //   checkPermission('canTransferInventory'),  //   New permission
 //   shopController.transferInventory
 // );
-// ============================================================================
+
 // EXPORT ROUTER
-// ============================================================================
 
 export default router;

@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/shops/shop.service.js
 // Shop Service - Business logic for shop operations
-// ============================================================================
 
 import mongoose from 'mongoose';
 import JewelryShop from '../../models/Shop.js';
@@ -12,9 +10,7 @@ import ActivityLog from '../../models/ActivityLog.js';
 import AppError from '../../utils/AppError.js';
 import APIFeatures from '../../utils/apiFeatures.js';
 
-// ============================================================================
 // CREATE SHOP
-// ============================================================================
 
 export const createShop = async (shopData, userId, userRole, userOrgId) => {
   const session = await mongoose.startSession();
@@ -159,9 +155,7 @@ export const createShop = async (shopData, userId, userRole, userOrgId) => {
   }
 };
 
-// ============================================================================
 // GET ALL SHOPS (with filtering, pagination, sorting)
-// ============================================================================
 
 export const getAllShops = async (queryParams, userId, userRole, userOrgId) => {
   // 1. Build base query based on user role
@@ -237,9 +231,7 @@ export const getAllShops = async (queryParams, userId, userRole, userOrgId) => {
   };
 };
 
-// ============================================================================
 // GET SINGLE SHOP BY ID
-// ============================================================================
 
 export const getShopById = async (shopId, userId, userRole, includeSettings = false) => {
   // 1. Find shop
@@ -301,9 +293,7 @@ export const getShopById = async (shopId, userId, userRole, includeSettings = fa
   };
 };
 
-// ============================================================================
 // UPDATE SHOP
-// ============================================================================
 
 export const updateShop = async (shopId, updateData, userId, userRole) => {
   // 1. Find shop
@@ -373,9 +363,7 @@ export const updateShop = async (shopId, updateData, userId, userRole) => {
   };
 };
 
-// ============================================================================
 // SOFT DELETE SHOP
-// ============================================================================
 
 export const deleteShop = async (shopId, userId, userRole) => {
   // 1. Find shop
@@ -430,9 +418,7 @@ export const deleteShop = async (shopId, userId, userRole) => {
   };
 };
 
-// ============================================================================
 // UPDATE SHOP SETTINGS
-// ============================================================================
 
 export const updateShopSettings = async (shopId, settings, userId, userRole) => {
   // 1. Find shop
@@ -477,13 +463,9 @@ export const updateShopSettings = async (shopId, settings, userId, userRole) => 
   };
 };
 
-// ============================================================================
 // UPDATE METAL RATES
-// ============================================================================
 
-// ============================================================================
 // GET SHOP STATISTICS
-// ============================================================================
 
 export const getShopStatistics = async (shopId, userId, userRole) => {
   // 1. Find shop
@@ -514,9 +496,7 @@ export const getShopStatistics = async (shopId, userId, userRole) => {
   };
 };
 
-// ============================================================================
 // EXPORT SERVICE
-// ============================================================================
 
 export default {
   createShop,

@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: routes/sales.routes.js
 // Complete Sales Module Routes - 42+ Endpoints
-// ============================================================================
 
 import express from 'express';
 import * as saleController from '../controllers/sales.controller.js';
@@ -16,13 +14,9 @@ const router = express.Router({ mergeParams: true });
 router.use(protect);
 router.use(checkShopAccess);
 
-// ============================================================================
 // IMPORTANT: Route Order Matters! Specific routes BEFORE parameterized routes
-// ============================================================================
 
-// ============================================================================
 // 8. ANALYTICS & REPORTS (Must be BEFORE /:saleId routes)
-// ============================================================================
 
 router.get(
   '/analytics',
@@ -41,9 +35,7 @@ router.get('/unpaid', checkPermission('canViewFinancials'), saleController.getUn
 
 router.get('/overdue', checkPermission('canViewFinancials'), saleController.getOverdueSales);
 
-// ============================================================================
 // 12. SEARCH & FILTERS (Before /:saleId)
-// ============================================================================
 
 router.get(
   '/search',
@@ -66,9 +58,7 @@ router.get(
   saleController.getSalesByAmountRange
 );
 
-// ============================================================================
 // 6. CUSTOMER-SPECIFIC SALES (Before /:saleId)
-// ============================================================================
 
 router.get(
   '/customer/:customerId',
@@ -82,9 +72,7 @@ router.get(
   saleController.getCustomerSalesSummary
 );
 
-// ============================================================================
 // 7. SALES PERSON PERFORMANCE (Before /:saleId)
-// ============================================================================
 
 router.get(
   '/sales-person/:userId',
@@ -98,9 +86,7 @@ router.get(
   saleController.getSalesPersonPerformance
 );
 
-// ============================================================================
 // 11. BULK OPERATIONS (Before /:saleId)
-// ============================================================================
 
 router.post(
   '/bulk-delete',
@@ -123,9 +109,7 @@ router.post(
   saleController.bulkSendReminders
 );
 
-// ============================================================================
 // 1. SALE CRUD OPERATIONS
-// ============================================================================
 
 router.post(
   '/',
@@ -165,9 +149,7 @@ router.delete(
   saleController.deleteSale
 );
 
-// ============================================================================
 // 2. SALE STATUS MANAGEMENT
-// ============================================================================
 
 router.patch(
   '/:saleId/status',
@@ -204,9 +186,7 @@ router.patch(
   saleController.cancelSale
 );
 
-// ============================================================================
 // 3. PAYMENT MANAGEMENT
-// ============================================================================
 
 router.post(
   '/:saleId/payments',
@@ -219,9 +199,7 @@ router.get('/:saleId/payments', checkPermission('canViewSales'), saleController.
 
 router.get('/:saleId/receipt', checkPermission('canViewSales'), saleController.generateReceipt);
 
-// ============================================================================
 // 4. RETURN & EXCHANGE
-// ============================================================================
 
 router.post(
   '/:saleId/return',
@@ -236,9 +214,7 @@ router.get(
   saleController.getReturnDetails
 );
 
-// ============================================================================
 // 5. OLD GOLD EXCHANGE
-// ============================================================================
 
 router.post(
   '/:saleId/old-gold',
@@ -253,9 +229,7 @@ router.delete(
   saleController.removeOldGold
 );
 
-// ============================================================================
 // 9. INVOICE MANAGEMENT
-// ============================================================================
 
 router.get('/:saleId/invoice', checkPermission('canViewSales'), saleController.generateInvoice);
 
@@ -273,9 +247,7 @@ router.post(
   saleController.printInvoice
 );
 
-// ============================================================================
 // 10. DISCOUNT & OFFERS
-// ============================================================================
 
 router.post(
   '/:saleId/apply-discount',
@@ -290,9 +262,7 @@ router.delete(
   saleController.removeDiscount
 );
 
-// ============================================================================
 // 13. DOCUMENTS
-// ============================================================================
 
 router.post(
   '/:saleId/documents',
@@ -303,9 +273,7 @@ router.post(
 
 router.get('/:saleId/documents', checkPermission('canViewSales'), saleController.getDocuments);
 
-// ============================================================================
 // 14. APPROVAL
-// ============================================================================
 
 router.post(
   '/:saleId/approve',

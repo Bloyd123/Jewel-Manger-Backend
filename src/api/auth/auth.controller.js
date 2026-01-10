@@ -11,9 +11,8 @@ import {
   InvalidTokenError,
 } from '../../utils/AppError.js';
 
-// ========================================
 // 1. REGISTER NEW USER
-// ========================================
+
 export const register = catchAsync(async (req, res) => {
   const { username, email, password, firstName, lastName, organizationId, role, primaryShop } =
     req.body;
@@ -22,9 +21,9 @@ export const register = catchAsync(async (req, res) => {
   if (!username || !email || !password || !firstName) {
     throw new ValidationError('Please provide all required fields');
   }
-  // ============================================
+
   // NEW: Extra Super Admin Safety Check
-  // ============================================
+
   if (role === 'super_admin') {
     if (organizationId || primaryShop) {
       throw new ValidationError('Super admin cannot have organization or shop assignments');
@@ -54,9 +53,8 @@ export const register = catchAsync(async (req, res) => {
   return sendCreated(res, 'Registration successful. Please verify your email.', result);
 });
 
-// ========================================
 // 2. LOGIN USER
-// ========================================
+
 export const login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
 
@@ -84,9 +82,8 @@ export const login = catchAsync(async (req, res) => {
   }
 });
 
-// ========================================
 // 3. LOGOUT USER
-// ========================================
+
 export const logout = catchAsync(async (req, res) => {
   const { refreshToken } = req.body;
 
@@ -105,9 +102,8 @@ export const logout = catchAsync(async (req, res) => {
   return sendSuccess(res, 200, 'Logout successful');
 });
 
-// ========================================
 // 4. LOGOUT FROM ALL DEVICES
-// ========================================
+
 export const logoutAllDevices = catchAsync(async (req, res) => {
   const { revokedCount } = await authService.logoutAllDevices(
     req.user._id,
@@ -118,9 +114,8 @@ export const logoutAllDevices = catchAsync(async (req, res) => {
   return sendSuccess(res, 200, `Successfully logged out from ${revokedCount} device(s)`);
 });
 
-// ========================================
 // 5. REFRESH ACCESS TOKEN
-// ========================================
+
 export const refreshToken = catchAsync(async (req, res) => {
   const { refreshToken } = req.body;
 
@@ -137,26 +132,23 @@ export const refreshToken = catchAsync(async (req, res) => {
   return sendSuccess(res, 200, 'Token refreshed successfully', tokens);
 });
 
-// ========================================
 // 6. GET CURRENT USER
-// ========================================
+
 export const getCurrentUser = catchAsync(async (req, res) => {
   // User is already attached by authenticate middleware
   return sendSuccess(res, 200, 'User retrieved successfully', req.user);
 });
 
-// ========================================
 // 7. UPDATE CURRENT USER PROFILE
-// ========================================
+
 export const updateProfile = catchAsync(async (req, res) => {
   const updatedUser = await authService.updateUserProfile(req.user._id, req.body);
 
   return sendSuccess(res, 200, 'Profile updated successfully', updatedUser);
 });
 
-// ========================================
 // 8. CHANGE PASSWORD
-// ========================================
+
 export const changePassword = catchAsync(async (req, res) => {
   const { currentPassword, newPassword, confirmPassword } = req.body;
 
@@ -174,9 +166,8 @@ export const changePassword = catchAsync(async (req, res) => {
   return sendSuccess(res, 200, 'Password changed successfully. Please login again.');
 });
 
-// ========================================
 // 9. FORGOT PASSWORD (Send Reset Link)
-// ========================================
+
 export const forgotPassword = catchAsync(async (req, res) => {
   const { email } = req.body;
 
@@ -189,9 +180,8 @@ export const forgotPassword = catchAsync(async (req, res) => {
   return sendSuccess(res, 200, 'If the email exists, a password reset link has been sent');
 });
 
-// ========================================
 // 10. RESET PASSWORD
-// ========================================
+
 export const resetPassword = catchAsync(async (req, res) => {
   const { token, newPassword, confirmPassword } = req.body;
 
@@ -218,9 +208,8 @@ export const resetPassword = catchAsync(async (req, res) => {
   }
 });
 
-// ========================================
 // 11. VERIFY EMAIL
-// ========================================
+
 export const verifyEmail = catchAsync(async (req, res) => {
   const { token } = req.body;
 
@@ -247,27 +236,24 @@ export const verifyEmail = catchAsync(async (req, res) => {
   }
 });
 
-// ========================================
 // 12. RESEND VERIFICATION EMAIL
-// ========================================
+
 export const resendVerificationEmail = catchAsync(async (req, res) => {
   await authService.resendVerificationEmail(req.user._id);
 
   return sendSuccess(res, 200, 'Verification email sent successfully');
 });
 
-// ========================================
 // 13. GET ACTIVE SESSIONS
-// ========================================
+
 export const getActiveSessions = catchAsync(async (req, res) => {
   const sessions = await authService.getActiveSessions(req.user._id, req.token);
 
   return sendSuccess(res, 200, 'Active sessions retrieved successfully', sessions);
 });
 
-// ========================================
 // 14. REVOKE SESSION
-// ========================================
+
 export const revokeSession = catchAsync(async (req, res) => {
   const { tokenId } = req.params;
 
@@ -279,67 +265,73 @@ export const revokeSession = catchAsync(async (req, res) => {
 
   return sendSuccess(res, 200, 'Session revoked successfully');
 });
-// ========================================
+
 // 15. ENABLE 2FA
-// ========================================
+
 export const enable2FA = catchAsync(async (req, res) => {
   const result = await authService.enable2FA(req.user._id);
   return sendSuccess(res, 200, '2FA setup initiated', result);
 });
 
-// ========================================
 // 16. VERIFY 2FA SETUP
-// ========================================
+
 export const verify2FA = catchAsync(async (req, res) => {
   const { token } = req.body;
-  
+
   if (!token) {
     throw new ValidationError('Verification code is required');
   }
-  
+
   const result = await authService.verify2FA(req.user._id, token);
   return sendSuccess(res, 200, '2FA enabled successfully', result);
 });
 
-// ========================================
 // 17. DISABLE 2FA
-// ========================================
+
 export const disable2FA = catchAsync(async (req, res) => {
   const { password, token } = req.body;
-  
+
   if (!password || !token) {
     throw new ValidationError('Password and 2FA code are required');
   }
-  
+
   await authService.disable2FA(req.user._id, password, token, req.ip);
   return sendSuccess(res, 200, '2FA disabled successfully');
 });
 
-// ========================================
 // 18. VERIFY 2FA DURING LOGIN
-// ========================================
+
 export const verify2FALogin = catchAsync(async (req, res) => {
   const { tempToken, token } = req.body;
-  
+
   if (!tempToken || !token) {
     throw new ValidationError('Temporary token and 2FA code are required');
   }
-  
-  const result = await authService.verify2FALogin(tempToken, token, req.ip, req.headers['user-agent']);
+
+  const result = await authService.verify2FALogin(
+    tempToken,
+    token,
+    req.ip,
+    req.headers['user-agent']
+  );
   return sendSuccess(res, 200, 'Login successful', result);
 });
 
-// ========================================
 // 19. VERIFY BACKUP CODE DURING LOGIN
-// ========================================
+
 export const verifyBackupCode = catchAsync(async (req, res) => {
   const { tempToken, backupCode } = req.body;
-  
+
   if (!tempToken || !backupCode) {
     throw new ValidationError('Temporary token and backup code are required');
   }
-  
-  const result = await authService.verifyBackupCode(tempToken, backupCode, req.ip, req.headers['user-agent']);
+
+  const result = await authService.verifyBackupCode(
+    tempToken,
+    backupCode,
+    req.ip,
+    req.headers['user-agent']
+  );
   return sendSuccess(res, 200, 'Login successful', result);
 });
 
@@ -358,10 +350,9 @@ export default {
   resendVerificationEmail,
   getActiveSessions,
   revokeSession,
-    enable2FA,
+  enable2FA,
   verify2FA,
   disable2FA,
   verify2FALogin,
   verifyBackupCode,
-
 };

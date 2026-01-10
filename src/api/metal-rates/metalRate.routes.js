@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/metal-rates/metalRate.routes.js
 // Metal Rate Management - Route Definitions
-// ============================================================================
 
 import express from 'express';
 import metalRateController from './metalRate.controller.js';
@@ -13,16 +11,13 @@ import rateLimiter from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
-// ============================================================================
 // SHOP-LEVEL ROUTES (PREFIX: /api/v1/shops/:shopId/metal-rates)
-// ============================================================================
 
-// ---------------------------------------------------------------------------
 // CREATE OR UPDATE TODAY'S RATE
 // POST /api/v1/shops/:shopId/metal-rates
 // Permission: canUpdateMetalRates
 // Rate limit: 10 requests per 15 minutes
-// ---------------------------------------------------------------------------
+
 router.post(
   '/shops/:shopId/metal-rates',
   authenticate,
@@ -33,12 +28,11 @@ router.post(
   metalRateController.createOrUpdateTodayRate
 );
 
-// ---------------------------------------------------------------------------
 // GET CURRENT RATE (MOST USED - HEAVILY CACHED)
 // GET /api/v1/shops/:shopId/metal-rates/current
 // Permission: Any shop access (canViewDashboard or any permission)
 // Rate limit: 100 requests per minute
-// ---------------------------------------------------------------------------
+
 router.get(
   '/shops/:shopId/metal-rates/current',
   authenticate,
@@ -47,12 +41,11 @@ router.get(
   metalRateController.getCurrentRate
 );
 
-// ---------------------------------------------------------------------------
 // GET RATE HISTORY
 // GET /api/v1/shops/:shopId/metal-rates/history
 // Permission: canViewReports
 // Query: ?startDate=2024-11-01&endDate=2024-11-10&page=1&limit=10
-// ---------------------------------------------------------------------------
+
 router.get(
   '/shops/:shopId/metal-rates/history',
   authenticate,
@@ -62,11 +55,10 @@ router.get(
   metalRateController.getRateHistory
 );
 
-// ---------------------------------------------------------------------------
 // GET LATEST RATES (RECENT 10)
 // GET /api/v1/shops/:shopId/metal-rates/latest
 // Permission: canViewDashboard
-// ---------------------------------------------------------------------------
+
 router.get(
   '/shops/:shopId/metal-rates/latest',
   authenticate,
@@ -75,12 +67,11 @@ router.get(
   metalRateController.getLatestRates
 );
 
-// ---------------------------------------------------------------------------
 // GET TREND CHART DATA (NEW FEATURE)
 // GET /api/v1/shops/:shopId/metal-rates/trends
 // Permission: canViewReports
 // Query: ?metalType=gold&days=90
-// ---------------------------------------------------------------------------
+
 router.get(
   '/shops/:shopId/metal-rates/trends',
   authenticate,
@@ -90,12 +81,11 @@ router.get(
   metalRateController.getTrendChartData
 );
 
-// ---------------------------------------------------------------------------
 // COMPARE RATES BETWEEN TWO DATES
 // GET /api/v1/shops/:shopId/metal-rates/compare
 // Permission: canViewReports
 // Query: ?fromDate=2024-11-01&toDate=2024-11-10
-// ---------------------------------------------------------------------------
+
 router.get(
   '/shops/:shopId/metal-rates/compare',
   authenticate,
@@ -105,12 +95,11 @@ router.get(
   metalRateController.compareRates
 );
 
-// ---------------------------------------------------------------------------
 // GET RATE BY SPECIFIC DATE
 // GET /api/v1/shops/:shopId/metal-rates/date/:date
 // Permission: canViewReports
 // Example: /date/2024-11-05
-// ---------------------------------------------------------------------------
+
 router.get(
   '/shops/:shopId/metal-rates/date/:date',
   authenticate,
@@ -120,12 +109,11 @@ router.get(
   metalRateController.getRateByDate
 );
 
-// ---------------------------------------------------------------------------
 // GET RATE FOR SPECIFIC PURITY
 // GET /api/v1/shops/:shopId/metal-rates/current/purity/:metalType/:purity
 // Permission: Any shop access
 // Example: /current/purity/gold/22K
-// ---------------------------------------------------------------------------
+
 router.get(
   '/shops/:shopId/metal-rates/current/purity/:metalType/:purity',
   authenticate,
@@ -134,12 +122,11 @@ router.get(
   metalRateController.getRateForPurity
 );
 
-// ---------------------------------------------------------------------------
 // GET AVERAGE RATE
 // GET /api/v1/shops/:shopId/metal-rates/average
 // Permission: canViewReports
 // Query: ?metalType=gold&purity=24K&days=30
-// ---------------------------------------------------------------------------
+
 router.get(
   '/shops/:shopId/metal-rates/average',
   authenticate,
@@ -149,16 +136,13 @@ router.get(
   metalRateController.getAverageRate
 );
 
-// ============================================================================
 // ORGANIZATION-LEVEL ROUTES (PREFIX: /api/v1/organizations/:organizationId/metal-rates)
-// ============================================================================
 
-// ---------------------------------------------------------------------------
 // MULTI-SHOP SYNC (ORGANIZATION LEVEL)
 // POST /api/v1/organizations/:organizationId/metal-rates/sync
 // Permission: super_admin, org_admin ONLY
 // Rate limit: 5 requests per 15 minutes
-// ---------------------------------------------------------------------------
+
 router.post(
   '/organizations/:organizationId/metal-rates/sync',
   authenticate,
@@ -168,11 +152,10 @@ router.post(
   metalRateController.syncToAllShops
 );
 
-// ---------------------------------------------------------------------------
 // GET ORGANIZATION MASTER RATE
 // GET /api/v1/organizations/:organizationId/metal-rates/current
 // Permission: super_admin, org_admin
-// ---------------------------------------------------------------------------
+
 router.get(
   '/organizations/:organizationId/metal-rates/current',
   authenticate,
@@ -180,15 +163,12 @@ router.get(
   metalRateController.getOrganizationRate
 );
 
-// ============================================================================
 // RATE-SPECIFIC ROUTES (PREFIX: /api/v1/metal-rates/:rateId)
-// ============================================================================
 
-// ---------------------------------------------------------------------------
 // DEACTIVATE RATE
 // PATCH /api/v1/metal-rates/:rateId/deactivate
 // Permission: canUpdateMetalRates
-// ---------------------------------------------------------------------------
+
 router.patch(
   '/metal-rates/:rateId/deactivate',
   authenticate,
@@ -197,11 +177,10 @@ router.patch(
   metalRateController.deactivateRate
 );
 
-// ---------------------------------------------------------------------------
 // SOFT DELETE RATE
 // DELETE /api/v1/metal-rates/:rateId
 // Permission: canManageShopSettings (or super_admin, org_admin)
-// ---------------------------------------------------------------------------
+
 router.delete(
   '/metal-rates/:rateId',
   authenticate,
@@ -211,7 +190,6 @@ router.delete(
   metalRateController.deleteRate
 );
 
-// ============================================================================
 // EXPORTS
-// ============================================================================
+
 export default router;

@@ -1,14 +1,10 @@
-// ============================================================================
 // FILE: src/api/suppliers/supplier.validation.js
 // Supplier Validation - Standalone (No external validate.js dependency)
-// ============================================================================
 
 import { body, param, query, validationResult } from 'express-validator';
 import { ValidationError } from '../../utils/AppError.js';
 
-// ============================================================================
 // VALIDATION MIDDLEWARE WRAPPER
-// ============================================================================
 
 /**
  * Validation middleware wrapper
@@ -39,9 +35,7 @@ const validate = validations => {
   };
 };
 
-// ============================================================================
 // VALIDATION HELPER FUNCTIONS
-// ============================================================================
 
 const isValidGST = value => {
   if (!value) return true; // Optional field
@@ -73,9 +67,7 @@ const isValidUPI = value => {
   return /^[\w.-]+@[\w.-]+$/.test(value);
 };
 
-// ============================================================================
 // CREATE SUPPLIER VALIDATION
-// ============================================================================
 
 export const createSupplierValidation = validate([
   // Business Information
@@ -308,9 +300,7 @@ export const createSupplierValidation = validate([
     .withMessage('Tag must be between 1 and 50 characters'),
 ]);
 
-// ============================================================================
 // UPDATE SUPPLIER VALIDATION
-// ============================================================================
 
 export const updateSupplierValidation = validate([
   // Supplier ID (from params)
@@ -367,25 +357,19 @@ export const updateSupplierValidation = validate([
   body('isPreferred').optional().isBoolean().withMessage('isPreferred must be a boolean'),
 ]);
 
-// ============================================================================
 // GET SUPPLIER BY ID VALIDATION
-// ============================================================================
 
 export const getSupplierValidation = validate([
   param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
-// ============================================================================
 // DELETE SUPPLIER VALIDATION
-// ============================================================================
 
 export const deleteSupplierValidation = validate([
   param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
-// ============================================================================
 // GET SUPPLIERS QUERY VALIDATION
-// ============================================================================
 
 export const getSuppliersValidation = validate([
   // Pagination
@@ -449,9 +433,7 @@ export const getSuppliersValidation = validate([
     .withMessage('Invalid sort field'),
 ]);
 
-// ============================================================================
 // UPDATE RATING VALIDATION
-// ============================================================================
 
 export const updateRatingValidation = validate([
   param('id').isMongoId().withMessage('Invalid supplier ID'),
@@ -467,9 +449,7 @@ export const updateRatingValidation = validate([
   body('priceRating').isInt({ min: 1, max: 5 }).withMessage('Price rating must be between 1 and 5'),
 ]);
 
-// ============================================================================
 // BLACKLIST SUPPLIER VALIDATION
-// ============================================================================
 
 export const blacklistSupplierValidation = validate([
   param('id').isMongoId().withMessage('Invalid supplier ID'),
@@ -482,9 +462,7 @@ export const blacklistSupplierValidation = validate([
     .withMessage('Reason must be between 10 and 500 characters'),
 ]);
 
-// ============================================================================
 // UPDATE BALANCE VALIDATION
-// ============================================================================
 
 export const updateBalanceValidation = validate([
   param('id').isMongoId().withMessage('Invalid supplier ID'),
@@ -506,33 +484,25 @@ export const updateBalanceValidation = validate([
     .withMessage('Note must not exceed 200 characters'),
 ]);
 
-// ============================================================================
 // RESTORE SUPPLIER VALIDATION
-// ============================================================================
 
 export const restoreSupplierValidation = validate([
   param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
-// ============================================================================
 // MARK AS PREFERRED VALIDATION
-// ============================================================================
 
 export const markPreferredValidation = validate([
   param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
-// ============================================================================
 // REMOVE FROM BLACKLIST VALIDATION
-// ============================================================================
 
 export const removeBlacklistValidation = validate([
   param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
-// ============================================================================
 // EXPORT ALL VALIDATIONS
-// ============================================================================
 
 export default {
   createSupplierValidation,

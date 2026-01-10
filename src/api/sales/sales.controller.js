@@ -1,15 +1,11 @@
-// ============================================================================
 // FILE: controllers/sales.controller.js
 // Sales Controller - Request/Response Handling Only
-// ============================================================================
 
 import * as saleService from '../services/sales.service.js';
 import { sendSuccess, sendCreated, sendPaginated } from '../../utils/sendResponse.js';
 import { catchAsync } from '../../middlewares/errorHandler.js';
 
-// ============================================================================
 // 1. SALE CRUD OPERATIONS
-// ============================================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/sales
@@ -94,9 +90,7 @@ export const deleteSale = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Sale cancelled successfully');
 });
 
-// ============================================================================
 // 2. SALE STATUS MANAGEMENT
-// ============================================================================
 
 export const updateSaleStatus = catchAsync(async (req, res) => {
   const { shopId, saleId } = req.params;
@@ -146,9 +140,7 @@ export const cancelSale = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Sale cancelled successfully', sale);
 });
 
-// ============================================================================
 // 3. PAYMENT MANAGEMENT
-// ============================================================================
 
 export const addPayment = catchAsync(async (req, res) => {
   const { shopId, saleId } = req.params;
@@ -176,9 +168,7 @@ export const generateReceipt = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Receipt generated successfully', receipt);
 });
 
-// ============================================================================
 // 4. RETURN & EXCHANGE
-// ============================================================================
 
 export const returnSale = catchAsync(async (req, res) => {
   const { shopId, saleId } = req.params;
@@ -198,9 +188,7 @@ export const getReturnDetails = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Return details fetched successfully', returnDetails);
 });
 
-// ============================================================================
 // 5. OLD GOLD EXCHANGE
-// ============================================================================
 
 export const addOldGold = catchAsync(async (req, res) => {
   const { shopId, saleId } = req.params;
@@ -221,9 +209,7 @@ export const removeOldGold = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Old gold details removed successfully', sale);
 });
 
-// ============================================================================
 // 6. CUSTOMER-SPECIFIC SALES
-// ============================================================================
 
 export const getCustomerSales = catchAsync(async (req, res) => {
   const { shopId, customerId } = req.params;
@@ -249,9 +235,7 @@ export const getCustomerSalesSummary = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Customer sales summary fetched successfully', summary);
 });
 
-// ============================================================================
 // 7. SALES PERSON PERFORMANCE
-// ============================================================================
 
 export const getSalesPersonSales = catchAsync(async (req, res) => {
   const { shopId, userId } = req.params;
@@ -283,9 +267,7 @@ export const getSalesPersonPerformance = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Sales person performance fetched successfully', performance);
 });
 
-// ============================================================================
 // 8. ANALYTICS & REPORTS
-// ============================================================================
 
 export const getSalesAnalytics = catchAsync(async (req, res) => {
   const { shopId } = req.params;
@@ -336,9 +318,7 @@ export const getOverdueSales = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Overdue sales fetched successfully', sales);
 });
 
-// ============================================================================
 // 9. INVOICE MANAGEMENT
-// ============================================================================
 
 export const generateInvoice = catchAsync(async (req, res) => {
   const { shopId, saleId } = req.params;
@@ -368,9 +348,7 @@ export const printInvoice = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Invoice print data generated', printData);
 });
 
-// ============================================================================
 // 10. DISCOUNT & OFFERS
-// ============================================================================
 
 export const applyDiscount = catchAsync(async (req, res) => {
   const { shopId, saleId } = req.params;
@@ -391,9 +369,7 @@ export const removeDiscount = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Discount removed successfully', sale);
 });
 
-// ============================================================================
 // 11. BULK OPERATIONS
-// ============================================================================
 
 export const bulkDeleteSales = catchAsync(async (req, res) => {
   const { shopId } = req.params;
@@ -425,9 +401,7 @@ export const bulkSendReminders = catchAsync(async (req, res) => {
   sendSuccess(res, 200, `Reminders sent to ${result.sentCount} customers`, result);
 });
 
-// ============================================================================
 // 12. SEARCH & FILTERS
-// ============================================================================
 
 export const searchSales = catchAsync(async (req, res) => {
   const { shopId } = req.params;
@@ -470,9 +444,7 @@ export const getSalesByAmountRange = catchAsync(async (req, res) => {
   );
 });
 
-// ============================================================================
 // 13. DOCUMENTS
-// ============================================================================
 
 export const uploadDocument = catchAsync(async (req, res) => {
   const { shopId, saleId } = req.params;
@@ -492,9 +464,7 @@ export const getDocuments = catchAsync(async (req, res) => {
   sendSuccess(res, 200, 'Documents fetched successfully', documents);
 });
 
-// ============================================================================
 // 14. APPROVAL
-// ============================================================================
 
 export const approveSale = catchAsync(async (req, res) => {
   const { shopId, saleId } = req.params;

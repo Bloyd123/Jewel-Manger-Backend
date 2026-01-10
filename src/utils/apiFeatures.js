@@ -1,6 +1,4 @@
-// ============================================================================
 // FILE: utils/apiFeatures.js
-// ============================================================================
 
 /**
  * API Features Class
@@ -17,14 +15,14 @@ class APIFeatures {
    * Supports: ?category=gold&price[gte]=5000
    */
   filter() {
-    // 1️⃣ Clone the query string object
+    // Clone the query string object
     const queryObj = { ...this.queryString };
 
-    // 2️⃣ Exclude non-filtering fields
+    //Exclude non-filtering fields
     const excludedFields = ['page', 'sort', 'limit', 'fields', 'search'];
     excludedFields.forEach(field => delete queryObj[field]);
 
-    // 3️⃣ Map easy query aliases to real schema fields (helps with nested structures)
+    // Map easy query aliases to real schema fields (helps with nested structures)
     if (queryObj.city) {
       queryObj['address.city'] = queryObj.city;
       delete queryObj.city;
@@ -40,7 +38,7 @@ class APIFeatures {
       delete queryObj.country;
     }
 
-    // 4️⃣ Convert string booleans and numbers
+    // Convert string booleans and numbers
     for (const key in queryObj) {
       if (queryObj[key] === 'true') queryObj[key] = true;
       if (queryObj[key] === 'false') queryObj[key] = false;
@@ -51,14 +49,14 @@ class APIFeatures {
       }
     }
 
-    // 5️⃣ Support for operators (gte, gt, lte, lt, ne, in, nin)
+    //  Support for operators (gte, gt, lte, lt, ne, in, nin)
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt|ne|in|nin)\b/g, match => `$${match}`);
 
-    // 6️⃣ Apply filters to the Mongoose query
+    //  Apply filters to the Mongoose query
     this.query = this.query.find(JSON.parse(queryStr));
 
-    // 7️⃣ Optional keyword search
+    //  Optional keyword search
     if (this.queryString.search) {
       const regex = new RegExp(this.queryString.search, 'i');
       this.query = this.query.find({

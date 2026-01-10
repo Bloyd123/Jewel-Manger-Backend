@@ -26,7 +26,7 @@ const categorySchema = new mongoose.Schema(
   }
 );
 
-// ✅ ADD COMPOUND INDEX
+// ADD COMPOUND INDEX
 categorySchema.index({ parentId: 1, code: 1 });
 
 export default mongoose.model('Category', categorySchema);

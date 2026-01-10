@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: middlewares/auth.js
 // Authentication Middleware (CLEANED - Removed duplicate shop access functions)
-// ============================================================================
 
 import jwt from 'jsonwebtoken';
 import User from '../../models/User.js';
@@ -105,10 +103,8 @@ export const authorize = (...allowedRoles) => {
   };
 };
 
-// ============================================================================
 // REMOVED: checkShopAccess - Use the one from checkShopAccess.js instead
 // REMOVED: checkPermission - Use the one from checkShopAccess.js instead
-// ============================================================================
 
 /**
  * Optional Authentication

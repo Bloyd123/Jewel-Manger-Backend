@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/services/purchase.service.js
 // Purchase Module Service - Business Logic Layer
-// ============================================================================
 
 import Purchase from '../../models/Purchase.js';
 import Product from '../../models/Product.js';
@@ -13,9 +11,7 @@ import APIFeatures from '../../utils/apiFeatures.js';
 import { getPaginationData } from '../../utils/pagination.js';
 import { NotFoundError, BadRequestError, ValidationError } from '../../utils/AppError.js';
 
-// ============================================================================
 // 1. PURCHASE CRUD OPERATIONS
-// ============================================================================
 
 /**
  * Create new purchase order/invoice
@@ -214,9 +210,7 @@ export const deletePurchase = async purchaseId => {
   return { message: 'Purchase deleted successfully' };
 };
 
-// ============================================================================
 // 2. PURCHASE STATUS MANAGEMENT
-// ============================================================================
 
 /**
  * Update purchase status
@@ -408,9 +402,7 @@ export const cancelPurchase = async (purchaseId, reason) => {
   return purchase;
 };
 
-// ============================================================================
 // 3. PURCHASE APPROVAL
-// ============================================================================
 
 /**
  * Approve purchase
@@ -472,9 +464,7 @@ export const rejectPurchase = async (purchaseId, userId, reason) => {
   return purchase;
 };
 
-// ============================================================================
 // 4. PAYMENT MANAGEMENT
-// ============================================================================
 
 /**
  * Add payment to purchase
@@ -532,9 +522,7 @@ export const getPayments = async purchaseId => {
   return purchase.payment.payments;
 };
 
-// ============================================================================
 // 5. SUPPLIER-SPECIFIC PURCHASES
-// ============================================================================
 
 /**
  * Get all purchases from a specific supplier
@@ -563,9 +551,7 @@ export const getPurchasesBySupplier = async (shopId, supplierId, filters) => {
   };
 };
 
-// ============================================================================
 // 6. PURCHASE ANALYTICS & REPORTS
-// ============================================================================
 
 /**
  * Get purchase analytics & summary
@@ -666,9 +652,7 @@ export const getUnpaidPurchases = async shopId => {
   return Purchase.findUnpaid(shopId).populate('supplierId', 'businessName supplierCode');
 };
 
-// ============================================================================
 // 7. BULK OPERATIONS
-// ============================================================================
 
 /**
  * Bulk delete multiple purchases (draft only)
@@ -709,9 +693,7 @@ export const bulkApprovePurchases = async (purchaseIds, userId) => {
   return { approvedCount };
 };
 
-// ============================================================================
 // 8. PURCHASE DOCUMENTS
-// ============================================================================
 
 /**
  * Upload purchase-related documents
@@ -742,9 +724,7 @@ export const getDocuments = async purchaseId => {
   return purchase.documents;
 };
 
-// ============================================================================
 // 9. PURCHASE FILTERS & SEARCH
-// ============================================================================
 
 /**
  * Quick search purchases

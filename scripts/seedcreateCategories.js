@@ -4,9 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// ============================================
 // BROOCH / PIN CATEGORY DATA
-// ============================================
 
 const BROOCH_CATEGORY = {
   code: 'BROOCH',
@@ -40,28 +38,26 @@ const BROOCH_SUBCATEGORIES = [
   },
 ];
 
-// ============================================
 // SEED FUNCTION (ADD ONLY)
-// ============================================
 
 const seedBroochCategory = async () => {
   try {
     console.log('🔄 Seeding BROOCH / PIN category (safe mode)...');
 
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ MongoDB connected');
+    console.log('MongoDB connected');
 
-    // 1️⃣ Check if main category exists
+    // Check if main category exists
     let broochCategory = await Category.findOne({ code: 'BROOCH' });
 
     if (!broochCategory) {
       broochCategory = await Category.create(BROOCH_CATEGORY);
-      console.log('✅ BROOCH main category added');
+      console.log('BROOCH main category added');
     } else {
       console.log('ℹ️  BROOCH category already exists — skipping');
     }
 
-    // 2️⃣ Add subcategories safely
+    //Add subcategories safely
     for (const sub of BROOCH_SUBCATEGORIES) {
       const exists = await Category.findOne({ code: sub.code });
 
@@ -71,7 +67,7 @@ const seedBroochCategory = async () => {
           parentId: broochCategory._id,
           isActive: true,
         });
-        console.log(`✅ Added subcategory: ${sub.code}`);
+        console.log(`Added subcategory: ${sub.code}`);
       } else {
         console.log(`ℹ️  Subcategory ${sub.code} already exists — skipping`);
       }
@@ -80,7 +76,7 @@ const seedBroochCategory = async () => {
     console.log('\n🎉 BROOCH / PIN seeding completed successfully');
 
     await mongoose.disconnect();
-    console.log('✅ MongoDB disconnected');
+    console.log('MongoDB disconnected');
   } catch (error) {
     console.error('❌ Seeding failed:', error);
     process.exit(1);

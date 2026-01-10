@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/middlewares/checkShopAccess.js
 // Shop Access Middleware - Verify user has access to specific shop with permissions
-// ============================================================================
 
 import mongoose from 'mongoose';
 import UserShopAccess from '../../models/UserShopAccess.js';
@@ -14,9 +12,7 @@ import {
 import { catchAsync } from './errorHandler.js';
 import logger from '../../utils/logger.js';
 
-// ============================================================================
 // BASIC SHOP ACCESS CHECK - Verifies user has access to shop
-// ============================================================================
 
 export const checkShopAccess = catchAsync(async (req, res, next) => {
   try {
@@ -103,9 +99,7 @@ export const checkShopAccess = catchAsync(async (req, res, next) => {
   }
 });
 
-// ============================================================================
 // CHECK SPECIFIC PERMISSION - Factory function for permission-based access
-// ============================================================================
 
 /**
  * Middleware factory to check if user has specific permission for a shop
@@ -178,9 +172,7 @@ export const checkPermission = permission => {
   });
 };
 
-// ============================================================================
 // CHECK ANY PERMISSION - User must have at least ONE of the specified permissions
-// ============================================================================
 
 /**
  * Middleware factory to check if user has ANY of the specified permissions
@@ -243,9 +235,7 @@ export const checkAnyPermission = permissions => {
   });
 };
 
-// ============================================================================
 // CHECK ALL PERMISSIONS - User must have ALL of the specified permissions
-// ============================================================================
 
 /**
  * Middleware factory to check if user has ALL of the specified permissions
@@ -308,9 +298,7 @@ export const checkAllPermissions = permissions => {
   });
 };
 
-// ============================================================================
 // VERIFY SHOP OWNERSHIP - For shop_admin role only
-// ============================================================================
 
 /**
  * Middleware to verify user is the primary admin of the shop
@@ -345,9 +333,7 @@ export const verifyShopOwnership = catchAsync(async (req, res, next) => {
   }
 });
 
-// ============================================================================
 // CHECK MULTIPLE SHOPS ACCESS - For operations spanning multiple shops
-// ============================================================================
 
 /**
  * Middleware to verify user has access to multiple shops
@@ -418,9 +404,7 @@ export const checkMultipleShopsAccess = (shopIdsField = 'shopIds') => {
   });
 };
 
-// ============================================================================
 // EXPORTS
-// ============================================================================
 
 export default {
   checkShopAccess,

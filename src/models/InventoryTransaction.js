@@ -157,18 +157,16 @@ const inventoryTransactionSchema = new mongoose.Schema(
   }
 );
 
-// ============================================
 // INDEXES
-// ============================================
+
 inventoryTransactionSchema.index({ productId: 1, transactionDate: -1 });
 inventoryTransactionSchema.index({ shopId: 1, transactionType: 1 });
 inventoryTransactionSchema.index({ organizationId: 1, transactionDate: -1 });
 inventoryTransactionSchema.index({ performedBy: 1 });
 inventoryTransactionSchema.index({ referenceType: 1, referenceId: 1 });
 
-// ============================================
 // VIRTUALS
-// ============================================
+
 inventoryTransactionSchema.virtual('quantityChange').get(function () {
   return this.newQuantity - this.previousQuantity;
 });
@@ -181,9 +179,8 @@ inventoryTransactionSchema.virtual('isOutbound').get(function () {
   return ['OUT', 'SALE', 'TRANSFER_OUT', 'DAMAGE', 'RESERVED'].includes(this.transactionType);
 });
 
-// ============================================
 // MIDDLEWARE
-// ============================================
+
 inventoryTransactionSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null });
@@ -191,9 +188,8 @@ inventoryTransactionSchema.pre(/^find/, function (next) {
   next();
 });
 
-// ============================================
 // INSTANCE METHODS
-// ============================================
+
 inventoryTransactionSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   return this.save();
@@ -204,9 +200,7 @@ inventoryTransactionSchema.methods.restore = function () {
   return this.save();
 };
 
-// ============================================
 // STATIC METHODS
-// ============================================
 
 // Get transaction history for a product
 inventoryTransactionSchema.statics.getProductHistory = function (productId, limit = 50) {

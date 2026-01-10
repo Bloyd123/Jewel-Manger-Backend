@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: middlewares/rateLimiter.js
 // Rate Limiting Middleware
-// ============================================================================
 
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';

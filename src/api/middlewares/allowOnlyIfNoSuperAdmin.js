@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: middleware/allowOnlyIfNoSuperAdmin.js
 // Middleware to ensure only ONE super admin can self-register (first time setup)
-// ============================================================================
 
 import User from '../../models/User.js';
 

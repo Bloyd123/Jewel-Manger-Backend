@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/customer/customer.service.js
 // Customer Business Logic Service
-// ============================================================================
 
 import Customer from '../../models/Customer.js';
 import JewelryShop from '../../models/Shop.js';

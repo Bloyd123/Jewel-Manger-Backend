@@ -1,7 +1,5 @@
-// ============================================================================
 // FILE: src/api/payment/payment.validation.js
 // Payment Validation Rules - Complete Payment Module
-// ============================================================================
 
 import { body, param, query } from 'express-validator';
 
