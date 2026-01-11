@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-
 // MAIN CATEGORIES (parentId: null)
 
 const mainCategories = [
@@ -153,7 +152,6 @@ const mainCategories = [
     isActive: true,
   },
 ];
-
 
 // SUBCATEGORIES (mapped to parentId)
 
@@ -412,7 +410,6 @@ const subCategories = {
   ],
   OTHER: [{ code: 'OTHER_MISC', name: { default: 'Miscellaneous', localized: { hi: 'विविध' } } }],
 };
-
 
 // SEED FUNCTION
 

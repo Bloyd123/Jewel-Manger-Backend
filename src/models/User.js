@@ -465,6 +465,7 @@ userSchema.methods.toJSON = function () {
   delete userObject.passwordResetToken;
   delete userObject.twoFactorSecret;
   delete userObject.backupCodes;
+  delete userObject.backupCodesUsed;
   delete userObject.__v;
   delete userObject.deletedAt;
   return userObject;

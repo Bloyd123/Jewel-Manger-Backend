@@ -6,6 +6,7 @@ import tokenManager from '../../utils/tokenManager.js';
 import eventLogger from '../../utils/eventLogger.js';
 import cache from '../../utils/cache.js';
 import { sendEmail } from '../../utils/email.js';
+import mongoose from 'mongoose';
 import {
   getPermissionsByRole,
   getAllPermissions,
@@ -179,6 +180,23 @@ class AuthService {
       );
       throw new UnauthorizedError('Your account has been deactivated');
     }
+    if (user.twoFactorEnabled) {
+      // Generate temporary session token (5 min expiry)
+      const tempToken = tokenManager.generateTempSessionToken(user._id);
+
+      await eventLogger.logAuth(
+        user._id,
+        user.organizationId,
+        'login_2fa_required',
+        'success',
+        ipAddress
+      );
+
+      return {
+        requires2FA: true,
+        tempToken,
+      };
+    }
 
     // Check if organization is active (skip for super_admin)
     if (user.role !== 'super_admin') {
@@ -186,34 +204,13 @@ class AuthService {
       if (!organization || !organization.isActive) {
         throw new UnauthorizedError('Organization is inactive');
       }
-      if (user.twoFactorEnabled) {
-        // Generate temporary session token (5 min expiry)
-        const tempToken = tokenManager.generateTempSessionToken(user._id);
 
-        await eventLogger.logAuth(
-          user._id,
-          user.organizationId,
-          'login_2fa_required',
-          'success',
-          ipAddress
-        );
-
-        return {
-          requires2FA: true,
-          tempToken,
-        };
-      }
       // !important
       // // Check subscription status
-      // if (!organization.isSubscriptionActive()) {
-      //   throw new UnauthorizedError('Organization subscription has expired');
-      // }
+      if (!organization.isSubscriptionActive()) {
+        throw new UnauthorizedError('Organization subscription has expired');
+      }
     }
-
-    // Check subscription status
-    // if (!organization.isSubscriptionActive()) {
-    //   throw new UnauthorizedError('Organization subscription has expired');
-    // }
 
     // Generate token pair
     const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
