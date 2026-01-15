@@ -1,5 +1,5 @@
 import express from 'express';
-import * as productController from './product.controller.js';
+import productController from './product.controller.js';
 import {
   createProductValidation,
   updateProductValidation,
@@ -28,41 +28,41 @@ import { rateLimiter } from '../middlewares/rateLimiter.js';
 const router = express.Router();
 
 // ALL ROUTES REQUIRE AUTHENTICATION
+
 router.use(authenticate);
 
-// BULK OPERATIONS ROUTES (MUST BE BEFORE :id ROUTES)
+// PRODUCT CRUD ROUTES
 
 /**
- * @route   POST /api/v1/shops/:shopId/products/bulk-delete
- * @desc    Bulk delete products
- * @access  Private (shop_admin only)
- * @permission canDeleteProducts
- */
-router.post(
-  '/:shopId/products/bulk-delete',
-  restrictTo('super_admin', 'org_admin', 'shop_admin'),
-  checkShopAccess,
-  checkPermission('canDeleteProducts'),
-  bulkDeleteValidation,
-  productController.bulkDeleteProducts
-);
-
-/**
- * @route   POST /api/v1/shops/:shopId/products/bulk-update-status
- * @desc    Bulk update product status
+ * @route   POST /api/v1/shops/:shopId/products
+ * @desc    Create a new product
  * @access  Private (shop_admin, manager)
- * @permission canEditInventory
+ * @permission canManageProducts
  */
 router.post(
-  '/:shopId/products/bulk-update-status',
+  '/:shopId/products',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditInventory'),
-  bulkUpdateStatusValidation,
-  productController.bulkUpdateStatus
+  checkPermission('canManageProducts'),
+  rateLimiter({ max: 100, windowMs: 15 * 60 * 1000 }), // 100 requests per 15 minutes
+  createProductValidation,
+  productController.createProduct
 );
 
-// SPECIAL ROUTES (MUST BE BEFORE :id ROUTES)
+/**
+ * @route   GET /api/v1/shops/:shopId/products
+ * @desc    Get all products for a shop (with filters, search, pagination)
+ * @access  Private (all authenticated users)
+ * @permission canViewInventory
+ */
+router.get(
+  '/:shopId/products',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
+  checkShopAccess,
+  checkPermission('canViewInventory'),
+  getProductsValidation,
+  productController.getProducts
+);
 
 /**
  * @route   GET /api/v1/shops/:shopId/products/search
@@ -106,39 +106,6 @@ router.get(
   checkShopAccess,
   checkPermission('canViewAnalytics'),
   productController.getProductAnalytics
-);
-
-// PRODUCT CRUD ROUTES
-
-/**
- * @route   POST /api/v1/shops/:shopId/products
- * @desc    Create a new product
- * @access  Private (shop_admin, manager)
- * @permission canManageProducts
- */
-router.post(
-  '/:shopId/products',
-  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
-  checkShopAccess,
-  checkPermission('canManageProducts'),
-  rateLimiter({ max: 100, windowMs: 15 * 60 * 1000 }), // 100 requests per 15 minutes
-  createProductValidation,
-  productController.createProduct
-);
-
-/**
- * @route   GET /api/v1/shops/:shopId/products
- * @desc    Get all products for a shop (with filters, search, pagination)
- * @access  Private (all authenticated users)
- * @permission canViewInventory
- */
-router.get(
-  '/:shopId/products',
-  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
-  checkShopAccess,
-  checkPermission('canViewInventory'),
-  getProductsValidation,
-  productController.getProducts
 );
 
 /**
@@ -278,6 +245,38 @@ router.post(
   checkAnyPermission(['canEditInventory', 'canManageMetalRates']),
   calculatePriceValidation,
   productController.calculatePrice
+);
+
+// BULK OPERATIONS ROUTES
+
+/**
+ * @route   POST /api/v1/shops/:shopId/products/bulk-delete
+ * @desc    Bulk delete products
+ * @access  Private (shop_admin only)
+ * @permission canDeleteProducts
+ */
+router.post(
+  '/:shopId/products/bulk-delete',
+  restrictTo('super_admin', 'org_admin', 'shop_admin'),
+  checkShopAccess,
+  checkPermission('canDeleteProducts'),
+  bulkDeleteValidation,
+  productController.bulkDeleteProducts
+);
+
+/**
+ * @route   POST /api/v1/shops/:shopId/products/bulk-update-status
+ * @desc    Bulk update product status
+ * @access  Private (shop_admin, manager)
+ * @permission canEditInventory
+ */
+router.post(
+  '/:shopId/products/bulk-update-status',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
+  checkPermission('canEditInventory'),
+  bulkUpdateStatusValidation,
+  productController.bulkUpdateStatus
 );
 
 export default router;
