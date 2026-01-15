@@ -1,3 +1,6 @@
+// FILE: src/api/auth/auth.service.js
+// Authentication Service - Business Logic Layer (Functional Implementation)
+
 import crypto from 'crypto';
 import User from '../../models/User.js';
 import Organization from '../../models/Organization.js';
@@ -22,15 +25,65 @@ import {
   ValidationError,
   InternalServerError,
 } from '../../utils/AppError.js';
+import catchAsync from '../../utils/catchAsync.js';
+
+// HELPER FUNCTIONS
 
 /**
- * Authentication Service
- * Handles all business logic for authentication operations
+ * Get default permissions based on role
  */
-class AuthService {
-  // USER REGISTRATION
+const getDefaultPermissionsForShopAccess = role => {
+  return getPermissionsByRole(role);
+};
 
-  async registerUser(userData, ipAddress, userAgent, currentUser = null) {
+/**
+ * Send verification email
+ */
+const sendVerificationEmail = async (user, verificationToken) => {
+  const verifyURL = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+
+  await sendEmail({
+    to: user.email,
+    subject: 'Email Verification - Jewelry ERP',
+    html: `
+      <h2>Welcome ${user.firstName}!</h2>
+      <p>Please verify your email address by clicking the link below:</p>
+      <a href="${verifyURL}" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
+        Verify Email
+      </a>
+      <p>This link will expire in 24 hours.</p>
+      <p>If you didn't create this account, please ignore this email.</p>
+    `,
+  });
+};
+
+/**
+ * Send password reset email
+ */
+const sendPasswordResetEmail = async (user, resetToken) => {
+  const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+  await sendEmail({
+    to: user.email,
+    subject: 'Password Reset Request - Jewelry ERP',
+    html: `
+      <h2>Password Reset Request</h2>
+      <p>Hi ${user.firstName},</p>
+      <p>You requested to reset your password. Click the link below:</p>
+      <a href="${resetURL}" style="display: inline-block; padding: 10px 20px; background: #2196F3; color: white; text-decoration: none; border-radius: 5px;">
+        Reset Password
+      </a>
+      <p>This link will expire in 1 hour.</p>
+      <p>If you didn't request this, please ignore this email.</p>
+    `,
+  });
+};
+
+// SERVICE FUNCTIONS
+
+// USER REGISTRATION
+export const registerUser = catchAsync(
+  async (userData, ipAddress, userAgent, currentUser = null) => {
     //   STEP 1: Destructure userData FIRST
     const {
       username,
@@ -96,7 +149,7 @@ class AuthService {
 
     //   STEP 5: Create UserShopAccess (if shop-level user)
     if (primaryShop) {
-      const defaultPermissions = this.getDefaultPermissionsForShopAccess(role);
+      const defaultPermissions = getDefaultPermissionsForShopAccess(role);
       await UserShopAccess.create({
         userId: user._id,
         shopId: primaryShop,
@@ -121,14 +174,13 @@ class AuthService {
     await user.save();
 
     //   STEP 7: Send verification email (non-blocking)
-    this.sendVerificationEmail(user, verificationToken).catch(err => {
+    sendVerificationEmail(user, verificationToken).catch(err => {
       console.error('Email sending failed:', err);
     });
 
     //   STEP 8: Generate token pair
     const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
 
-    //   STEP 9: Log Activity
     //   STEP 9: Log Activity
     if (currentUser) {
       await eventLogger.logUserManagement(
@@ -155,110 +207,100 @@ class AuthService {
       ...tokens,
     };
   }
+);
 
-  // HELPER: Default Permissions Based on Role
+// USER LOGIN
+export const loginUser = catchAsync(async (email, password, ipAddress, userAgent) => {
+  // Find user by credentials
+  const user = await User.findByCredentials(email, password);
 
-  getDefaultPermissionsForShopAccess(role) {
-    return getPermissionsByRole(role);
-  }
-
-  // USER LOGIN
-
-  async loginUser(email, password, ipAddress, userAgent) {
-    // Find user by credentials
-    const user = await User.findByCredentials(email, password);
-
-    // Check if user is active
-    if (!user.isActive) {
-      await eventLogger.logAuth(
-        user._id,
-        user.organizationId,
-        'login_failed',
-        'failed',
-        ipAddress,
-        { email, reason: 'Account deactivated' }
-      );
-      throw new UnauthorizedError('Your account has been deactivated');
-    }
-    if (user.twoFactorEnabled) {
-      // Generate temporary session token (5 min expiry)
-      const tempToken = tokenManager.generateTempSessionToken(user._id);
-
-      await eventLogger.logAuth(
-        user._id,
-        user.organizationId,
-        'login_2fa_required',
-        'success',
-        ipAddress
-      );
-
-      return {
-        requires2FA: true,
-        tempToken,
-      };
-    }
-
-    // Check if organization is active (skip for super_admin)
-    if (user.role !== 'super_admin') {
-      const organization = await Organization.findById(user.organizationId);
-      if (!organization || !organization.isActive) {
-        throw new UnauthorizedError('Organization is inactive');
-      }
-
-      // !important
-      // // Check subscription status
-      if (!organization.isSubscriptionActive()) {
-        throw new UnauthorizedError('Organization subscription has expired');
-      }
-    }
-
-    // Generate token pair
-    const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
-    // NEW: Role-based permission handling
-    let shopAccesses = [];
-    let effectivePermissions = null;
-
-    // Update last login
-    await user.updateLastLogin(ipAddress);
-
-    // Log successful login
-    await eventLogger.logAuth(user._id, user.organizationId, 'login', 'success', ipAddress, {
-      browser: userAgent,
+  // Check if user is active
+  if (!user.isActive) {
+    await eventLogger.logAuth(user._id, user.organizationId, 'login_failed', 'failed', ipAddress, {
+      email,
+      reason: 'Account deactivated',
     });
-    // For shop-level users: Fetch from database
-    if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
-      shopAccesses = await UserShopAccess.find({
-        userId: user._id,
-        isActive: true,
-        deletedAt: null,
-        revokedAt: null,
-      })
-        .select('shopId role permissions isActive')
-        .populate('shopId', 'name displayName');
-    }
-    // For super admin: All permissions
-    else if (user.role === 'super_admin') {
-      effectivePermissions = getAllPermissions();
-    }
-    // For org admin: Organization-level permissions
-    else if (user.role === 'org_admin') {
-      effectivePermissions = getOrgAdminPermissions();
-    }
+    throw new UnauthorizedError('Your account has been deactivated');
+  }
+  if (user.twoFactorEnabled) {
+    // Generate temporary session token (5 min expiry)
+    const tempToken = tokenManager.generateTempSessionToken(user._id);
 
-    // Cache user
-    cache.set(cache.userKey(user._id), user.toJSON(), 600);
+    await eventLogger.logAuth(
+      user._id,
+      user.organizationId,
+      'login_2fa_required',
+      'success',
+      ipAddress
+    );
 
     return {
-      user: user.toJSON(),
-      ...tokens,
-      shopAccesses, // Always array (empty or with data)
-      effectivePermissions, // null or permissions object
+      requires2FA: true,
+      tempToken,
     };
   }
 
-  // USER LOGOUT
+  // Check if organization is active (skip for super_admin)
+  if (user.role !== 'super_admin') {
+    const organization = await Organization.findById(user.organizationId);
+    if (!organization || !organization.isActive) {
+      throw new UnauthorizedError('Organization is inactive');
+    }
 
-  async logoutUser(userId, organizationId, refreshToken, accessToken, ipAddress) {
+    // !important
+    // // Check subscription status
+    if (!organization.isSubscriptionActive()) {
+      throw new UnauthorizedError('Organization subscription has expired');
+    }
+  }
+
+  // Generate token pair
+  const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
+  // NEW: Role-based permission handling
+  let shopAccesses = [];
+  let effectivePermissions = null;
+
+  // Update last login
+  await user.updateLastLogin(ipAddress);
+
+  // Log successful login
+  await eventLogger.logAuth(user._id, user.organizationId, 'login', 'success', ipAddress, {
+    browser: userAgent,
+  });
+  // For shop-level users: Fetch from database
+  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
+    shopAccesses = await UserShopAccess.find({
+      userId: user._id,
+      isActive: true,
+      deletedAt: null,
+      revokedAt: null,
+    })
+      .select('shopId role permissions isActive')
+      .populate('shopId', 'name displayName');
+  }
+  // For super admin: All permissions
+  else if (user.role === 'super_admin') {
+    effectivePermissions = getAllPermissions();
+  }
+  // For org admin: Organization-level permissions
+  else if (user.role === 'org_admin') {
+    effectivePermissions = getOrgAdminPermissions();
+  }
+
+  // Cache user
+  cache.set(cache.userKey(user._id), user.toJSON(), 600);
+
+  return {
+    user: user.toJSON(),
+    ...tokens,
+    shopAccesses, // Always array (empty or with data)
+    effectivePermissions, // null or permissions object
+  };
+});
+
+// USER LOGOUT
+export const logoutUser = catchAsync(
+  async (userId, organizationId, refreshToken, accessToken, ipAddress) => {
     if (refreshToken) {
       try {
         await tokenManager.revokeRefreshToken(refreshToken);
@@ -283,83 +325,81 @@ class AuthService {
 
     return { success: true };
   }
+);
 
-  // LOGOUT FROM ALL DEVICES
+// LOGOUT FROM ALL DEVICES
+export const logoutAllDevices = catchAsync(async (userId, organizationId, ipAddress) => {
+  const revokedCount = await tokenManager.revokeAllUserTokens(userId);
 
-  async logoutAllDevices(userId, organizationId, ipAddress) {
-    const revokedCount = await tokenManager.revokeAllUserTokens(userId);
+  // Clear all user-related cache
+  cache.deletePattern(`user:${userId}:*`);
+  cache.del(cache.userKey(userId));
 
-    // Clear all user-related cache
-    cache.deletePattern(`user:${userId}:*`);
-    cache.del(cache.userKey(userId));
+  // Log activity
+  await eventLogger.logAuth(userId, organizationId, 'logout_all_devices', 'success', ipAddress, {
+    revokedTokens: revokedCount,
+  });
 
-    // Log activity
-    await eventLogger.logAuth(userId, organizationId, 'logout_all_devices', 'success', ipAddress, {
-      revokedTokens: revokedCount,
-    });
+  return { revokedCount };
+});
 
-    return { revokedCount };
-  }
+// REFRESH ACCESS TOKEN
+export const refreshAccessToken = catchAsync(async (refreshToken, ipAddress, userAgent) => {
+  const tokens = await tokenManager.refreshAccessToken(refreshToken, ipAddress, userAgent);
+  return tokens;
+});
 
-  // REFRESH ACCESS TOKEN
+// UPDATE USER PROFILE
+export const updateUserProfile = catchAsync(async (userId, updates) => {
+  const allowedUpdates = [
+    'firstName',
+    'lastName',
+    'phone',
+    'profileImage',
+    'designation',
+    'preferences',
+  ];
 
-  async refreshAccessToken(refreshToken, ipAddress, userAgent) {
-    const tokens = await tokenManager.refreshAccessToken(refreshToken, ipAddress, userAgent);
-    return tokens;
-  }
-
-  // UPDATE USER PROFILE
-
-  async updateUserProfile(userId, updates) {
-    const allowedUpdates = [
-      'firstName',
-      'lastName',
-      'phone',
-      'profileImage',
-      'designation',
-      'preferences',
-    ];
-
-    const filteredUpdates = {};
-    Object.keys(updates).forEach(key => {
-      if (allowedUpdates.includes(key)) {
-        filteredUpdates[key] = updates[key];
-      }
-    });
-
-    if (Object.keys(filteredUpdates).length === 0) {
-      throw new ValidationError('No valid fields to update');
+  const filteredUpdates = {};
+  Object.keys(updates).forEach(key => {
+    if (allowedUpdates.includes(key)) {
+      filteredUpdates[key] = updates[key];
     }
+  });
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { ...filteredUpdates, updatedBy: userId },
-      { new: true, runValidators: true }
-    );
-
-    if (!user) {
-      throw new UserNotFoundError();
-    }
-
-    // Invalidate cache
-    cache.del(cache.userKey(user._id));
-
-    // Log activity
-    await eventLogger.logUserManagement(
-      userId,
-      user.organizationId,
-      'profile_update',
-      user._id,
-      'User updated their profile',
-      { updates: Object.keys(filteredUpdates) }
-    );
-
-    return user.toJSON();
+  if (Object.keys(filteredUpdates).length === 0) {
+    throw new ValidationError('No valid fields to update');
   }
 
-  // CHANGE PASSWORD
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { ...filteredUpdates, updatedBy: userId },
+    { new: true, runValidators: true }
+  );
 
-  async changePassword(userId, currentPassword, newPassword, ipAddress) {
+  if (!user) {
+    throw new UserNotFoundError();
+  }
+
+  // Invalidate cache
+  cache.del(cache.userKey(user._id));
+
+  // Log activity
+  await eventLogger.logUserManagement(
+    userId,
+    user.organizationId,
+    'profile_update',
+    user._id,
+    'User updated their profile',
+    { updates: Object.keys(filteredUpdates) }
+  );
+
+  return user.toJSON();
+});
+
+// CHANGE PASSWORD
+export const changePassword = catchAsync(
+  async (userId, currentPassword, newPassword, ipAddress) => {
     // Validate password length
     if (newPassword.length < 6) {
       throw new ValidationError('Password must be at least 6 characters');
@@ -399,476 +439,431 @@ class AuthService {
 
     return { success: true };
   }
+);
 
-  // FORGOT PASSWORD
+// FORGOT PASSWORD
+export const forgotPassword = catchAsync(async (email, ipAddress) => {
+  const user = await User.findOne({ email, isActive: true });
 
-  async forgotPassword(email, ipAddress) {
-    const user = await User.findOne({ email, isActive: true });
-
-    // Don't reveal if user exists (security best practice)
-    if (!user) {
-      return { success: true };
-    }
-
-    // Generate reset token
-    const resetToken = tokenManager.generatePasswordResetToken(user._id);
-
-    // Save hashed token to user
-    user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hour
-    await user.save();
-
-    // Send email
-    try {
-      await this.sendPasswordResetEmail(user, resetToken);
-    } catch (error) {
-      // Cleanup token if email fails
-      user.passwordResetToken = undefined;
-      user.passwordResetExpires = undefined;
-      await user.save();
-      throw new InternalServerError('Failed to send password reset email');
-    }
-
-    // Log activity
-    await eventLogger.logAuth(
-      user._id,
-      user.organizationId,
-      'password_reset_requested',
-      'success',
-      ipAddress,
-      { email: user.email }
-    );
-
+  // Don't reveal if user exists (security best practice)
+  if (!user) {
     return { success: true };
   }
 
-  // RESET PASSWORD
+  // Generate reset token
+  const resetToken = tokenManager.generatePasswordResetToken(user._id);
 
-  async resetPassword(token, newPassword, ipAddress) {
-    // Validate password length
-    if (newPassword.length < 6) {
-      throw new ValidationError('Password must be at least 6 characters');
-    }
+  // Save hashed token to user
+  user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+  await user.save();
 
-    // Verify token
-    const decoded = tokenManager.verifySpecialToken(token, 'password_reset');
-
-    // Find user
-    const user = await User.findById(decoded.userId).select('+password');
-
-    if (!user || !user.isActive) {
-      throw new ValidationError('Invalid or expired reset token');
-    }
-
-    // Update password
-    user.password = newPassword;
+  // Send email
+  try {
+    await sendPasswordResetEmail(user, resetToken);
+  } catch (error) {
+    // Cleanup token if email fails
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
-
-    // Revoke all tokens
-    await tokenManager.revokeAllUserTokens(user._id);
-
-    // Clear cache
-    cache.del(cache.userKey(user._id));
-
-    // Log activity
-    await eventLogger.logAuth(
-      user._id,
-      user.organizationId,
-      'password_reset',
-      'success',
-      ipAddress
-    );
-
-    return { success: true };
+    throw new InternalServerError('Failed to send password reset email');
   }
 
-  // VERIFY EMAIL
+  // Log activity
+  await eventLogger.logAuth(
+    user._id,
+    user.organizationId,
+    'password_reset_requested',
+    'success',
+    ipAddress,
+    { email: user.email }
+  );
 
-  async verifyEmail(token, ipAddress) {
-    // Verify token
-    const decoded = tokenManager.verifySpecialToken(token, 'email_verification');
+  return { success: true };
+});
 
-    // Find user
-    const user = await User.findById(decoded.userId);
-
-    if (!user) {
-      throw new UserNotFoundError();
-    }
-
-    // Check if already verified
-    if (user.isEmailVerified) {
-      return { alreadyVerified: true };
-    }
-
-    // Verify email
-    user.isEmailVerified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
-    await user.save();
-
-    // Clear cache
-    cache.del(cache.userKey(user._id));
-
-    // Log activity
-    await eventLogger.logAuth(
-      user._id,
-      user.organizationId,
-      'email_verified',
-      'success',
-      ipAddress
-    );
-
-    return { success: true };
+// RESET PASSWORD
+export const resetPassword = catchAsync(async (token, newPassword, ipAddress) => {
+  // Validate password length
+  if (newPassword.length < 6) {
+    throw new ValidationError('Password must be at least 6 characters');
   }
 
-  // RESEND VERIFICATION EMAIL
+  // Verify token
+  const decoded = tokenManager.verifySpecialToken(token, 'password_reset');
 
-  async resendVerificationEmail(userId) {
-    const user = await User.findById(userId);
+  // Find user
+  const user = await User.findById(decoded.userId).select('+password');
 
-    if (!user) {
-      throw new UserNotFoundError();
-    }
-
-    if (user.isEmailVerified) {
-      throw new ValidationError('Email is already verified');
-    }
-
-    // Generate new verification token
-    const verificationToken = tokenManager.generateEmailVerificationToken(user._id, user.email);
-
-    // Save token
-    user.emailVerificationToken = crypto
-      .createHash('sha256')
-      .update(verificationToken)
-      .digest('hex');
-    user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
-    await user.save();
-
-    // Send email
-    await this.sendVerificationEmail(user, verificationToken);
-
-    return { success: true };
+  if (!user || !user.isActive) {
+    throw new ValidationError('Invalid or expired reset token');
   }
 
-  // GET ACTIVE SESSIONS
+  // Update password
+  user.password = newPassword;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
 
-  async getActiveSessions(userId, currentTokenId) {
-    const sessions = await tokenManager.getUserTokens(userId);
+  // Revoke all tokens
+  await tokenManager.revokeAllUserTokens(user._id);
 
-    const formattedSessions = sessions.map(session => ({
-      id: session.tokenId,
-      device: session.userAgent || 'Unknown Device',
-      ipAddress: session.ipAddress,
-      lastUsed: session.lastUsedAt,
-      createdAt: session.createdAt,
-      expiresAt: session.expiresAt,
-      isCurrent: session.tokenId === currentTokenId,
-    }));
+  // Clear cache
+  cache.del(cache.userKey(user._id));
 
-    return formattedSessions;
+  // Log activity
+  await eventLogger.logAuth(user._id, user.organizationId, 'password_reset', 'success', ipAddress);
+
+  return { success: true };
+});
+
+// VERIFY EMAIL
+export const verifyEmail = catchAsync(async (token, ipAddress) => {
+  // Verify token
+  const decoded = tokenManager.verifySpecialToken(token, 'email_verification');
+
+  // Find user
+  const user = await User.findById(decoded.userId);
+
+  if (!user) {
+    throw new UserNotFoundError();
   }
 
-  // REVOKE SESSION
-
-  async revokeSession(userId, organizationId, tokenId, ipAddress) {
-    await tokenManager.revokeRefreshToken(tokenId);
-
-    // Log activity
-    await eventLogger.logAuth(userId, organizationId, 'session_revoked', 'success', ipAddress, {
-      tokenId,
-    });
-
-    return { success: true };
+  // Check if already verified
+  if (user.isEmailVerified) {
+    return { alreadyVerified: true };
   }
 
-  // EMAIL HELPERS
+  // Verify email
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpires = undefined;
+  await user.save();
 
-  async sendVerificationEmail(user, verificationToken) {
-    const verifyURL = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+  // Clear cache
+  cache.del(cache.userKey(user._id));
 
-    await sendEmail({
-      to: user.email,
-      subject: 'Email Verification - Jewelry ERP',
-      html: `
-        <h2>Welcome ${user.firstName}!</h2>
-        <p>Please verify your email address by clicking the link below:</p>
-        <a href="${verifyURL}" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
-          Verify Email
-        </a>
-        <p>This link will expire in 24 hours.</p>
-        <p>If you didn't create this account, please ignore this email.</p>
-      `,
-    });
+  // Log activity
+  await eventLogger.logAuth(user._id, user.organizationId, 'email_verified', 'success', ipAddress);
+
+  return { success: true };
+});
+
+// RESEND VERIFICATION EMAIL
+export const resendVerificationEmail = catchAsync(async userId => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new UserNotFoundError();
   }
 
-  async sendPasswordResetEmail(user, resetToken) {
-    const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-
-    await sendEmail({
-      to: user.email,
-      subject: 'Password Reset Request - Jewelry ERP',
-      html: `
-        <h2>Password Reset Request</h2>
-        <p>Hi ${user.firstName},</p>
-        <p>You requested to reset your password. Click the link below:</p>
-        <a href="${resetURL}" style="display: inline-block; padding: 10px 20px; background: #2196F3; color: white; text-decoration: none; border-radius: 5px;">
-          Reset Password
-        </a>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      `,
-    });
+  if (user.isEmailVerified) {
+    throw new ValidationError('Email is already verified');
   }
 
-  // ENABLE 2FA
+  // Generate new verification token
+  const verificationToken = tokenManager.generateEmailVerificationToken(user._id, user.email);
 
-  async enable2FA(userId) {
-    const speakeasy = (await import('speakeasy')).default;
-    const QRCode = (await import('qrcode')).default;
+  // Save token
+  user.emailVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+  user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
+  await user.save();
 
-    const user = await User.findById(userId);
-    if (!user) throw new UserNotFoundError();
+  // Send email
+  await sendVerificationEmail(user, verificationToken);
 
-    // Generate secret
-    const secret = speakeasy.generateSecret({
-      name: `JewelryERP (${user.email})`,
-      length: 32,
-    });
+  return { success: true };
+});
 
-    // Generate QR code
-    const qrCodeDataURL = await QRCode.toDataURL(secret.otpauth_url);
+// GET ACTIVE SESSIONS
+export const getActiveSessions = catchAsync(async (userId, currentTokenId) => {
+  const sessions = await tokenManager.getUserTokens(userId);
 
-    // Store secret temporarily (not enabled yet)
-    user.twoFactorSecret = secret.base32;
-    user.twoFactorEnabled = false;
-    await user.save();
+  const formattedSessions = sessions.map(session => ({
+    id: session.tokenId,
+    device: session.userAgent || 'Unknown Device',
+    ipAddress: session.ipAddress,
+    lastUsed: session.lastUsedAt,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+    isCurrent: session.tokenId === currentTokenId,
+  }));
 
-    return {
-      secret: secret.base32,
-      qrCodeDataURL,
-    };
+  return formattedSessions;
+});
+
+// REVOKE SESSION
+export const revokeSession = catchAsync(async (userId, organizationId, tokenId, ipAddress) => {
+  await tokenManager.revokeRefreshToken(tokenId);
+
+  // Log activity
+  await eventLogger.logAuth(userId, organizationId, 'session_revoked', 'success', ipAddress, {
+    tokenId,
+  });
+
+  return { success: true };
+});
+
+// ENABLE 2FA
+export const enable2FA = catchAsync(async userId => {
+  const speakeasy = (await import('speakeasy')).default;
+  const QRCode = (await import('qrcode')).default;
+
+  const user = await User.findById(userId);
+  if (!user) throw new UserNotFoundError();
+
+  // Generate secret
+  const secret = speakeasy.generateSecret({
+    name: `JewelryERP (${user.email})`,
+    length: 32,
+  });
+
+  // Generate QR code
+  const qrCodeDataURL = await QRCode.toDataURL(secret.otpauth_url);
+
+  // Store secret temporarily (not enabled yet)
+  user.twoFactorSecret = secret.base32;
+  user.twoFactorEnabled = false;
+  await user.save();
+
+  return {
+    secret: secret.base32,
+    qrCodeDataURL,
+  };
+});
+
+// VERIFY & ACTIVATE 2FA
+export const verify2FA = catchAsync(async (userId, token) => {
+  const speakeasy = (await import('speakeasy')).default;
+  const bcrypt = (await import('bcryptjs')).default;
+
+  const user = await User.findById(userId).select('+twoFactorSecret');
+  if (!user) throw new UserNotFoundError();
+
+  // Verify token
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token,
+    window: 2,
+  });
+
+  if (!verified) {
+    throw new ValidationError('Invalid verification code');
   }
 
-  // VERIFY & ACTIVATE 2FA
+  // Generate 10 backup codes
+  const backupCodes = [];
+  const hashedBackupCodes = [];
 
-  async verify2FA(userId, token) {
-    const speakeasy = (await import('speakeasy')).default;
-    const bcrypt = (await import('bcryptjs')).default;
-
-    const user = await User.findById(userId).select('+twoFactorSecret');
-    if (!user) throw new UserNotFoundError();
-
-    // Verify token
-    const verified = speakeasy.totp.verify({
-      secret: user.twoFactorSecret,
-      encoding: 'base32',
-      token,
-      window: 2,
-    });
-
-    if (!verified) {
-      throw new ValidationError('Invalid verification code');
-    }
-
-    // Generate 10 backup codes
-    const backupCodes = [];
-    const hashedBackupCodes = [];
-
-    for (let i = 0; i < 10; i++) {
-      const code = crypto.randomBytes(6).toString('hex').toUpperCase();
-      const formatted = `${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8, 12)}`;
-      backupCodes.push(formatted);
-      hashedBackupCodes.push(await bcrypt.hash(formatted, 10));
-    }
-
-    // Save and enable 2FA
-    user.twoFactorEnabled = true;
-    user.backupCodes = hashedBackupCodes;
-    user.backupCodesUsed = [];
-    await user.save();
-
-    await eventLogger.logAuth(userId, user.organizationId, '2fa_enabled', 'success', null);
-
-    return { success: true, backupCodes };
+  for (let i = 0; i < 10; i++) {
+    const code = crypto.randomBytes(6).toString('hex').toUpperCase();
+    const formatted = `${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8, 12)}`;
+    backupCodes.push(formatted);
+    hashedBackupCodes.push(await bcrypt.hash(formatted, 10));
   }
 
-  // DISABLE 2FA
+  // Save and enable 2FA
+  user.twoFactorEnabled = true;
+  user.backupCodes = hashedBackupCodes;
+  user.backupCodesUsed = [];
+  await user.save();
 
-  async disable2FA(userId, password, token, ipAddress) {
-    const speakeasy = (await import('speakeasy')).default;
+  await eventLogger.logAuth(userId, user.organizationId, '2fa_enabled', 'success', null);
 
-    const user = await User.findById(userId).select('+password +twoFactorSecret');
-    if (!user) throw new UserNotFoundError();
+  return { success: true, backupCodes };
+});
 
-    // Verify password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) throw new InvalidCredentialsError('Incorrect password');
+// DISABLE 2FA
+export const disable2FA = catchAsync(async (userId, password, token, ipAddress) => {
+  const speakeasy = (await import('speakeasy')).default;
 
-    // Verify 2FA token
-    const verified = speakeasy.totp.verify({
-      secret: user.twoFactorSecret,
-      encoding: 'base32',
-      token,
-      window: 2,
-    });
+  const user = await User.findById(userId).select('+password +twoFactorSecret');
+  if (!user) throw new UserNotFoundError();
 
-    if (!verified) throw new ValidationError('Invalid 2FA code');
+  // Verify password
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) throw new InvalidCredentialsError('Incorrect password');
 
-    // Disable 2FA
-    user.twoFactorEnabled = false;
-    user.twoFactorSecret = undefined;
-    user.backupCodes = undefined;
-    user.backupCodesUsed = undefined;
-    await user.save();
+  // Verify 2FA token
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token,
+    window: 2,
+  });
 
-    await eventLogger.logAuth(userId, user.organizationId, '2fa_disabled', 'success', ipAddress);
+  if (!verified) throw new ValidationError('Invalid 2FA code');
 
-    return { success: true };
+  // Disable 2FA
+  user.twoFactorEnabled = false;
+  user.twoFactorSecret = undefined;
+  user.backupCodes = undefined;
+  user.backupCodesUsed = undefined;
+  await user.save();
+
+  await eventLogger.logAuth(userId, user.organizationId, '2fa_disabled', 'success', ipAddress);
+
+  return { success: true };
+});
+
+// VERIFY 2FA DURING LOGIN
+export const verify2FALogin = catchAsync(async (tempToken, token, ipAddress, userAgent) => {
+  const speakeasy = (await import('speakeasy')).default;
+
+  // Verify temp token
+  const decoded = tokenManager.verifyTempSessionToken(tempToken);
+
+  const user = await User.findById(decoded.userId).select('+twoFactorSecret');
+  if (!user || !user.isActive) throw new UnauthorizedError('Invalid session');
+
+  // Verify 2FA code
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token,
+    window: 2,
+  });
+
+  if (!verified) throw new ValidationError('Invalid 2FA code');
+
+  // Generate real tokens
+  const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
+
+  await user.updateLastLogin(ipAddress);
+  await eventLogger.logAuth(
+    user._id,
+    user.organizationId,
+    'login_2fa_success',
+    'success',
+    ipAddress
+  );
+
+  // Get shop accesses and permissions (same as login)
+  let shopAccesses = [];
+  let effectivePermissions = null;
+
+  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
+    const UserShopAccess = mongoose.model('UserShopAccess');
+    shopAccesses = await UserShopAccess.find({
+      userId: user._id,
+      isActive: true,
+      deletedAt: null,
+      revokedAt: null,
+    })
+      .select('shopId role permissions isActive')
+      .populate('shopId', 'name displayName');
+  } else if (user.role === 'super_admin') {
+    effectivePermissions = getAllPermissions();
+  } else if (user.role === 'org_admin') {
+    effectivePermissions = getOrgAdminPermissions();
   }
 
-  // VERIFY 2FA DURING LOGIN
+  cache.set(cache.userKey(user._id), user.toJSON(), 600);
 
-  async verify2FALogin(tempToken, token, ipAddress, userAgent) {
-    const speakeasy = (await import('speakeasy')).default;
+  return {
+    user: user.toJSON(),
+    ...tokens,
+    shopAccesses,
+    effectivePermissions,
+  };
+});
 
-    // Verify temp token
-    const decoded = tokenManager.verifyTempSessionToken(tempToken);
+// VERIFY BACKUP CODE DURING LOGIN
+export const verifyBackupCode = catchAsync(async (tempToken, backupCode, ipAddress, userAgent) => {
+  const bcrypt = (await import('bcryptjs')).default;
 
-    const user = await User.findById(decoded.userId).select('+twoFactorSecret');
-    if (!user || !user.isActive) throw new UnauthorizedError('Invalid session');
+  const decoded = tokenManager.verifyTempSessionToken(tempToken);
 
-    // Verify 2FA code
-    const verified = speakeasy.totp.verify({
-      secret: user.twoFactorSecret,
-      encoding: 'base32',
-      token,
-      window: 2,
-    });
+  const user = await User.findById(decoded.userId).select('+backupCodes +backupCodesUsed');
+  if (!user || !user.isActive) throw new UnauthorizedError('Invalid session');
 
-    if (!verified) throw new ValidationError('Invalid 2FA code');
+  // Check backup codes
+  let codeFound = false;
+  let codeIndex = -1;
 
-    // Generate real tokens
-    const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
-
-    await user.updateLastLogin(ipAddress);
-    await eventLogger.logAuth(
-      user._id,
-      user.organizationId,
-      'login_2fa_success',
-      'success',
-      ipAddress
-    );
-
-    // Get shop accesses and permissions (same as login)
-    let shopAccesses = [];
-    let effectivePermissions = null;
-
-    if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
-      const UserShopAccess = mongoose.model('UserShopAccess');
-      shopAccesses = await UserShopAccess.find({
-        userId: user._id,
-        isActive: true,
-        deletedAt: null,
-        revokedAt: null,
-      })
-        .select('shopId role permissions isActive')
-        .populate('shopId', 'name displayName');
-    } else if (user.role === 'super_admin') {
-      effectivePermissions = getAllPermissions();
-    } else if (user.role === 'org_admin') {
-      effectivePermissions = getOrgAdminPermissions();
-    }
-
-    cache.set(cache.userKey(user._id), user.toJSON(), 600);
-
-    return {
-      user: user.toJSON(),
-      ...tokens,
-      shopAccesses,
-      effectivePermissions,
-    };
-  }
-
-  // VERIFY BACKUP CODE DURING LOGIN
-
-  async verifyBackupCode(tempToken, backupCode, ipAddress, userAgent) {
-    const bcrypt = (await import('bcryptjs')).default;
-
-    const decoded = tokenManager.verifyTempSessionToken(tempToken);
-
-    const user = await User.findById(decoded.userId).select('+backupCodes +backupCodesUsed');
-    if (!user || !user.isActive) throw new UnauthorizedError('Invalid session');
-
-    // Check backup codes
-    let codeFound = false;
-    let codeIndex = -1;
-
-    for (let i = 0; i < user.backupCodes.length; i++) {
-      const isMatch = await bcrypt.compare(backupCode, user.backupCodes[i]);
-      if (isMatch) {
-        // Check if already used
-        if (user.backupCodesUsed.includes(user.backupCodes[i])) {
-          throw new ValidationError('This backup code has already been used');
-        }
-        codeFound = true;
-        codeIndex = i;
-        break;
+  for (let i = 0; i < user.backupCodes.length; i++) {
+    const isMatch = await bcrypt.compare(backupCode, user.backupCodes[i]);
+    if (isMatch) {
+      // Check if already used
+      if (user.backupCodesUsed.includes(user.backupCodes[i])) {
+        throw new ValidationError('This backup code has already been used');
       }
+      codeFound = true;
+      codeIndex = i;
+      break;
     }
-
-    if (!codeFound) throw new ValidationError('Invalid backup code');
-
-    // Mark as used
-    user.backupCodesUsed.push(user.backupCodes[codeIndex]);
-    await user.save();
-
-    // Generate tokens
-    const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
-
-    await user.updateLastLogin(ipAddress);
-    await eventLogger.logAuth(
-      user._id,
-      user.organizationId,
-      'backup_code_used',
-      'success',
-      ipAddress
-    );
-
-    const remainingCodes = user.backupCodes.length - user.backupCodesUsed.length;
-
-    // Get shop accesses and permissions (same as login)
-    let shopAccesses = [];
-    let effectivePermissions = null;
-
-    if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
-      const UserShopAccess = mongoose.model('UserShopAccess');
-      shopAccesses = await UserShopAccess.find({
-        userId: user._id,
-        isActive: true,
-        deletedAt: null,
-        revokedAt: null,
-      })
-        .select('shopId role permissions isActive')
-        .populate('shopId', 'name displayName');
-    } else if (user.role === 'super_admin') {
-      effectivePermissions = getAllPermissions();
-    } else if (user.role === 'org_admin') {
-      effectivePermissions = getOrgAdminPermissions();
-    }
-
-    cache.set(cache.userKey(user._id), user.toJSON(), 600);
-
-    return {
-      user: user.toJSON(),
-      ...tokens,
-      remainingBackupCodes: remainingCodes,
-      shopAccesses,
-      effectivePermissions,
-    };
   }
-}
 
-export default new AuthService();
+  if (!codeFound) throw new ValidationError('Invalid backup code');
+
+  // Mark as used
+  user.backupCodesUsed.push(user.backupCodes[codeIndex]);
+  await user.save();
+
+  // Generate tokens
+  const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
+
+  await user.updateLastLogin(ipAddress);
+  await eventLogger.logAuth(
+    user._id,
+    user.organizationId,
+    'backup_code_used',
+    'success',
+    ipAddress
+  );
+
+  const remainingCodes = user.backupCodes.length - user.backupCodesUsed.length;
+
+  // Get shop accesses and permissions (same as login)
+  let shopAccesses = [];
+  let effectivePermissions = null;
+
+  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
+    const UserShopAccess = mongoose.model('UserShopAccess');
+    shopAccesses = await UserShopAccess.find({
+      userId: user._id,
+      isActive: true,
+      deletedAt: null,
+      revokedAt: null,
+    })
+      .select('shopId role permissions isActive')
+      .populate('shopId', 'name displayName');
+  } else if (user.role === 'super_admin') {
+    effectivePermissions = getAllPermissions();
+  } else if (user.role === 'org_admin') {
+    effectivePermissions = getOrgAdminPermissions();
+  }
+
+  cache.set(cache.userKey(user._id), user.toJSON(), 600);
+
+  return {
+    user: user.toJSON(),
+    ...tokens,
+    remainingBackupCodes: remainingCodes,
+    shopAccesses,
+    effectivePermissions,
+  };
+});
+
+// Default export object for backward compatibility
+export default {
+  registerUser,
+  loginUser,
+  logoutUser,
+  logoutAllDevices,
+  refreshAccessToken,
+  updateUserProfile,
+  changePassword,
+  forgotPassword,
+  resetPassword,
+  verifyEmail,
+  resendVerificationEmail,
+  getActiveSessions,
+  revokeSession,
+  enable2FA,
+  verify2FA,
+  disable2FA,
+  verify2FALogin,
+  verifyBackupCode,
+};
