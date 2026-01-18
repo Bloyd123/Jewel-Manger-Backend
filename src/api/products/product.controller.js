@@ -1,4 +1,4 @@
-import productService from './product.service.js';
+import * as productService from './product.service.js';
 import { validationResult } from 'express-validator';
 import {
   sendSuccess,

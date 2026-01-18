@@ -507,5 +507,3 @@ export default {
   updateShopSettings,
   getShopStatistics,
 };
-
-

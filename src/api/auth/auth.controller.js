@@ -1,4 +1,4 @@
-import authService from './auth.service.js';
+import * as authService from './auth.service.js';
 import eventLogger from '../../utils/eventLogger.js';
 import catchAsync from '../../utils/catchAsync.js';
 import { sendSuccess, sendCreated } from '../../utils/sendResponse.js';
