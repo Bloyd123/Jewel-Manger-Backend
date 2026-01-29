@@ -200,6 +200,7 @@ export const registerUser = async (userData, ipAddress, userAgent, currentUser =
 // USER LOGIN
 export const loginUser = async (email, password, ipAddress, userAgent) => {
   // Find user by credentials
+  
   const user = await User.findByCredentials(email, password);
 
   // Check if user is active
@@ -259,6 +260,12 @@ export const loginUser = async (email, password, ipAddress, userAgent) => {
   await eventLogger.logAuth(user._id, user.organizationId, 'login', 'success', ipAddress, {
     browser: userAgent,
   });
+  console.log('🔍 USER ROLE:', user.role);
+console.log('🔍 All roles check:', {
+  isShopLevel: ['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role),
+  isSuperAdmin: user.role === 'super_admin',
+  isOrgAdmin: user.role === 'org_admin'
+});
   // For shop-level users: Fetch from database
   if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
     shopAccesses = await UserShopAccess.find({
@@ -275,8 +282,32 @@ export const loginUser = async (email, password, ipAddress, userAgent) => {
     effectivePermissions = getAllPermissions();
   }
   // For org admin: Organization-level permissions
-  else if (user.role === 'org_admin') {
+else if (user.role === 'org_admin') {
     effectivePermissions = getOrgAdminPermissions();
+    
+    //  Fetch shops (just IDs and names - NO permissions!)
+    const Shop = mongoose.model('JewelryShop');
+    const orgShops = await Shop.find({
+      organizationId: user.organizationId,
+      isActive: true,
+      deletedAt: null,
+    })
+      .select('_id name displayName')
+      .lean();
+    
+    //  Create lightweight shopAccesses
+    shopAccesses = orgShops.map(shop => ({
+      shopId: {
+        _id: shop._id,
+        name: shop.name,
+        displayName: shop.displayName || shop.name,
+      },
+      role: 'org_admin',
+      permissions: null,
+      isActive: true,
+    }));
+    
+    console.log(` Org admin ${user.email} has access to ${shopAccesses.length} shops`);
   }
 
   // Cache user
@@ -758,9 +789,34 @@ export const verify2FALogin = async (tempToken, token, ipAddress, userAgent) => 
       .populate('shopId', 'name displayName');
   } else if (user.role === 'super_admin') {
     effectivePermissions = getAllPermissions();
-  } else if (user.role === 'org_admin') {
+  }  else if (user.role === 'org_admin') {
     effectivePermissions = getOrgAdminPermissions();
+    
+    //  Fetch shops (just IDs and names - NO permissions!)
+    const Shop = mongoose.model('JewelryShop');
+    const orgShops = await Shop.find({
+      organizationId: user.organizationId,
+      isActive: true,
+      deletedAt: null,
+    })
+      .select('_id name displayName')
+      .lean();
+    
+    //  Create lightweight shopAccesses
+    shopAccesses = orgShops.map(shop => ({
+      shopId: {
+        _id: shop._id,
+        name: shop.name,
+        displayName: shop.displayName || shop.name,
+      },
+      role: 'org_admin',
+      permissions: null,
+      isActive: true,
+    }));
+    
+    console.log(` Org admin ${user.email} has access to ${shopAccesses.length} shops`);
   }
+
 
   cache.set(cache.userKey(user._id), user.toJSON(), 600);
 
@@ -835,9 +891,32 @@ export const verifyBackupCode = async (tempToken, backupCode, ipAddress, userAge
   } else if (user.role === 'super_admin') {
     effectivePermissions = getAllPermissions();
   } else if (user.role === 'org_admin') {
-    effectivePermissions = getOrgAdminPermissions();
-  }
-
+  effectivePermissions = getOrgAdminPermissions();
+  
+  //  Fetch shops using correct model name
+  const Shop = mongoose.model('JewelryShop');
+  const orgShops = await Shop.find({
+    organizationId: user.organizationId,
+    isActive: true,
+    deletedAt: null,
+  })
+    .select('_id name displayName')
+    .lean();
+  
+  //  Create lightweight shopAccesses
+  shopAccesses = orgShops.map(shop => ({
+    shopId: {
+      _id: shop._id,
+      name: shop.name,
+      displayName: shop.displayName || shop.name,
+    },
+    role: 'org_admin',
+    permissions: null,
+    isActive: true,
+  }));
+  
+  console.log(` Org admin ${user.email} has access to ${shopAccesses.length} shops`);
+}
   cache.set(cache.userKey(user._id), user.toJSON(), 600);
 
   return {
