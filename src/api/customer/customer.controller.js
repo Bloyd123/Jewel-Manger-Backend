@@ -2,14 +2,14 @@
 // Customer Controller - Compatible with existing sendResponse.js
 
 import { validationResult } from 'express-validator';
-import customerService from './customer.service.js';
+import * as customerService from './customer.service.js';
 import {
   sendSuccess,
   sendCreated,
   sendBadRequest,
   sendNotFound,
   sendConflict,
-  sendInternalError, // Your existing function
+  sendInternalError, 
 } from '../../utils/sendResponse.js';
 import logger from '../../utils/logger.js';
 import eventLogger from '../../utils/eventLogger.js';
