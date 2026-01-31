@@ -93,7 +93,7 @@ router.post(
   createCustomerValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
-  checkAnyPermission(['canCreateCustomers', 'canManageCustomers']),
+  checkAnyPermission(['canCreateCustomer', 'canManageCustomers']),
   rateLimiter({ max: 50, windowMs: 60000 }),
   createCustomer
 );
