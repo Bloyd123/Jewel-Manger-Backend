@@ -1,4 +1,4 @@
-import supplierService from './supplier.service.js';
+import * as  supplierService from './supplier.service.js';
 import { catchAsync } from '../middlewares/errorHandler.js';
 import { sendSuccess, sendCreated, sendPaginated } from '../../utils/sendResponse.js';
 
