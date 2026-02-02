@@ -15,17 +15,17 @@
 
 export const PERMISSIONS = {
   //  CUSTOMER MANAGEMENT (13) 
-  CREATE_CUSTOMER: 'canCreateCustomer',
-  SEARCH_CUSTOMER: 'canSearchCustomer',
-  VIEW_CUSTOMERS: 'canViewCustomers',
-  GET_SINGLE_CUSTOMER: 'canGetSingleCustomer',
-  UPDATE_CUSTOMER: 'canUpdateCustomer',
-  DELETE_CUSTOMERS: 'canDeleteCustomers',
-  BLACKLIST_CUSTOMER: 'canBlacklistCustomer',
-  REMOVE_CUSTOMER_BLACKLIST: 'canRemoveCustomerBlacklist',
-  ADD_LOYALTY_POINTS: 'canAddLoyaltyPoints',
-  REDEEM_LOYALTY_POINTS: 'canRedeemLoyaltyPoints',
-  VIEW_CUSTOMER_ANALYTICS: 'canViewCustomerAnalytics',
+  CREATE_CUSTOMER: 'canCreateCustomer',//
+  SEARCH_CUSTOMER: 'canSearchCustomer',//
+  VIEW_CUSTOMERS: 'canViewCustomers',//
+  GET_SINGLE_CUSTOMER: 'canGetSingleCustomer',//
+  UPDATE_CUSTOMER: 'canUpdateCustomer',//
+  DELETE_CUSTOMERS: 'canDeleteCustomers',//
+  BLACKLIST_CUSTOMER: 'canBlacklistCustomer',//
+  REMOVE_CUSTOMER_BLACKLIST: 'canRemoveCustomerBlacklist',//
+  ADD_LOYALTY_POINTS: 'canAddLoyaltyPoints',//
+  REDEEM_LOYALTY_POINTS: 'canRedeemLoyaltyPoints',//
+  VIEW_CUSTOMER_ANALYTICS: 'canViewCustomerAnalytics',//
   MANAGE_CUSTOMERS: 'canManageCustomers',
   VIEW_CUSTOMER_HISTORY: 'canViewCustomerHistory',
 

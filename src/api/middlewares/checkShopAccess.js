@@ -13,11 +13,18 @@ import { catchAsync } from './errorHandler.js';
 import logger from '../../utils/logger.js';
 
 // BASIC SHOP ACCESS CHECK - Verifies user has access to shop
+const resolveShopId = req =>
+  req.body?.shopId ||
+  req.query?.shopId ||
+  req.params?.shopId ||
+  req.user?.primaryShop;
 
 export const checkShopAccess = catchAsync(async (req, res, next) => {
   try {
     // 1. Get shopId from multiple sources (body has priority, then query, then params, then user's primary shop)
-    const shopId = req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
+const shopId = resolveShopId(req);
+
+
 
     if (!shopId) {
       throw new NotFoundError('Shop ID is required');
@@ -115,8 +122,8 @@ export const checkPermission = permission => {
       }
 
       // 2. Get shopId from multiple sources
-      const shopId =
-        req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
+const shopId = resolveShopId(req);
+
 
       if (!shopId) {
         throw new NotFoundError('Shop ID is required to check permissions');
@@ -186,9 +193,8 @@ export const checkAnyPermission = permissions => {
       if (req.user.role === 'super_admin' || req.user.role === 'org_admin') {
         return next();
       }
+const shopId = resolveShopId(req);
 
-      const shopId =
-        req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
 
       if (!shopId) {
         throw new NotFoundError('Shop ID is required to check permissions');
@@ -249,9 +255,8 @@ export const checkAllPermissions = permissions => {
       if (req.user.role === 'super_admin' || req.user.role === 'org_admin') {
         return next();
       }
+const shopId = resolveShopId(req);
 
-      const shopId =
-        req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
 
       if (!shopId) {
         throw new NotFoundError('Shop ID is required to check permissions');
@@ -305,7 +310,8 @@ export const checkAllPermissions = permissions => {
  */
 export const verifyShopOwnership = catchAsync(async (req, res, next) => {
   try {
-    const shopId = req.body.shopId || req.query.shopId || req.params.shopId || req.user.primaryShop;
+  const shopId = resolveShopId(req);
+
 
     if (!shopId) {
       throw new NotFoundError('Shop ID is required');
@@ -342,7 +348,8 @@ export const verifyShopOwnership = catchAsync(async (req, res, next) => {
 export const checkMultipleShopsAccess = (shopIdsField = 'shopIds') => {
   return catchAsync(async (req, res, next) => {
     try {
-      const shopIds = req.body[shopIdsField];
+     const shopIds = req.body?.[shopIdsField];
+
 
       if (!shopIds || !Array.isArray(shopIds) || shopIds.length === 0) {
         throw new ValidationError(`${shopIdsField} must be a non-empty array`);

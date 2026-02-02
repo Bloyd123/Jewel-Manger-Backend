@@ -36,7 +36,7 @@ import {
   checkAllPermissions,
 } from '../middlewares/checkShopAccess.js';
 import { rateLimiter } from '../middlewares/rateLimiter.js';
-
+import { PERMISSIONS } from '../../config/permission.constants.js';
 const router = express.Router({ mergeParams: true });
 
 // MIDDLEWARE: All routes require authentication
@@ -56,7 +56,7 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
-  checkPermission('canViewCustomerAnalytics'),
+ checkPermission(PERMISSIONS.VIEW_CUSTOMER_ANALYTICS), 
   rateLimiter({ max: 30, windowMs: 60000 }),
   getCustomerAnalytics
 );
@@ -74,7 +74,7 @@ router.get(
   searchCustomerValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewCustomers'),
+  checkPermission(PERMISSIONS.SEARCH_CUSTOMER),
   rateLimiter({ max: 100, windowMs: 60000 }),
   searchCustomer
 );
@@ -93,7 +93,7 @@ router.post(
   createCustomerValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
-  checkAnyPermission(['canCreateCustomer', 'canManageCustomers']),
+  checkAnyPermission([PERMISSIONS.CREATE_CUSTOMER, PERMISSIONS.MANAGE_CUSTOMERS]),
   rateLimiter({ max: 50, windowMs: 60000 }),
   createCustomer
 );
@@ -109,7 +109,7 @@ router.get(
   getCustomersValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewCustomers'),
+  checkPermission(PERMISSIONS.VIEW_CUSTOMERS),
   rateLimiter({ max: 100, windowMs: 60000 }),
   getCustomers
 );
@@ -125,9 +125,8 @@ router.get(
   shopIdValidation,
   customerIdValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
-
   checkShopAccess,
-  checkPermission('canViewCustomers'),
+  checkPermission(PERMISSIONS.GET_SINGLE_CUSTOMER),
   rateLimiter({ max: 100, windowMs: 60000 }),
   getCustomerById
 );
@@ -144,7 +143,7 @@ router.put(
   updateCustomerValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkAnyPermission(['canEditCustomers', 'canManageCustomers']),
+  checkAnyPermission([PERMISSIONS.UPDATE_CUSTOMER, PERMISSIONS.MANAGE_CUSTOMERS]),
   rateLimiter({ max: 50, windowMs: 60000 }),
   updateCustomer
 );
@@ -161,7 +160,7 @@ router.delete(
   customerIdValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkAllPermissions(['canDeleteCustomers', 'canManageCustomers']),
+  checkAllPermissions([PERMISSIONS.DELETE_CUSTOMERS, PERMISSIONS.MANAGE_CUSTOMERS]),
   rateLimiter({ max: 20, windowMs: 60000 }),
   deleteCustomer
 );
@@ -180,7 +179,7 @@ router.patch(
   blacklistCustomerValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canBlacklistCustomer'),
+  checkPermission(PERMISSIONS.BLACKLIST_CUSTOMER),
   rateLimiter({ max: 10, windowMs: 60000 }),
   blacklistCustomer
 );
@@ -197,7 +196,7 @@ router.patch(
   customerIdValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'), //   ADDED 'manager'
   checkShopAccess,
-  checkPermission('canRemoveCustomerBlacklist'),
+  checkPermission(PERMISSIONS.REMOVE_CUSTOMER_BLACKLIST),
   rateLimiter({ max: 10, windowMs: 60000 }),
   removeBlacklist
 );
@@ -216,7 +215,7 @@ router.post(
   loyaltyPointsValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canAddLoyaltyPoints'),
+  checkPermission(PERMISSIONS.ADD_LOYALTY_POINTS),
   rateLimiter({ max: 50, windowMs: 60000 }),
   addLoyaltyPoints
 );
@@ -233,7 +232,7 @@ router.post(
   loyaltyPointsValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
-  checkPermission('canRedeemLoyaltyPoints'),
+  checkPermission(PERMISSIONS.REDEEM_LOYALTY_POINTS),
   rateLimiter({ max: 50, windowMs: 60000 }),
   redeemLoyaltyPoints
 );
