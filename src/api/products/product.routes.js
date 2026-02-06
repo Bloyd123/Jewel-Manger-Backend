@@ -1,5 +1,5 @@
 import express from 'express';
-import productController from './product.controller.js';
+import  * as productController from './product.controller.js';
 import {
   createProductValidation,
   updateProductValidation,
@@ -40,7 +40,7 @@ router.use(authenticate);
  * @permission canManageProducts
  */
 router.post(
-  '/:shopId/products',
+  '',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canManageProducts'),
@@ -56,7 +56,7 @@ router.post(
  * @permission canViewInventory
  */
 router.get(
-  '/:shopId/products',
+  '',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
   checkShopAccess,
   checkPermission('canViewInventory'),
@@ -71,7 +71,7 @@ router.get(
  * @permission canViewInventory
  */
 router.get(
-  '/:shopId/products/search',
+  '/search',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
   checkShopAccess,
   checkPermission('canViewInventory'),
@@ -86,7 +86,7 @@ router.get(
  * @permission canViewInventory
  */
 router.get(
-  '/:shopId/products/low-stock',
+  '/low-stock',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canViewInventory'),
@@ -101,7 +101,7 @@ router.get(
  * @permission canViewAnalytics
  */
 router.get(
-  '/:shopId/products/analytics',
+  '/analytics',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
   checkPermission('canViewAnalytics'),
@@ -115,7 +115,7 @@ router.get(
  * @permission canViewInventory
  */
 router.get(
-  '/:shopId/products/:id',
+  '/:id',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
   checkShopAccess,
   checkPermission('canViewInventory'),
@@ -130,7 +130,7 @@ router.get(
  * @permission canEditInventory
  */
 router.put(
-  '/:shopId/products/:id',
+  '/:id',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canEditInventory'),
@@ -145,7 +145,7 @@ router.put(
  * @permission canDeleteProducts
  */
 router.delete(
-  '/:shopId/products/:id',
+  '/:id',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
   checkPermission('canDeleteProducts'),
@@ -162,7 +162,7 @@ router.delete(
  * @permission canEditInventory
  */
 router.patch(
-  '/:shopId/products/:id/stock',
+  '/:id/stock',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canEditInventory'),
@@ -177,7 +177,7 @@ router.patch(
  * @permission canViewInventory
  */
 router.get(
-  '/:shopId/products/:id/history',
+  '/:id/history',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
   checkPermission('canViewInventory'),
@@ -193,7 +193,7 @@ router.get(
  * @permission canManageSales OR canCreateSales
  */
 router.patch(
-  '/:shopId/products/:id/reserve',
+  '/:id/reserve',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
   checkAnyPermission(['canManageSales', 'canCreateSales']),
@@ -208,7 +208,7 @@ router.patch(
  * @permission canManageSales OR canCreateSales
  */
 router.patch(
-  '/:shopId/products/:id/cancel-reservation',
+  '/:id/cancel-reservation',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
   checkAnyPermission(['canManageSales', 'canCreateSales']),
@@ -222,7 +222,7 @@ router.patch(
  * @permission canManageSales OR canCreateSales
  */
 router.patch(
-  '/:shopId/products/:id/sold',
+  '/:id/sold',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
   checkAnyPermission(['canManageSales', 'canCreateSales']),
@@ -239,7 +239,7 @@ router.patch(
  * @permission canEditInventory OR canManageMetalRates
  */
 router.post(
-  '/:shopId/products/:id/calculate-price',
+  '/:id/calculate-price',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkAnyPermission(['canEditInventory', 'canManageMetalRates']),
@@ -256,7 +256,7 @@ router.post(
  * @permission canDeleteProducts
  */
 router.post(
-  '/:shopId/products/bulk-delete',
+  '/bulk-delete',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
   checkPermission('canDeleteProducts'),
@@ -271,7 +271,7 @@ router.post(
  * @permission canEditInventory
  */
 router.post(
-  '/:shopId/products/bulk-update-status',
+  '/bulk-update-status',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canEditInventory'),
