@@ -13,9 +13,9 @@ Content-Type: application/json
 
 ---
 
-## 1️⃣ CREATE PRODUCT
+##  CREATE PRODUCT
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 1.1: Create Basic Gold Ring (22K)
 **Method:** `POST`  
@@ -227,7 +227,7 @@ stock:
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 1.6: Missing Required Field - Name
 **Method:** `POST`  
@@ -624,7 +624,7 @@ message: Metal rates not found for this shop. Please set metal rates first.
 
 ## 2️⃣ GET ALL PRODUCTS
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 2.1: Get All Products (No Filters)
 **Method:** `GET`  
@@ -748,7 +748,7 @@ pagination:
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 2.14: Invalid Page Number (0)
 **Method:** `GET`  
@@ -830,7 +830,7 @@ errors:
 
 ## 3️⃣ GET SINGLE PRODUCT
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 3.1: Get Product by Valid ID
 **Method:** `GET`  
@@ -858,7 +858,7 @@ data:
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 3.2: Invalid Product ID Format
 **Method:** `GET`  
@@ -895,7 +895,7 @@ message: Product not found
 
 ## 4️⃣ UPDATE PRODUCT
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 4.1: Update Product Name
 **Method:** `PUT`  
@@ -1028,7 +1028,7 @@ isActive: false
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 4.9: Try to Update productCode (Should be Ignored)
 **Method:** `PUT`  
@@ -1100,7 +1100,7 @@ pricing:
 
 ## 5️⃣ DELETE PRODUCT (SOFT DELETE)
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 5.1: Delete Existing Product
 **Method:** `DELETE`  
@@ -1110,7 +1110,7 @@ pricing:
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 5.2: Delete Non-Existent Product
 **Method:** `DELETE`  
@@ -1130,7 +1130,7 @@ pricing:
 
 ## 6️⃣ UPDATE STOCK
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 6.1: Add Stock
 **Method:** `PATCH`  
@@ -1201,7 +1201,7 @@ data:
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 6.4: Invalid Operation
 **Method:** `PATCH`  
@@ -1271,7 +1271,7 @@ errors:
 
 ## 7️⃣ RESERVE PRODUCT
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 7.1: Reserve Product for 7 Days
 **Method:** `PATCH`  
@@ -1311,7 +1311,7 @@ notes: Long-term hold for wedding
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 7.3: Reserve Already Reserved Product
 **Method:** `PATCH`  
@@ -1396,7 +1396,7 @@ errors:
 
 ## 8️⃣ CANCEL RESERVATION
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 8.1: Cancel Valid Reservation
 **Method:** `PATCH`  
@@ -1412,7 +1412,7 @@ data:
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 8.2: Cancel Non-Reserved Product
 **Method:** `PATCH`  
@@ -1427,7 +1427,7 @@ message: Product is not reserved
 
 ## 9️⃣ MARK AS SOLD
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 9.1: Mark Product as Sold
 **Method:** `PATCH`  
@@ -1452,7 +1452,7 @@ data:
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 9.2: Mark Already Sold Product
 **Method:** `PATCH`  
@@ -1503,7 +1503,7 @@ errors:
 
 ## 🔟 RECALCULATE PRICE
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 10.1: Recalculate with Current Metal Rates
 **Method:** `POST`  
@@ -1550,7 +1550,7 @@ data:
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 10.3: No Rate Specified
 **Method:** `POST`  
@@ -1597,7 +1597,7 @@ message: Current metal rates not found
 
 ## 1️⃣1️⃣ GET LOW STOCK PRODUCTS
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 11.1: Get Low Stock Products (Default)
 **Method:** `GET`  
@@ -1625,7 +1625,7 @@ data: [products with quantity <= 5]
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 11.3: Negative Threshold
 **Method:** `GET`  
@@ -1637,7 +1637,7 @@ data: [products with quantity <= 5]
 
 ## 1️⃣2️⃣ SEARCH PRODUCTS (QUICK SEARCH)
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 12.1: Search by Name
 **Method:** `GET`  
@@ -1667,7 +1667,7 @@ data: [products matching "ring"]
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 12.4: Empty Search Query
 **Method:** `GET`  
@@ -1700,7 +1700,7 @@ errors:
 
 ## 1️⃣3️⃣ GET PRODUCT HISTORY
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 13.1: Get Product Transaction History
 **Method:** `GET`  
@@ -1745,7 +1745,7 @@ data:
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 13.3: Non-Existent Product
 **Method:** `GET`  
@@ -1757,7 +1757,7 @@ data:
 
 ## 1️⃣4️⃣ BULK DELETE PRODUCTS
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 14.1: Bulk Delete Multiple Products
 **Method:** `POST`  
@@ -1781,7 +1781,7 @@ data:
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 14.2: Empty Product IDs Array
 **Method:** `POST`  
@@ -1835,7 +1835,7 @@ message: No products found to delete
 
 ## 1️⃣5️⃣ BULK UPDATE STATUS
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 15.1: Bulk Update to Discontinued
 **Method:** `POST`  
@@ -1874,7 +1874,7 @@ status: on_order
 
 ---
 
-### ❌ INVALID TEST CASES
+###  INVALID TEST CASES
 
 #### Test 15.3: Invalid Status
 **Method:** `POST`  
@@ -1912,7 +1912,7 @@ productIds: [
 
 ## 1️⃣6️⃣ GET PRODUCT ANALYTICS
 
-### ✅ VALID TEST CASES
+###  VALID TEST CASES
 
 #### Test 16.1: Get Product Analytics
 **Method:** `GET`  

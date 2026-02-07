@@ -40,7 +40,7 @@ router.use(authenticate);
  * @permission canManageProducts
  */
 router.post(
-  '',
+  '/',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canManageProducts'),
@@ -56,7 +56,7 @@ router.post(
  * @permission canViewInventory
  */
 router.get(
-  '',
+  '/',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
   checkShopAccess,
   checkPermission('canViewInventory'),
