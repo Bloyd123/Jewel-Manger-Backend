@@ -1,17 +1,10 @@
-# Purchase Module - Postman Test Collection
-## Complete Test Suite for All 22 Routes
+# Metal Rate Management - Postman Test Collection
+## Complete Test Suite for All Routes
 
 ### Table of Contents
 1. [Setup & Prerequisites](#setup--prerequisites)
-2. [Purchase CRUD Operations (5 Routes)](#1-purchase-crud-operations)
-3. [Purchase Status Management (3 Routes)](#2-purchase-status-management)
-4. [Purchase Approval (2 Routes)](#3-purchase-approval)
-5. [Payment Management (2 Routes)](#4-payment-management)
-6. [Supplier Purchases (1 Route)](#5-supplier-purchases)
-7. [Analytics & Reports (3 Routes)](#6-analytics--reports)
-8. [Bulk Operations (2 Routes)](#7-bulk-operations)
-9. [Document Management (2 Routes)](#8-document-management)
-10. [Search & Filters (2 Routes)](#9-search--filters)
+2. [Shop-Level Routes (9 Routes)](#1-shop-level-routes)
+3. [Organization-Level Routes (2 Routes)](#2-organization-level-routes)
 
 ---
 
@@ -22,9 +15,8 @@
 baseUrl: http://localhost:5000/api/v1
 authToken: YOUR_JWT_TOKEN
 shopId: YOUR_SHOP_ID
-supplierId: YOUR_SUPPLIER_ID
-purchaseId: (auto-set from create)
-draftPurchaseId: (auto-set from create)
+organizationId: YOUR_ORGANIZATION_ID
+rateId: (auto-set from create)
 ```
 
 ### Headers (Global)
@@ -35,37 +27,173 @@ Content-Type: application/json
 
 ---
 
-## 1. PURCHASE CRUD OPERATIONS
+## 1. SHOP-LEVEL ROUTES
 
-### 1.1 Create Purchase - SUCCESS ✅
+### 1.1 Create or Update Today's Rate
 
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases`
+#### 1.1.1 Create Rate - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/metal-rates`
+
+**Permission Required:** `canUpdateMetalRates`
 
 **Request Body:**
 ```json
 {
-  "supplierId": "{{supplierId}}",
-  "purchaseDate": "2024-02-07T10:00:00.000Z",
-  "purchaseType": "new_stock",
-  "items": [
-    {
-      "productName": "Gold Necklace 22K",
-      "metalType": "gold",
-      "purity": "22K",
-      "grossWeight": 50,
-      "stoneWeight": 5,
-      "netWeight": 45,
-      "weightUnit": "gram",
-      "ratePerGram": 6000,
-      "makingCharges": 5000,
-      "stoneValue": 2000,
-      "quantity": 1,
-      "gstPercentage": 3
+  "gold": {
+    "gold24K": {
+      "buyingRate": 6500,
+      "sellingRate": 6550
+    },
+    "gold22K": {
+      "buyingRate": 5950,
+      "sellingRate": 6000
+    },
+    "gold18K": {
+      "buyingRate": 4875,
+      "sellingRate": 4920
+    },
+    "gold14K": {
+      "buyingRate": 3790,
+      "sellingRate": 3830
     }
-  ],
-  "payment": {
-    "paymentMode": "cash",
-    "paidAmount": 50000
+  },
+  "silver": {
+    "pure": {
+      "buyingRate": 75,
+      "sellingRate": 78
+    },
+    "sterling925": {
+      "buyingRate": 69,
+      "sellingRate": 72
+    }
+  },
+  "platinum": {
+    "buyingRate": 3200,
+    "sellingRate": 3250
+  },
+  "weightUnit": "gram",
+  "currency": "INR",
+  "rateSource": "market",
+  "notes": "Daily market rates as of today morning",
+  "internalNotes": "Updated after consultation with jewelers association",
+  "marketReference": {
+    "internationalGoldPrice": 2050.50,
+    "internationalSilverPrice": 24.30,
+    "exchangeRate": 83.25,
+    "referenceSource": "MCX & International Markets"
+  }
+}
+```
+
+**Expected Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Metal rates created successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "shopId": "65c4f5e8a1234567890abcd0",
+    "organizationId": "65c4f5e8a1234567890abc00",
+    "purchaseNumber": "MR-2024-02-09-001",
+    "rateDate": "2024-02-09T00:00:00.000Z",
+    "gold": {
+      "gold24K": {
+        "buyingRate": 6500,
+        "sellingRate": 6550,
+        "margin": 50,
+        "marginPercentage": 0.77
+      },
+      "gold22K": {
+        "buyingRate": 5950,
+        "sellingRate": 6000,
+        "margin": 50,
+        "marginPercentage": 0.84
+      },
+      "gold18K": {
+        "buyingRate": 4875,
+        "sellingRate": 4920,
+        "margin": 45,
+        "marginPercentage": 0.92
+      },
+      "gold14K": {
+        "buyingRate": 3790,
+        "sellingRate": 3830,
+        "margin": 40,
+        "marginPercentage": 1.06
+      }
+    },
+    "silver": {
+      "pure": {
+        "buyingRate": 75,
+        "sellingRate": 78,
+        "margin": 3,
+        "marginPercentage": 4.0
+      },
+      "sterling925": {
+        "buyingRate": 69,
+        "sellingRate": 72,
+        "margin": 3,
+        "marginPercentage": 4.35
+      }
+    },
+    "platinum": {
+      "buyingRate": 3200,
+      "sellingRate": 3250,
+      "margin": 50,
+      "marginPercentage": 1.56
+    },
+    "baseRates": {
+      "gold24K": 6500,
+      "silver999": 75,
+      "platinum": 3200
+    },
+    "autoConvertedRates": {
+      "gold": {
+        "gold22K": 5958.33,
+        "gold20K": 5416.67,
+        "gold18K": 4875.0,
+        "gold14K": 3791.67
+      },
+      "silver": {
+        "sterling925": 69.38
+      }
+    },
+    "changes": {
+      "gold24K": {
+        "change": 50,
+        "changePercentage": 0.77,
+        "trend": "up"
+      },
+      "silver999": {
+        "change": 2,
+        "changePercentage": 2.67,
+        "trend": "up"
+      }
+    },
+    "trendData": {
+      "gold": {
+        "ma7": 6480,
+        "ma30": 6450,
+        "ma90": 6400
+      },
+      "silver": {
+        "ma7": 74.5,
+        "ma30": 73.8,
+        "ma90": 72.5
+      }
+    },
+    "weightUnit": "gram",
+    "currency": "INR",
+    "rateSource": "market",
+    "notes": "Daily market rates as of today morning",
+    "isCurrent": true,
+    "isActive": true,
+    "validFrom": "2024-02-09T05:30:00.000Z",
+    "createdBy": "65c4f5e8a1234567890abc11",
+    "createdAt": "2024-02-09T05:30:00.000Z",
+    "updatedAt": "2024-02-09T05:30:00.000Z",
+    "isNew": true
   }
 }
 ```
@@ -76,28 +204,29 @@ pm.test("Status code is 201", function () {
     pm.response.to.have.status(201);
 });
 
-pm.test("Purchase created successfully", function () {
+pm.test("Rate created successfully", function () {
     const jsonData = pm.response.json();
     pm.expect(jsonData.success).to.eql(true);
     pm.expect(jsonData.message).to.include("created");
 });
 
-pm.test("Purchase has all required fields", function () {
+pm.test("Rate has all required fields", function () {
     const data = pm.response.json().data;
     pm.expect(data).to.have.property('_id');
-    pm.expect(data).to.have.property('purchaseNumber');
-    pm.expect(data).to.have.property('items');
-    pm.expect(data).to.have.property('financials');
-    pm.expect(data.items.length).to.be.greaterThan(0);
+    pm.expect(data).to.have.property('rateDate');
+    pm.expect(data).to.have.property('gold');
+    pm.expect(data).to.have.property('silver');
+    pm.expect(data).to.have.property('baseRates');
+    pm.expect(data).to.have.property('autoConvertedRates');
     
-    // Save for later tests
-    pm.collectionVariables.set('purchaseId', data._id);
+    // Save rateId for later tests
+    pm.collectionVariables.set('rateId', data._id);
 });
 
-pm.test("Financial calculations are correct", function () {
+pm.test("Margins are calculated correctly", function () {
     const data = pm.response.json().data;
-    pm.expect(data.financials).to.have.property('grandTotal');
-    pm.expect(data.financials.grandTotal).to.be.greaterThan(0);
+    pm.expect(data.gold.gold24K.margin).to.eql(50);
+    pm.expect(data.gold.gold24K.marginPercentage).to.be.greaterThan(0);
 });
 
 pm.test("Response time is acceptable", function () {
@@ -107,219 +236,72 @@ pm.test("Response time is acceptable", function () {
 
 ---
 
-### 1.2 Create Purchase - FAILURE (Missing Supplier) ❌
+#### 1.1.2 Update Existing Rate - SUCCESS ✅
 
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases`
+**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/metal-rates`
 
 **Request Body:**
 ```json
 {
-  "purchaseDate": "2024-02-07T10:00:00.000Z",
-  "items": [
-    {
-      "productName": "Gold Ring",
-      "metalType": "gold",
-      "purity": "22K",
-      "grossWeight": 10,
-      "netWeight": 10
+  "gold": {
+    "gold24K": {
+      "buyingRate": 6550,
+      "sellingRate": 6600
+    },
+    "gold22K": {
+      "buyingRate": 6000,
+      "sellingRate": 6050
+    },
+    "gold18K": {
+      "buyingRate": 4920,
+      "sellingRate": 4965
+    },
+    "gold14K": {
+      "buyingRate": 3830,
+      "sellingRate": 3870
     }
-  ]
+  },
+  "silver": {
+    "pure": {
+      "buyingRate": 76,
+      "sellingRate": 79
+    },
+    "sterling925": {
+      "buyingRate": 70,
+      "sellingRate": 73
+    }
+  },
+  "platinum": {
+    "buyingRate": 3250,
+    "sellingRate": 3300
+  },
+  "notes": "Afternoon update - rates increased"
 }
 ```
 
-**Tests:**
-```javascript
-pm.test("Status code is 400 (Bad Request)", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Error message indicates missing supplier", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(false);
-    pm.expect(jsonData.message || jsonData.error).to.match(/supplier/i);
-});
-
-pm.test("Validation errors are present", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData).to.have.property('errors');
-});
-```
-
----
-
-### 1.3 Create Purchase - FAILURE (Invalid Supplier ID) ❌
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases`
-
-**Request Body:**
+**Expected Response (200 OK):**
 ```json
 {
-  "supplierId": "invalid_id_format",
-  "items": [
-    {
-      "productName": "Gold Ring",
-      "metalType": "gold",
-      "purity": "22K",
-      "grossWeight": 10,
-      "netWeight": 10
-    }
-  ]
-}
-```
-
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Validation error for invalid ID format", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(false);
-    pm.expect(jsonData.message || jsonData.errors).to.match(/invalid.*id/i);
-});
-```
-
----
-
-### 1.4 Create Purchase - FAILURE (Empty Items Array) ❌
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases`
-
-**Request Body:**
-```json
-{
-  "supplierId": "{{supplierId}}",
-  "items": []
-}
-```
-
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Error indicates items are required", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.message || jsonData.errors).to.match(/item|required/i);
-});
-```
-
----
-
-### 1.5 Get All Purchases - SUCCESS ✅
-
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases?page=1&limit=20`
-
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Response contains purchases array", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data).to.be.an('array');
-});
-
-pm.test("Pagination metadata is present", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData).to.have.property('page');
-    pm.expect(jsonData).to.have.property('limit');
-    pm.expect(jsonData).to.have.property('total');
-});
-
-pm.test("Each purchase has required fields", function () {
-    const purchases = pm.response.json().data;
-    if (purchases.length > 0) {
-        purchases.forEach(purchase => {
-            pm.expect(purchase).to.have.property('purchaseNumber');
-            pm.expect(purchase).to.have.property('purchaseDate');
-            pm.expect(purchase).to.have.property('status');
-        });
-    }
-});
-```
-
----
-
-### 1.6 Get All Purchases - FAILURE (Invalid Shop ID) ❌
-
-**Endpoint:** `GET {{baseUrl}}/shops/invalid_shop_id/purchases`
-
-**Tests:**
-```javascript
-pm.test("Status code is 400 or 404", function () {
-    pm.expect([400, 404]).to.include(pm.response.code);
-});
-
-pm.test("Error message is returned", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(false);
-});
-```
-
----
-
-### 1.7 Get Purchase by ID - SUCCESS ✅
-
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}`
-
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Purchase details are complete", function () {
-    const data = pm.response.json().data;
-    pm.expect(data).to.have.property('_id');
-    pm.expect(data).to.have.property('purchaseNumber');
-    pm.expect(data).to.have.property('items');
-    pm.expect(data).to.have.property('financials');
-    pm.expect(data).to.have.property('supplierId');
-    pm.expect(data).to.have.property('supplierDetails');
-});
-
-pm.test("Supplier information is populated", function () {
-    const data = pm.response.json().data;
-    pm.expect(data.supplierDetails).to.have.property('supplierName');
-});
-```
-
----
-
-### 1.8 Get Purchase by ID - FAILURE (Not Found) ❌
-
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/507f1f77bcf86cd799439011`
-
-**Tests:**
-```javascript
-pm.test("Status code is 404", function () {
-    pm.response.to.have.status(404);
-});
-
-pm.test("Not found error message", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(false);
-    pm.expect(jsonData.message).to.match(/not found/i);
-});
-```
-
----
-
-### 1.9 Update Purchase - SUCCESS ✅
-
-**Endpoint:** `PUT {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}`
-
-**Request Body:**
-```json
-{
-  "notes": "Updated purchase notes",
-  "payment": {
-    "paidAmount": 75000
+  "success": true,
+  "message": "Metal rates updated successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "gold": {
+      "gold24K": {
+        "buyingRate": 6550,
+        "sellingRate": 6600
+      }
+    },
+    "changes": {
+      "gold24K": {
+        "change": 50,
+        "changePercentage": 0.76,
+        "trend": "up"
+      }
+    },
+    "updatedBy": "65c4f5e8a1234567890abc11",
+    "updatedAt": "2024-02-09T09:30:00.000Z",
+    "isNew": false
   }
 }
 ```
@@ -330,30 +312,59 @@ pm.test("Status code is 200", function () {
     pm.response.to.have.status(200);
 });
 
-pm.test("Purchase updated successfully", function () {
+pm.test("Rate updated successfully", function () {
     const jsonData = pm.response.json();
     pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.message).to.match(/updated/i);
+    pm.expect(jsonData.data.isNew).to.eql(false);
 });
 
-pm.test("Updated fields are reflected", function () {
+pm.test("Updated values are reflected", function () {
     const data = pm.response.json().data;
-    pm.expect(data.notes).to.include("Updated");
+    pm.expect(data.gold.gold24K.buyingRate).to.eql(6550);
 });
 ```
 
 ---
 
-### 1.10 Update Purchase - FAILURE (Completed Purchase) ❌
+#### 1.1.3 Create Rate - FAILURE (Missing Gold 24K Rate) ❌
 
-**Prerequisite:** Need a completed purchase ID
-
-**Endpoint:** `PUT {{baseUrl}}/shops/{{shopId}}/purchases/{{completedPurchaseId}}`
+**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/metal-rates`
 
 **Request Body:**
 ```json
 {
-  "notes": "Trying to update completed purchase"
+  "gold": {
+    "gold22K": {
+      "buyingRate": 5950,
+      "sellingRate": 6000
+    }
+  },
+  "silver": {
+    "pure": {
+      "buyingRate": 75,
+      "sellingRate": 78
+    }
+  }
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "gold.gold24K.buyingRate",
+      "message": "Gold 24K buying rate is required",
+      "value": undefined
+    },
+    {
+      "field": "gold.gold24K.sellingRate",
+      "message": "Gold 24K selling rate is required",
+      "value": undefined
+    }
+  ]
 }
 ```
 
@@ -363,89 +374,53 @@ pm.test("Status code is 400", function () {
     pm.response.to.have.status(400);
 });
 
-pm.test("Error indicates cannot edit completed purchase", function () {
+pm.test("Validation error for missing required field", function () {
     const jsonData = pm.response.json();
-    pm.expect(jsonData.message).to.match(/cannot.*edit.*completed/i);
+    pm.expect(jsonData.success).to.eql(false);
+    pm.expect(jsonData.errors).to.be.an('array');
 });
 ```
 
 ---
 
-### 1.11 Delete Purchase - SUCCESS ✅
+#### 1.1.4 Create Rate - FAILURE (Negative Rate) ❌
 
-**Prerequisite:** Create a draft purchase first
-
-**Endpoint:** `DELETE {{baseUrl}}/shops/{{shopId}}/purchases/{{draftPurchaseId}}`
-
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Purchase deleted successfully", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.message).to.match(/deleted/i);
-});
-```
-
----
-
-### 1.12 Delete Purchase - FAILURE (Non-Draft Purchase) ❌
-
-**Endpoint:** `DELETE {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}`
-
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Error indicates only draft can be deleted", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.message).to.match(/only.*draft/i);
-});
-```
-
----
-
-## 2. PURCHASE STATUS MANAGEMENT
-
-### 2.1 Update Purchase Status - SUCCESS ✅
-
-**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/status`
+**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/metal-rates`
 
 **Request Body:**
 ```json
 {
-  "status": "pending"
+  "gold": {
+    "gold24K": {
+      "buyingRate": -100,
+      "sellingRate": 6550
+    },
+    "gold22K": {
+      "buyingRate": 5950,
+      "sellingRate": 6000
+    }
+  },
+  "silver": {
+    "pure": {
+      "buyingRate": 75,
+      "sellingRate": 78
+    }
+  }
 }
 ```
 
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Status updated successfully", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data.status).to.eql("pending");
-});
-```
-
----
-
-### 2.2 Update Purchase Status - FAILURE (Invalid Status) ❌
-
-**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/status`
-
-**Request Body:**
+**Expected Response (400 Bad Request):**
 ```json
 {
-  "status": "invalid_status"
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "gold.gold24K.buyingRate",
+      "message": "Gold 24K buying rate must be a positive number",
+      "value": -100
+    }
+  ]
 }
 ```
 
@@ -455,23 +430,226 @@ pm.test("Status code is 400", function () {
     pm.response.to.have.status(400);
 });
 
-pm.test("Validation error for invalid status", function () {
+pm.test("Error indicates negative rate not allowed", function () {
     const jsonData = pm.response.json();
-    pm.expect(jsonData.message || jsonData.errors).to.match(/invalid.*status/i);
+    pm.expect(jsonData.errors[0].message).to.match(/positive/i);
 });
 ```
 
 ---
 
-### 2.3 Receive Purchase - SUCCESS ✅
+#### 1.1.5 Create Rate - FAILURE (Selling Rate < Buying Rate) ❌
 
-**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/receive`
+**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/metal-rates`
 
 **Request Body:**
 ```json
 {
-  "receivedDate": "2024-02-07T15:00:00.000Z",
-  "notes": "Items received in good condition"
+  "gold": {
+    "gold24K": {
+      "buyingRate": 6550,
+      "sellingRate": 6500
+    },
+    "gold22K": {
+      "buyingRate": 5950,
+      "sellingRate": 6000
+    }
+  },
+  "silver": {
+    "pure": {
+      "buyingRate": 75,
+      "sellingRate": 78
+    }
+  }
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "gold.gold24K.sellingRate",
+      "message": "Selling rate cannot be less than buying rate for Gold 24K",
+      "value": 6500
+    }
+  ]
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Business logic validation error", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.errors[0].message).to.match(/selling rate cannot be less than buying rate/i);
+});
+```
+
+---
+
+#### 1.1.6 Create Rate - FAILURE (Invalid Weight Unit) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/metal-rates`
+
+**Request Body:**
+```json
+{
+  "gold": {
+    "gold24K": {
+      "buyingRate": 6500,
+      "sellingRate": 6550
+    },
+    "gold22K": {
+      "buyingRate": 5950,
+      "sellingRate": 6000
+    }
+  },
+  "silver": {
+    "pure": {
+      "buyingRate": 75,
+      "sellingRate": 78
+    }
+  },
+  "weightUnit": "pound"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "weightUnit",
+      "message": "Weight unit must be: gram, kg, or tola",
+      "value": "pound"
+    }
+  ]
+}
+```
+
+---
+
+#### 1.1.7 Create Rate - FAILURE (Unauthorized) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/metal-rates`
+
+**Headers:** 
+```
+Authorization: Bearer invalid_token
+```
+
+**Expected Response (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "message": "Unauthorized. Please login again.",
+  "statusCode": 401
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 401", function () {
+    pm.response.to.have.status(401);
+});
+
+pm.test("Unauthorized error message", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.message).to.match(/unauthorized/i);
+});
+```
+
+---
+
+### 1.2 Get Current Rate
+
+#### 1.2.1 Get Current Rate - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/current`
+
+**Permission Required:** Any shop access
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Current metal rates",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "shopId": "65c4f5e8a1234567890abcd0",
+    "rateDate": "2024-02-09T00:00:00.000Z",
+    "gold": {
+      "gold24K": {
+        "buyingRate": 6550,
+        "sellingRate": 6600,
+        "margin": 50,
+        "marginPercentage": 0.76
+      },
+      "gold22K": {
+        "buyingRate": 6000,
+        "sellingRate": 6050,
+        "margin": 50,
+        "marginPercentage": 0.83
+      },
+      "gold18K": {
+        "buyingRate": 4920,
+        "sellingRate": 4965,
+        "margin": 45,
+        "marginPercentage": 0.91
+      }
+    },
+    "silver": {
+      "pure": {
+        "buyingRate": 76,
+        "sellingRate": 79,
+        "margin": 3,
+        "marginPercentage": 3.95
+      },
+      "sterling925": {
+        "buyingRate": 70,
+        "sellingRate": 73,
+        "margin": 3,
+        "marginPercentage": 4.29
+      }
+    },
+    "platinum": {
+      "buyingRate": 3250,
+      "sellingRate": 3300,
+      "margin": 50,
+      "marginPercentage": 1.54
+    },
+    "baseRates": {
+      "gold24K": 6550,
+      "silver999": 76,
+      "platinum": 3250
+    },
+    "changes": {
+      "gold24K": {
+        "change": 50,
+        "changePercentage": 0.76,
+        "trend": "up"
+      }
+    },
+    "trendData": {
+      "gold": {
+        "ma7": 6480,
+        "ma30": 6450,
+        "ma90": 6400
+      }
+    },
+    "isCurrent": true,
+    "weightUnit": "gram",
+    "currency": "INR"
+  },
+  "cached": false
 }
 ```
 
@@ -481,166 +659,135 @@ pm.test("Status code is 200", function () {
     pm.response.to.have.status(200);
 });
 
-pm.test("Purchase marked as received", function () {
+pm.test("Current rate retrieved successfully", function () {
     const jsonData = pm.response.json();
     pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data.status).to.eql("completed");
+    pm.expect(jsonData.data).to.have.property('isCurrent', true);
 });
 
-pm.test("Inventory should be updated", function () {
+pm.test("All metal rates are present", function () {
     const data = pm.response.json().data;
-    pm.expect(data.delivery).to.have.property('receivedDate');
-    pm.expect(data.delivery).to.have.property('receivedBy');
+    pm.expect(data).to.have.property('gold');
+    pm.expect(data).to.have.property('silver');
+    pm.expect(data).to.have.property('platinum');
+    pm.expect(data.gold).to.have.property('gold24K');
+});
+
+pm.test("Response time is fast (heavily cached)", function () {
+    pm.expect(pm.response.responseTime).to.be.below(500);
 });
 ```
 
 ---
 
-### 2.4 Receive Purchase - FAILURE (Already Completed) ❌
+#### 1.2.2 Get Current Rate - FAILURE (No Rate Found) ❌
 
-**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/receive`
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/current`
 
-**Request Body:**
+**Expected Response (404 Not Found):**
 ```json
 {
-  "receivedDate": "2024-02-07T15:00:00.000Z"
+  "success": false,
+  "message": "No current metal rate found. Please update today's rates.",
+  "statusCode": 404
 }
 ```
 
 **Tests:**
 ```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
+pm.test("Status code is 404", function () {
+    pm.response.to.have.status(404);
 });
 
-pm.test("Error indicates already received", function () {
+pm.test("Not found error message", function () {
     const jsonData = pm.response.json();
-    pm.expect(jsonData.message).to.match(/already.*received/i);
+    pm.expect(jsonData.message).to.match(/no current.*rate found/i);
 });
 ```
 
 ---
 
-### 2.5 Cancel Purchase - SUCCESS ✅
+#### 1.2.3 Get Current Rate - FAILURE (Invalid Shop ID) ❌
 
-**Prerequisite:** Create a new pending purchase
+**Endpoint:** `GET {{baseUrl}}/shops/invalid_shop_id/metal-rates/current`
 
-**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/purchases/{{pendingPurchaseId}}/cancel`
-
-**Request Body:**
+**Expected Response (400 Bad Request):**
 ```json
 {
-  "reason": "Supplier unable to deliver items on time"
+  "success": false,
+  "message": "Invalid shop ID format",
+  "statusCode": 400
 }
 ```
 
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Purchase cancelled successfully", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data.status).to.eql("cancelled");
-});
-```
-
 ---
 
-### 2.6 Cancel Purchase - FAILURE (Missing Reason) ❌
+### 1.3 Get Rate History
 
-**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/cancel`
+#### 1.3.1 Get Rate History - SUCCESS ✅
 
-**Request Body:**
-```json
-{}
-```
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/history?startDate=2024-01-01&endDate=2024-02-09&page=1&limit=10`
 
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
+**Permission Required:** `canViewReports`
 
-pm.test("Validation error for missing reason", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.errors || jsonData.message).to.match(/reason.*required/i);
-});
-```
-
----
-
-## 3. PURCHASE APPROVAL
-
-### 3.1 Approve Purchase - SUCCESS ✅
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/approve`
-
-**Request Body:**
+**Expected Response (200 OK):**
 ```json
 {
-  "notes": "Purchase approved after verification"
-}
-```
-
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Purchase approved successfully", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data.approvalStatus).to.eql("approved");
-});
-
-pm.test("Approval metadata is set", function () {
-    const data = pm.response.json().data;
-    pm.expect(data).to.have.property('approvedBy');
-    pm.expect(data).to.have.property('approvedAt');
-});
-```
-
----
-
-### 3.2 Approve Purchase - FAILURE (Already Approved) ❌
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/approve`
-
-**Request Body:**
-```json
-{
-  "notes": "Trying to approve again"
-}
-```
-
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Error indicates already approved", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.message).to.match(/already.*approved/i);
-});
-```
-
----
-
-### 3.3 Reject Purchase - SUCCESS ✅
-
-**Prerequisite:** Create a new pending purchase
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/{{newPurchaseId}}/reject`
-
-**Request Body:**
-```json
-{
-  "reason": "Purchase prices are too high, renegotiation needed"
+  "success": true,
+  "message": "Rate history retrieved successfully",
+  "data": [
+    {
+      "_id": "65c4f5e8a1234567890abcde",
+      "rateDate": "2024-02-09T00:00:00.000Z",
+      "gold": {
+        "gold24K": {
+          "buyingRate": 6550,
+          "sellingRate": 6600
+        },
+        "gold22K": {
+          "buyingRate": 6000,
+          "sellingRate": 6050
+        }
+      },
+      "silver": {
+        "pure": {
+          "buyingRate": 76,
+          "sellingRate": 79
+        }
+      },
+      "platinum": {
+        "buyingRate": 3250,
+        "sellingRate": 3300
+      },
+      "changes": {
+        "gold24K": {
+          "change": 50,
+          "changePercentage": 0.76,
+          "trend": "up"
+        }
+      },
+      "trendData": {
+        "gold": {
+          "ma7": 6480,
+          "ma30": 6450,
+          "ma90": 6400
+        }
+      },
+      "isCurrent": true,
+      "weightUnit": "gram",
+      "currency": "INR"
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 5,
+      "pageSize": 10,
+      "totalItems": 45,
+      "hasNextPage": true,
+      "hasPrevPage": false
+    }
+  }
 }
 ```
 
@@ -650,170 +797,187 @@ pm.test("Status code is 200", function () {
     pm.response.to.have.status(200);
 });
 
-pm.test("Purchase rejected successfully", function () {
+pm.test("History data is an array", function () {
     const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data.approvalStatus).to.eql("rejected");
-});
-
-pm.test("Rejection reason is saved", function () {
-    const data = pm.response.json().data;
-    pm.expect(data).to.have.property('rejectionReason');
-    pm.expect(data.rejectionReason).to.not.be.empty;
-});
-```
-
----
-
-### 3.4 Reject Purchase - FAILURE (Reason Too Short) ❌
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/reject`
-
-**Request Body:**
-```json
-{
-  "reason": "No"
-}
-```
-
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Validation error for short reason", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.errors || jsonData.message).to.match(/5.*character/i);
-});
-```
-
----
-
-## 4. PAYMENT MANAGEMENT
-
-### 4.1 Add Payment - SUCCESS ✅
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/payments`
-
-**Request Body:**
-```json
-{
-  "amount": 25000,
-  "paymentMode": "upi",
-  "paymentDate": "2024-02-07T16:00:00.000Z",
-  "transactionId": "UPI123456789",
-  "notes": "Partial payment via UPI"
-}
-```
-
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Payment added successfully", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.message).to.match(/payment.*added/i);
-});
-
-pm.test("Payment status updated", function () {
-    const data = pm.response.json().data;
-    pm.expect(data.payment.paidAmount).to.be.greaterThan(0);
-    pm.expect(data.payment.payments).to.be.an('array');
-});
-```
-
----
-
-### 4.2 Add Payment - FAILURE (Invalid Amount) ❌
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/payments`
-
-**Request Body:**
-```json
-{
-  "amount": -1000,
-  "paymentMode": "cash"
-}
-```
-
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Validation error for negative amount", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.errors || jsonData.message).to.match(/amount.*positive/i);
-});
-```
-
----
-
-### 4.3 Add Payment - FAILURE (Missing Payment Mode) ❌
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/payments`
-
-**Request Body:**
-```json
-{
-  "amount": 5000
-}
-```
-
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Error indicates payment mode required", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.errors || jsonData.message).to.match(/payment.*mode.*required/i);
-});
-```
-
----
-
-### 4.4 Get Payments - SUCCESS ✅
-
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/payments`
-
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Payments array returned", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
     pm.expect(jsonData.data).to.be.an('array');
 });
 
-pm.test("Each payment has required fields", function () {
-    const payments = pm.response.json().data;
-    if (payments.length > 0) {
-        payments.forEach(payment => {
-            pm.expect(payment).to.have.property('amount');
-            pm.expect(payment).to.have.property('paymentMode');
-            pm.expect(payment).to.have.property('paymentDate');
-        });
+pm.test("Pagination metadata is present", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.meta).to.have.property('pagination');
+    pm.expect(jsonData.meta.pagination).to.have.property('currentPage');
+    pm.expect(jsonData.meta.pagination).to.have.property('totalPages');
+});
+
+pm.test("Rates are within date range", function () {
+    const data = pm.response.json().data;
+    const startDate = new Date('2024-01-01');
+    const endDate = new Date('2024-02-09');
+    
+    data.forEach(rate => {
+        const rateDate = new Date(rate.rateDate);
+        pm.expect(rateDate).to.be.at.least(startDate);
+        pm.expect(rateDate).to.be.at.most(endDate);
+    });
+});
+```
+
+---
+
+#### 1.3.2 Get Rate History - FAILURE (Invalid Date Format) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/history?startDate=invalid-date&endDate=2024-02-09`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "startDate",
+      "message": "Start date must be a valid date (YYYY-MM-DD)",
+      "value": "invalid-date"
+    }
+  ]
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Date validation error", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.errors[0].message).to.match(/valid date/i);
+});
+```
+
+---
+
+#### 1.3.3 Get Rate History - FAILURE (End Date Before Start Date) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/history?startDate=2024-02-09&endDate=2024-01-01`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "endDate",
+      "message": "End date must be greater than or equal to start date",
+      "value": "2024-01-01"
+    }
+  ]
+}
+```
+
+---
+
+### 1.4 Get Latest Rates
+
+#### 1.4.1 Get Latest Rates - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/latest?limit=10`
+
+**Permission Required:** `canViewDashboard`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Latest rates retrieved",
+  "data": [
+    {
+      "_id": "65c4f5e8a1234567890abcde",
+      "rateDate": "2024-02-09T00:00:00.000Z",
+      "gold": {
+        "gold24K": {
+          "sellingRate": 6600
+        }
+      },
+      "isCurrent": true
+    },
+    {
+      "_id": "65c4f5e8a1234567890abcdf",
+      "rateDate": "2024-02-08T00:00:00.000Z",
+      "gold": {
+        "gold24K": {
+          "sellingRate": 6550
+        }
+      },
+      "isCurrent": false
+    }
+  ]
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Latest rates returned in descending order", function () {
+    const data = pm.response.json().data;
+    for (let i = 0; i < data.length - 1; i++) {
+        const currentDate = new Date(data[i].rateDate);
+        const nextDate = new Date(data[i + 1].rateDate);
+        pm.expect(currentDate).to.be.at.least(nextDate);
     }
 });
 ```
 
 ---
 
-## 5. SUPPLIER PURCHASES
+### 1.5 Get Trend Chart Data
 
-### 5.1 Get Purchases by Supplier - SUCCESS ✅
+#### 1.5.1 Get Trend Data - SUCCESS ✅
 
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/supplier/{{supplierId}}?page=1&limit=10`
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/trends?metalType=gold&days=90`
+
+**Permission Required:** `canViewReports`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Trend data retrieved successfully",
+  "data": {
+    "metalType": "gold",
+    "period": 90,
+    "dataPoints": 90,
+    "trendData": [
+      {
+        "date": "2024-02-09",
+        "rate": 6600,
+        "ma7": 6480,
+        "ma30": 6450,
+        "ma90": 6400
+      },
+      {
+        "date": "2024-02-08",
+        "rate": 6550,
+        "ma7": 6470,
+        "ma30": 6440,
+        "ma90": 6395
+      }
+    ],
+    "summary": {
+      "currentRate": 6600,
+      "startRate": 6200,
+      "highestRate": 6650,
+      "lowestRate": 6150,
+      "averageRate": 6425.5
+    }
+  },
+  "cached": false
+}
+```
 
 **Tests:**
 ```javascript
@@ -821,126 +985,138 @@ pm.test("Status code is 200", function () {
     pm.response.to.have.status(200);
 });
 
-pm.test("Supplier purchases returned", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data).to.be.an('array');
-});
-
-pm.test("All purchases belong to specified supplier", function () {
-    const purchases = pm.response.json().data;
-    const supplierId = pm.collectionVariables.get('supplierId');
-    purchases.forEach(purchase => {
-        pm.expect(purchase.supplierId.toString()).to.eql(supplierId);
-    });
-});
-```
-
----
-
-### 5.2 Get Purchases by Supplier - FAILURE (Invalid Supplier ID) ❌
-
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/supplier/invalid_id`
-
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Validation error for invalid supplier ID", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.errors || jsonData.message).to.match(/invalid.*supplier/i);
-});
-```
-
----
-
-## 6. ANALYTICS & REPORTS
-
-### 6.1 Get Purchase Analytics - SUCCESS ✅
-
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/analytics?startDate=2024-01-01&endDate=2024-02-28`
-
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Analytics data structure is correct", function () {
+pm.test("Trend data structure is correct", function () {
     const data = pm.response.json().data;
-    pm.expect(data).to.have.property('totalPurchases');
-    pm.expect(data).to.have.property('totalPurchaseValue');
-    pm.expect(data).to.have.property('pendingPurchases');
-    pm.expect(data).to.have.property('paymentStatusBreakdown');
-    pm.expect(data).to.have.property('topSuppliers');
-    pm.expect(data).to.have.property('monthlyTrend');
+    pm.expect(data).to.have.property('metalType');
+    pm.expect(data).to.have.property('period');
+    pm.expect(data).to.have.property('trendData');
+    pm.expect(data).to.have.property('summary');
 });
 
-pm.test("Analytics values are numeric", function () {
+pm.test("Trend data contains moving averages", function () {
     const data = pm.response.json().data;
-    pm.expect(data.totalPurchases).to.be.a('number');
-    pm.expect(data.totalPurchaseValue).to.be.a('number');
+    const firstPoint = data.trendData[0];
+    pm.expect(firstPoint).to.have.property('ma7');
+    pm.expect(firstPoint).to.have.property('ma30');
+    pm.expect(firstPoint).to.have.property('ma90');
+});
+
+pm.test("Summary calculations are present", function () {
+    const summary = pm.response.json().data.summary;
+    pm.expect(summary.currentRate).to.be.a('number');
+    pm.expect(summary.highestRate).to.be.at.least(summary.lowestRate);
 });
 ```
 
 ---
 
-### 6.2 Get Pending Purchases - SUCCESS ✅
+#### 1.5.2 Get Trend Data - FAILURE (Invalid Metal Type) ❌
 
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/pending`
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/trends?metalType=diamond&days=90`
 
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Only pending purchases returned", function () {
-    const purchases = pm.response.json().data;
-    const validStatuses = ['draft', 'pending', 'ordered'];
-    purchases.forEach(purchase => {
-        pm.expect(validStatuses).to.include(purchase.status);
-    });
-});
-```
-
----
-
-### 6.3 Get Unpaid Purchases - SUCCESS ✅
-
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/unpaid`
-
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Only unpaid/partial purchases returned", function () {
-    const purchases = pm.response.json().data;
-    const validPaymentStatuses = ['unpaid', 'partial'];
-    purchases.forEach(purchase => {
-        pm.expect(validPaymentStatuses).to.include(purchase.payment.paymentStatus);
-    });
-});
-```
-
----
-
-## 7. BULK OPERATIONS
-
-### 7.1 Bulk Delete Purchases - SUCCESS ✅
-
-**Prerequisite:** Create 2-3 draft purchases
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/bulk-delete`
-
-**Request Body:**
+**Expected Response (400 Bad Request):**
 ```json
 {
-  "purchaseIds": ["ID1", "ID2", "ID3"]
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "metalType",
+      "message": "Metal type must be: gold, silver, or platinum",
+      "value": "diamond"
+    }
+  ]
+}
+```
+
+---
+
+#### 1.5.3 Get Trend Data - FAILURE (Invalid Days) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/trends?metalType=gold&days=500`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "days",
+      "message": "Days must be between 1 and 365",
+      "value": 500
+    }
+  ]
+}
+```
+
+---
+
+### 1.6 Compare Rates
+
+#### 1.6.1 Compare Rates - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/compare?fromDate=2024-01-01&toDate=2024-02-09`
+
+**Permission Required:** `canViewReports`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Rate comparison completed",
+  "data": {
+    "fromDate": "2024-01-01",
+    "toDate": "2024-02-09",
+    "daysDifference": 39,
+    "gold24K": {
+      "startRate": 6200,
+      "endRate": 6600,
+      "change": 400,
+      "changePercentage": 6.45,
+      "trend": "up"
+    },
+    "gold22K": {
+      "startRate": 5683,
+      "endRate": 6050,
+      "change": 367,
+      "changePercentage": 6.46,
+      "trend": "up"
+    },
+    "gold18K": {
+      "startRate": 4650,
+      "endRate": 4965,
+      "change": 315,
+      "changePercentage": 6.77,
+      "trend": "up"
+    },
+    "silver999": {
+      "startRate": 72,
+      "endRate": 79,
+      "change": 7,
+      "changePercentage": 9.72,
+      "trend": "up"
+    },
+    "platinum": {
+      "startRate": 3100,
+      "endRate": 3300,
+      "change": 200,
+      "changePercentage": 6.45,
+      "trend": "up"
+    },
+    "trendComparison": {
+      "gold": {
+        "ma7Change": 30,
+        "ma30Change": 150,
+        "ma90Change": 280
+      },
+      "silver": {
+        "ma7Change": 2.5,
+        "ma30Change": 4.8,
+        "ma90Change": 6.5
+      }
+    }
+  }
 }
 ```
 
@@ -950,106 +1126,100 @@ pm.test("Status code is 200", function () {
     pm.response.to.have.status(200);
 });
 
-pm.test("Bulk delete successful", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data).to.have.property('deletedCount');
-    pm.expect(jsonData.data.deletedCount).to.be.greaterThan(0);
+pm.test("Comparison data has all metal types", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('gold24K');
+    pm.expect(data).to.have.property('silver999');
+    pm.expect(data).to.have.property('platinum');
+});
+
+pm.test("Change calculations are correct", function () {
+    const gold = pm.response.json().data.gold24K;
+    const expectedChange = gold.endRate - gold.startRate;
+    pm.expect(gold.change).to.eql(expectedChange);
+});
+
+pm.test("Trend comparison data is present", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('trendComparison');
+    pm.expect(data.trendComparison).to.have.property('gold');
+    pm.expect(data.trendComparison).to.have.property('silver');
 });
 ```
 
 ---
 
-### 7.2 Bulk Delete - FAILURE (Non-Draft Purchases) ❌
+#### 1.6.2 Compare Rates - FAILURE (Missing From Date) ❌
 
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/bulk-delete`
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/compare?toDate=2024-02-09`
 
-**Request Body:**
+**Expected Response (400 Bad Request):**
 ```json
 {
-  "purchaseIds": ["{{purchaseId}}"]
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "fromDate",
+      "message": "From date is required"
+    }
+  ]
 }
 ```
 
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Error indicates only draft can be deleted", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.message).to.match(/only.*draft/i);
-});
-```
-
 ---
 
-### 7.3 Bulk Approve Purchases - SUCCESS ✅
+#### 1.6.3 Compare Rates - FAILURE (To Date Before From Date) ❌
 
-**Prerequisite:** Create pending purchases
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/compare?fromDate=2024-02-09&toDate=2024-01-01`
 
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/bulk-approve`
-
-**Request Body:**
+**Expected Response (400 Bad Request):**
 ```json
 {
-  "purchaseIds": ["ID1", "ID2"]
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "toDate",
+      "message": "To date must be greater than or equal to from date",
+      "value": "2024-01-01"
+    }
+  ]
 }
 ```
 
-**Tests:**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Bulk approve successful", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data).to.have.property('approvedCount');
-});
-```
-
 ---
 
-### 7.4 Bulk Approve - FAILURE (Empty Array) ❌
+### 1.7 Get Rate by Specific Date
 
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/bulk-approve`
+#### 1.7.1 Get Rate by Date - SUCCESS ✅
 
-**Request Body:**
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/date/2024-02-05`
+
+**Permission Required:** `canViewReports`
+
+**Expected Response (200 OK):**
 ```json
 {
-  "purchaseIds": []
-}
-```
-
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Validation error for empty array", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.errors || jsonData.message).to.match(/at least one/i);
-});
-```
-
----
-
-## 8. DOCUMENT MANAGEMENT
-
-### 8.1 Upload Document - SUCCESS ✅
-
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/documents`
-
-**Request Body:**
-```json
-{
-  "documentType": "invoice",
-  "documentUrl": "https://example.com/documents/invoice123.pdf",
-  "documentNumber": "INV-2024-001"
+  "success": true,
+  "message": "Rate for 2024-02-05 retrieved successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abc00",
+    "rateDate": "2024-02-05T00:00:00.000Z",
+    "gold": {
+      "gold24K": {
+        "buyingRate": 6480,
+        "sellingRate": 6530
+      }
+    },
+    "silver": {
+      "pure": {
+        "buyingRate": 74,
+        "sellingRate": 77
+      }
+    },
+    "isCurrent": false
+  }
 }
 ```
 
@@ -1059,45 +1229,157 @@ pm.test("Status code is 200", function () {
     pm.response.to.have.status(200);
 });
 
-pm.test("Document uploaded successfully", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data.documents).to.be.an('array');
+pm.test("Rate date matches requested date", function () {
+    const data = pm.response.json().data;
+    const rateDate = new Date(data.rateDate);
+    const requestedDate = new Date('2024-02-05');
+    pm.expect(rateDate.toDateString()).to.eql(requestedDate.toDateString());
 });
 ```
 
 ---
 
-### 8.2 Upload Document - FAILURE (Invalid URL) ❌
+#### 1.7.2 Get Rate by Date - FAILURE (Invalid Date Format) ❌
 
-**Endpoint:** `POST {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/documents`
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/date/05-02-2024`
 
-**Request Body:**
+**Expected Response (400 Bad Request):**
 ```json
 {
-  "documentType": "invoice",
-  "documentUrl": "not-a-valid-url",
-  "documentNumber": "INV-001"
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "date",
+      "message": "Date must be in YYYY-MM-DD format",
+      "value": "05-02-2024"
+    }
+  ]
+}
+```
+
+---
+
+#### 1.7.3 Get Rate by Date - FAILURE (No Rate Found) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/date/2024-01-01`
+
+**Expected Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "No rate found for date: 2024-01-01",
+  "statusCode": 404
+}
+```
+
+---
+
+### 1.8 Get Rate for Specific Purity
+
+#### 1.8.1 Get Rate for Purity - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/current/purity/gold/22K`
+
+**Permission Required:** Any shop access
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Rate for purity retrieved",
+  "data": {
+    "metalType": "gold",
+    "purity": "22K",
+    "buyingRate": 6000,
+    "sellingRate": 6050,
+    "rateDate": "2024-02-09T00:00:00.000Z"
+  }
 }
 ```
 
 **Tests:**
 ```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
 });
 
-pm.test("Validation error for invalid URL", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.errors || jsonData.message).to.match(/invalid.*url/i);
+pm.test("Purity-specific rate returned", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('metalType', 'gold');
+    pm.expect(data).to.have.property('purity', '22K');
+    pm.expect(data).to.have.property('buyingRate');
+    pm.expect(data).to.have.property('sellingRate');
 });
 ```
 
 ---
 
-### 8.3 Get Documents - SUCCESS ✅
+#### 1.8.2 Get Rate for Purity - FAILURE (Invalid Purity) ❌
 
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/{{purchaseId}}/documents`
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/current/purity/gold/20K`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "purity",
+      "message": "Invalid purity for gold. Valid options: 24K, 22K, 20K, 18K, 14K",
+      "value": "20K"
+    }
+  ]
+}
+```
+
+---
+
+#### 1.8.3 Get Rate for Purity - FAILURE (Invalid Metal Type) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/current/purity/copper/999`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "metalType",
+      "message": "Metal type must be: gold, silver, or platinum",
+      "value": "copper"
+    }
+  ]
+}
+```
+
+---
+
+### 1.9 Get Average Rate
+
+#### 1.9.1 Get Average Rate - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/average?metalType=gold&purity=24K&days=30`
+
+**Permission Required:** `canViewReports`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Average rate calculated",
+  "data": {
+    "metalType": "gold",
+    "purity": "24K",
+    "period": "30 days",
+    "averageBuyingRate": 6425.50,
+    "averageSellingRate": 6475.80,
+    "samples": 30
+  }
+}
+```
 
 **Tests:**
 ```javascript
@@ -1105,20 +1387,100 @@ pm.test("Status code is 200", function () {
     pm.response.to.have.status(200);
 });
 
-pm.test("Documents array returned", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data).to.be.an('array');
+pm.test("Average calculation is correct", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('averageBuyingRate');
+    pm.expect(data).to.have.property('averageSellingRate');
+    pm.expect(data.averageBuyingRate).to.be.a('number');
+    pm.expect(data.samples).to.be.greaterThan(0);
 });
 ```
 
 ---
 
-## 9. SEARCH & FILTERS
+#### 1.9.2 Get Average Rate - FAILURE (Invalid Days) ❌
 
-### 9.1 Search Purchases - SUCCESS ✅
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/metal-rates/average?metalType=gold&purity=24K&days=-5`
 
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/search?q=PUR&limit=20`
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "days",
+      "message": "Days must be a positive number",
+      "value": -5
+    }
+  ]
+}
+```
+
+---
+
+## 2. ORGANIZATION-LEVEL ROUTES
+
+### 2.1 Multi-Shop Sync
+
+#### 2.1.1 Sync to All Shops - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/organizations/{{organizationId}}/metal-rates/sync`
+
+**Permission Required:** `super_admin` or `org_admin`
+
+**Request Body:**
+```json
+{
+  "gold": {
+    "gold24K": {
+      "buyingRate": 6550,
+      "sellingRate": 6600
+    },
+    "gold22K": {
+      "buyingRate": 6000,
+      "sellingRate": 6050
+    },
+    "gold18K": {
+      "buyingRate": 4920,
+      "sellingRate": 4965
+    },
+    "gold14K": {
+      "buyingRate": 3830,
+      "sellingRate": 3870
+    }
+  },
+  "silver": {
+    "pure": {
+      "buyingRate": 76,
+      "sellingRate": 79
+    },
+    "sterling925": {
+      "buyingRate": 70,
+      "sellingRate": 73
+    }
+  },
+  "platinum": {
+    "buyingRate": 3250,
+    "sellingRate": 3300
+  },
+  "notes": "Organization-wide rate update"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Rates synced to all shops successfully",
+  "data": {
+    "totalShops": 15,
+    "syncedShops": 15,
+    "failedShops": 0,
+    "failures": []
+  }
+}
+```
 
 **Tests:**
 ```javascript
@@ -1126,47 +1488,147 @@ pm.test("Status code is 200", function () {
     pm.response.to.have.status(200);
 });
 
-pm.test("Search results returned", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.eql(true);
-    pm.expect(jsonData.data).to.be.an('array');
+pm.test("All shops synced successfully", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.syncedShops).to.eql(data.totalShops);
+    pm.expect(data.failedShops).to.eql(0);
 });
 
-pm.test("Results match search query", function () {
-    const purchases = pm.response.json().data;
-    const searchQuery = 'PUR';
-    purchases.forEach(purchase => {
-        const matchFound = 
-            purchase.purchaseNumber.includes(searchQuery) ||
-            purchase.supplierDetails.supplierName.includes(searchQuery);
-        pm.expect(matchFound).to.be.true;
-    });
+pm.test("No failures reported", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.failures).to.be.an('array').that.is.empty;
 });
 ```
 
 ---
 
-### 9.2 Search Purchases - FAILURE (Missing Query) ❌
+#### 2.1.2 Sync to All Shops - PARTIAL SUCCESS (207 Multi-Status) ⚠️
 
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/search`
+**Endpoint:** `POST {{baseUrl}}/organizations/{{organizationId}}/metal-rates/sync`
+
+**Expected Response (207 Multi-Status):**
+```json
+{
+  "success": true,
+  "message": "Rates synced with 2 failure(s)",
+  "data": {
+    "totalShops": 15,
+    "syncedShops": 13,
+    "failedShops": 2,
+    "failures": [
+      {
+        "shopId": "65c4f5e8a1234567890abc01",
+        "shopName": "Shop ABC",
+        "error": "Shop not found"
+      },
+      {
+        "shopId": "65c4f5e8a1234567890abc02",
+        "shopName": "Shop XYZ",
+        "error": "Database connection error"
+      }
+    ]
+  }
+}
+```
 
 **Tests:**
 ```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
+pm.test("Status code is 207", function () {
+    pm.response.to.have.status(207);
 });
 
-pm.test("Error indicates query required", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.errors || jsonData.message).to.match(/query.*required/i);
+pm.test("Partial success reported", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.syncedShops).to.be.lessThan(data.totalShops);
+    pm.expect(data.failedShops).to.be.greaterThan(0);
+});
+
+pm.test("Failure details provided", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.failures).to.be.an('array');
+    pm.expect(data.failures.length).to.eql(data.failedShops);
 });
 ```
 
 ---
 
-### 9.3 Get Purchases by Date Range - SUCCESS ✅
+#### 2.1.3 Sync to All Shops - FAILURE (Unauthorized) ❌
 
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/by-date-range?startDate=2024-01-01&endDate=2024-02-28&page=1&limit=20`
+**Endpoint:** `POST {{baseUrl}}/organizations/{{organizationId}}/metal-rates/sync`
+
+**User Role:** `shop_admin` (not authorized)
+
+**Expected Response (403 Forbidden):**
+```json
+{
+  "success": false,
+  "message": "You do not have permission to perform this action",
+  "statusCode": 403
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 403", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Permission denied message", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.message).to.match(/permission/i);
+});
+```
+
+---
+
+#### 2.1.4 Sync to All Shops - FAILURE (Wrong Organization) ❌
+
+**Endpoint:** `POST {{baseUrl}}/organizations/{{wrongOrganizationId}}/metal-rates/sync`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "You can only sync rates for your own organization",
+  "statusCode": 400
+}
+```
+
+---
+
+### 2.2 Get Organization Master Rate
+
+#### 2.2.1 Get Organization Rate - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/organizations/{{organizationId}}/metal-rates/current`
+
+**Permission Required:** `super_admin` or `org_admin`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Organization master rate retrieved",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "organizationId": "65c4f5e8a1234567890abc00",
+    "rateDate": "2024-02-09T00:00:00.000Z",
+    "gold": {
+      "gold24K": {
+        "buyingRate": 6550,
+        "sellingRate": 6600
+      }
+    },
+    "silver": {
+      "pure": {
+        "buyingRate": 76,
+        "sellingRate": 79
+      }
+    },
+    "isCurrent": true
+  }
+}
+```
 
 **Tests:**
 ```javascript
@@ -1174,45 +1636,53 @@ pm.test("Status code is 200", function () {
     pm.response.to.have.status(200);
 });
 
-pm.test("Purchases within date range", function () {
-    const purchases = pm.response.json().data;
-    const startDate = new Date('2024-01-01');
-    const endDate = new Date('2024-02-28');
-    
-    purchases.forEach(purchase => {
-        const purchaseDate = new Date(purchase.purchaseDate);
-        pm.expect(purchaseDate).to.be.at.least(startDate);
-        pm.expect(purchaseDate).to.be.at.most(endDate);
-    });
+pm.test("Organization rate retrieved", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('organizationId');
+    pm.expect(data.organizationId).to.eql(pm.collectionVariables.get('organizationId'));
 });
 ```
 
 ---
 
-### 9.4 Get Purchases by Date Range - FAILURE (Missing Start Date) ❌
+#### 2.2.2 Get Organization Rate - FAILURE (Not Found) ❌
 
-**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/purchases/by-date-range?endDate=2024-02-28`
+**Endpoint:** `GET {{baseUrl}}/organizations/{{organizationId}}/metal-rates/current`
 
-**Tests:**
-```javascript
-pm.test("Status code is 400", function () {
-    pm.response.to.have.status(400);
-});
-
-pm.test("Error indicates start date required", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.errors || jsonData.message).to.match(/start.*date.*required/i);
-});
+**Expected Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "No organization master rate found",
+  "statusCode": 404
+}
 ```
 
 ---
 
-## Summary of Test Scenarios
+## Summary
 
-### Total Routes Tested: 22
+### Total Routes: 11
 
-#### Positive Tests (Success ✅): 22
-- All routes have at least one success scenario
+#### Shop-Level Routes: 9
+1. ✅ POST `/api/v1/shops/:shopId/metal-rates` - Create/Update Today's Rate
+2. ✅ GET `/api/v1/shops/:shopId/metal-rates/current` - Get Current Rate
+3. ✅ GET `/api/v1/shops/:shopId/metal-rates/history` - Get Rate History
+4. ✅ GET `/api/v1/shops/:shopId/metal-rates/latest` - Get Latest Rates
+5. ✅ GET `/api/v1/shops/:shopId/metal-rates/trends` - Get Trend Chart Data
+6. ✅ GET `/api/v1/shops/:shopId/metal-rates/compare` - Compare Rates
+7. ✅ GET `/api/v1/shops/:shopId/metal-rates/date/:date` - Get Rate by Date
+8. ✅ GET `/api/v1/shops/:shopId/metal-rates/current/purity/:metalType/:purity` - Get Rate for Purity
+9. ✅ GET `/api/v1/shops/:shopId/metal-rates/average` - Get Average Rate
+
+#### Organization-Level Routes: 2
+10. ✅ POST `/api/v1/organizations/:organizationId/metal-rates/sync` - Multi-Shop Sync
+11. ✅ GET `/api/v1/organizations/:organizationId/metal-rates/current` - Get Organization Rate
+
+### Test Coverage
+
+#### Positive Tests (Success ✅): 11
+- All routes have success scenarios
 
 #### Negative Tests (Failure ❌): 20+
 - Validation errors
@@ -1220,40 +1690,58 @@ pm.test("Error indicates start date required", function () {
 - Invalid data formats
 - Business logic constraints
 - Authorization failures
+- Permission denials
+- Not found errors
+
+### Rate Limiting
+
+| Route | Limit | Window |
+|-------|-------|--------|
+| Create/Update Rate | 10 req | 15 min |
+| Get Current Rate | 100 req | 1 min |
+| Multi-Shop Sync | 5 req | 15 min |
+
+### Response Time Benchmarks
+- GET Current Rate (cached): < 200ms
+- GET requests: < 500ms
+- POST/PATCH: < 1000ms
+- Organization Sync: < 3000ms
 
 ### How to Use This Collection
 
 1. **Import to Postman:**
-   - Create a new collection
+   - Create new collection "Metal Rate Management"
    - Set collection variables
    - Copy-paste each request
 
 2. **Configure Variables:**
-   ```
-   authToken: Get from login endpoint
-   shopId: Valid MongoDB ObjectId
-   supplierId: Valid MongoDB ObjectId
+   ```javascript
+   baseUrl: http://localhost:5000/api/v1
+   authToken: (Get from login endpoint)
+   shopId: (Valid MongoDB ObjectId)
+   organizationId: (Valid MongoDB ObjectId)
    ```
 
-3. **Run Tests:**
+3. **Authentication Setup:**
+   - Login as different users to test permissions
+   - Save JWT tokens for each role
+   - Test role-based access control
+
+4. **Run Tests:**
    - Run individual requests
    - Use Collection Runner for batch testing
    - Monitor test results in Console
-
-4. **Best Practices:**
-   - Run setup requests first
-   - Follow test order for dependencies
    - Check response times
-   - Verify error messages
 
-### Response Time Benchmarks
-- GET requests: < 500ms
-- POST/PUT/PATCH: < 1000ms
-- Bulk operations: < 2000ms
-- Analytics: < 1500ms
+5. **Best Practices:**
+   - Run success scenarios first
+   - Follow test order for dependencies
+   - Clear cache between tests
+   - Verify database state
+   - Test with different user roles
 
 ---
 
-**Last Updated:** February 2026 
+**Last Updated:** February 2026  
 **API Version:** v1  
-**Total Tests:** 42+ test scenarios
+**Total Test Scenarios:** 31+ test cases (11 routes with multiple test cases each)
