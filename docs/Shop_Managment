@@ -1,0 +1,2290 @@
+# Shop Management API - Postman Test Collection
+## Complete Test Suite for All 7 Routes
+
+### Table of Contents
+1. [Setup & Prerequisites](#setup--prerequisites)
+2. [Shop CRUD Operations (5 Routes)](#1-shop-crud-operations)
+3. [Shop Settings & Configuration (1 Route)](#2-shop-settings--configuration)
+4. [Shop Statistics (1 Route)](#3-shop-statistics)
+
+---
+
+## Setup & Prerequisites
+
+### Collection Variables
+```javascript
+baseUrl: http://localhost:3000/api/v1
+authToken: YOUR_JWT_TOKEN
+shopId: 65f1234567890abcdef12345
+organizationId: 65f9999999999999999999999
+managerId: 65f8888888888888888888888
+sourceShopId: 65f7777777777777777777777
+```
+
+### Headers (Global)
+```
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+```
+
+---
+
+## 1. SHOP CRUD OPERATIONS
+
+### 1.1 Create Shop - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Request Body:**
+```json
+{
+  "name": "Golden Jewels Mumbai",
+  "displayName": "Golden Jewels - Premium Collection",
+  "email": "contact@goldenjewels.com",
+  "phone": "9876543210",
+  "alternatePhone": "9876543211",
+  "whatsappNumber": "9876543210",
+  "address": {
+    "street": "123 Main Street, Andheri West",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "country": "India",
+    "pincode": "400058",
+    "location": {
+      "type": "Point",
+      "coordinates": [72.8347, 19.1136]
+    }
+  },
+  "gstNumber": "27AABCU9603R1ZM",
+  "panNumber": "AABCU9603R",
+  "shopType": "retail",
+  "category": "jewelry",
+  "establishedYear": 2020,
+  "managerId": "{{managerId}}",
+  "organizationId": "{{organizationId}}",
+  "bankDetails": [
+    {
+      "bankName": "HDFC Bank",
+      "accountNumber": "12345678901234",
+      "ifscCode": "HDFC0001234",
+      "accountHolderName": "Golden Jewels Mumbai",
+      "accountType": "current",
+      "branch": "Andheri West",
+      "isPrimary": true
+    }
+  ],
+  "upiDetails": [
+    {
+      "upiId": "goldenjewels@paytm",
+      "providerName": "Paytm",
+      "displayName": "Golden Jewels",
+      "isPrimary": true
+    }
+  ],
+  "businessHours": {
+    "monday": { "isOpen": true, "openTime": "10:00", "closeTime": "20:00" },
+    "tuesday": { "isOpen": true, "openTime": "10:00", "closeTime": "20:00" },
+    "wednesday": { "isOpen": true, "openTime": "10:00", "closeTime": "20:00" },
+    "thursday": { "isOpen": true, "openTime": "10:00", "closeTime": "20:00" },
+    "friday": { "isOpen": true, "openTime": "10:00", "closeTime": "20:00" },
+    "saturday": { "isOpen": true, "openTime": "10:00", "closeTime": "21:00" },
+    "sunday": { "isOpen": true, "openTime": "11:00", "closeTime": "21:00" }
+  },
+  "features": {
+    "hasRepairService": true,
+    "hasCustomDesign": true,
+    "hasGoldExchange": true,
+    "hasHomeDelivery": true,
+    "hasOnlineBooking": true
+  },
+  "settings": {
+    "currency": "INR",
+    "language": "en",
+    "timezone": "Asia/Kolkata",
+    "defaultWeightUnit": "gram",
+    "enableGST": true,
+    "gstRates": {
+      "gold": 3,
+      "silver": 3,
+      "diamond": 0.25,
+      "makingCharges": 18
+    }
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 201 Created", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Shop created successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.message).to.match(/shop.*created.*successfully/i);
+});
+
+pm.test("Shop has all required fields", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('_id');
+    pm.expect(data).to.have.property('name');
+    pm.expect(data).to.have.property('code');
+    pm.expect(data).to.have.property('organizationId');
+    pm.expect(data).to.have.property('managerId');
+    pm.expect(data).to.have.property('isActive');
+    pm.expect(data.isActive).to.eql(true);
+    
+    // Save shopId for later tests
+    pm.collectionVariables.set('shopId', data._id);
+    pm.collectionVariables.set('shopCode', data.code);
+});
+
+pm.test("Shop code is auto-generated", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.code).to.be.a('string');
+    pm.expect(data.code.length).to.be.greaterThan(0);
+});
+
+pm.test("Address structure is correct", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.address).to.have.property('street');
+    pm.expect(data.address).to.have.property('city');
+    pm.expect(data.address).to.have.property('state');
+    pm.expect(data.address).to.have.property('pincode');
+});
+
+pm.test("GST and PAN numbers are uppercase", function () {
+    const data = pm.response.json().data;
+    if (data.gstNumber) {
+        pm.expect(data.gstNumber).to.equal(data.gstNumber.toUpperCase());
+    }
+    if (data.panNumber) {
+        pm.expect(data.panNumber).to.equal(data.panNumber.toUpperCase());
+    }
+});
+
+pm.test("Response time is acceptable", function () {
+    pm.expect(pm.response.responseTime).to.be.below(3000);
+});
+```
+
+**Expected Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Shop created successfully",
+  "data": {
+    "_id": "65f1234567890abcdef12345",
+    "name": "Golden Jewels Mumbai",
+    "displayName": "Golden Jewels - Premium Collection",
+    "code": "GJ-MUM-001",
+    "email": "contact@goldenjewels.com",
+    "phone": "9876543210",
+    "address": {
+      "street": "123 Main Street, Andheri West",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "pincode": "400058"
+    },
+    "organizationId": {
+      "_id": "65f9999999999999999999999",
+      "name": "Golden Jewels Group",
+      "displayName": "Golden Jewels"
+    },
+    "managerId": {
+      "_id": "65f8888888888888888888888",
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "john@example.com",
+      "phone": "9876543210"
+    },
+    "shopType": "retail",
+    "category": "jewelry",
+    "gstNumber": "27AABCU9603R1ZM",
+    "panNumber": "AABCU9603R",
+    "isActive": true,
+    "isVerified": false,
+    "openingDate": "2024-02-09T00:00:00.000Z",
+    "createdBy": {
+      "_id": "65f8888888888888888888888",
+      "firstName": "Admin",
+      "lastName": "User"
+    },
+    "createdAt": "2024-02-09T10:30:00.000Z"
+  }
+}
+```
+
+---
+
+### 1.2 Create Shop - FAILURE (Missing Required Fields) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Request Body:**
+```json
+{
+  "name": "Test Shop"
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400 (Bad Request)", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Error message indicates missing fields", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(false);
+    pm.expect(jsonData.error || jsonData.message).to.match(/validation|required/i);
+});
+
+pm.test("Validation errors are present", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('details');
+    pm.expect(jsonData.details).to.be.an('array');
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Phone number is required, Street address is required, City is required, State is required, Pincode is required",
+  "details": [
+    {
+      "field": "phone",
+      "message": "Phone number is required"
+    },
+    {
+      "field": "address.street",
+      "message": "Street address is required"
+    },
+    {
+      "field": "address.city",
+      "message": "City is required"
+    },
+    {
+      "field": "address.state",
+      "message": "State is required"
+    },
+    {
+      "field": "address.pincode",
+      "message": "Pincode is required"
+    }
+  ]
+}
+```
+
+---
+
+### 1.3 Create Shop - FAILURE (Invalid Phone Number) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Request Body:**
+```json
+{
+  "name": "Test Shop",
+  "phone": "12345",
+  "address": {
+    "street": "Test Street",
+    "city": "Test City",
+    "state": "Test State",
+    "pincode": "400001"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Error indicates invalid phone number", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/valid.*10-digit.*phone/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Please provide a valid 10-digit phone number"
+}
+```
+
+---
+
+### 1.4 Create Shop - FAILURE (Invalid GST Number) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Request Body:**
+```json
+{
+  "name": "Test Shop",
+  "phone": "9876543210",
+  "gstNumber": "INVALID_GST",
+  "address": {
+    "street": "Test Street",
+    "city": "Test City",
+    "state": "Test State",
+    "pincode": "400001"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid GST format", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*gst/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid GST number"
+}
+```
+
+---
+
+### 1.5 Create Shop - FAILURE (Invalid PAN Number) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Request Body:**
+```json
+{
+  "name": "Test Shop",
+  "phone": "9876543210",
+  "panNumber": "INVALID123",
+  "address": {
+    "street": "Test Street",
+    "city": "Test City",
+    "state": "Test State",
+    "pincode": "400001"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid PAN format", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*pan/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid PAN number"
+}
+```
+
+---
+
+### 1.6 Create Shop - FAILURE (Invalid Pincode) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Request Body:**
+```json
+{
+  "name": "Test Shop",
+  "phone": "9876543210",
+  "address": {
+    "street": "Test Street",
+    "city": "Test City",
+    "state": "Test State",
+    "pincode": "12345"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid pincode", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*pincode/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid pincode"
+}
+```
+
+---
+
+### 1.7 Create Shop - FAILURE (Invalid Shop Type) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Request Body:**
+```json
+{
+  "name": "Test Shop",
+  "phone": "9876543210",
+  "shopType": "invalid_type",
+  "address": {
+    "street": "Test Street",
+    "city": "Test City",
+    "state": "Test State",
+    "pincode": "400001"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid shop type", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*shop.*type/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid shop type"
+}
+```
+
+---
+
+### 1.8 Create Shop - FAILURE (Invalid Coordinates) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Request Body:**
+```json
+{
+  "name": "Test Shop",
+  "phone": "9876543210",
+  "address": {
+    "street": "Test Street",
+    "city": "Test City",
+    "state": "Test State",
+    "pincode": "400001",
+    "location": {
+      "coordinates": [200, 100]
+    }
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid coordinates", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*coordinates/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid coordinates. Format: [longitude, latitude]"
+}
+```
+
+---
+
+### 1.9 Create Shop - FAILURE (Unauthorized - Not Admin) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Headers:** Use token of a staff/manager role user
+
+**Tests:**
+```javascript
+pm.test("Status code is 403 (Forbidden)", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Error indicates insufficient permissions", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/only.*admin.*create/i);
+});
+```
+
+**Expected Response (403):**
+```json
+{
+  "success": false,
+  "error": "Only Super Admin or Org Admin can create shops"
+}
+```
+
+---
+
+### 1.10 Create Shop - FAILURE (Organization Limit Reached) ❌
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Request Body:** Valid shop data
+
+**Tests:**
+```javascript
+pm.test("Status code is 403", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Error indicates shop limit reached", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/maximum.*shops.*limit/i);
+});
+```
+
+**Expected Response (403):**
+```json
+{
+  "success": false,
+  "error": "Organization has reached maximum shops limit"
+}
+```
+
+---
+
+### 1.11 Create Shop with Copy Settings - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/shops`
+
+**Request Body:**
+```json
+{
+  "name": "Golden Jewels Delhi",
+  "phone": "9876543220",
+  "address": {
+    "street": "456 Connaught Place",
+    "city": "New Delhi",
+    "state": "Delhi",
+    "pincode": "110001"
+  },
+  "copySettingsFromShopId": "{{sourceShopId}}",
+  "organizationId": "{{organizationId}}"
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Shop created with copied settings", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.data).to.have.property('settings');
+    pm.expect(jsonData.data).to.have.property('features');
+});
+
+pm.test("Settings were copied from source shop", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.settings).to.have.property('currency');
+    pm.expect(data.features).to.have.property('hasRepairService');
+});
+```
+
+---
+
+### 1.12 Get All Shops - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/shops?page=1&limit=10`
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Shops list returned successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.data).to.be.an('array');
+});
+
+pm.test("Pagination metadata is present", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.pagination).to.have.property('totalDocs');
+    pm.expect(jsonData.pagination).to.have.property('totalPages');
+    pm.expect(jsonData.pagination).to.have.property('currentPage');
+    pm.expect(jsonData.pagination).to.have.property('limit');
+    pm.expect(jsonData.pagination).to.have.property('hasNextPage');
+    pm.expect(jsonData.pagination).to.have.property('hasPrevPage');
+});
+
+pm.test("Each shop has required fields", function () {
+    const shops = pm.response.json().data;
+    if (shops.length > 0) {
+        shops.forEach(shop => {
+            pm.expect(shop).to.have.property('_id');
+            pm.expect(shop).to.have.property('name');
+            pm.expect(shop).to.have.property('code');
+            pm.expect(shop).to.have.property('isActive');
+        });
+    }
+});
+
+pm.test("Response includes results count", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('results');
+    pm.expect(jsonData.results).to.be.a('number');
+});
+```
+
+**Expected Response (200):**
+```json
+{
+  "success": true,
+  "results": 10,
+  "data": [
+    {
+      "_id": "65f1234567890abcdef12345",
+      "name": "Golden Jewels Mumbai",
+      "displayName": "Golden Jewels - Premium Collection",
+      "code": "GJ-MUM-001",
+      "email": "contact@goldenjewels.com",
+      "phone": "9876543210",
+      "address": {
+        "city": "Mumbai",
+        "state": "Maharashtra"
+      },
+      "organizationId": {
+        "_id": "65f9999999999999999999999",
+        "name": "Golden Jewels Group"
+      },
+      "managerId": {
+        "_id": "65f8888888888888888888888",
+        "firstName": "John",
+        "lastName": "Doe"
+      },
+      "shopType": "retail",
+      "category": "jewelry",
+      "isActive": true,
+      "isVerified": false
+    }
+  ],
+  "pagination": {
+    "totalDocs": 50,
+    "totalPages": 5,
+    "currentPage": 1,
+    "limit": 10,
+    "hasNextPage": true,
+    "hasPrevPage": false,
+    "nextPage": 2,
+    "prevPage": null
+  }
+}
+```
+
+---
+
+### 1.13 Get All Shops with Filters - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/shops?city=Mumbai&shopType=retail&isActive=true&page=1&limit=10`
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Filtered shops returned", function () {
+    const jsonData = pm.response.json();
+    const shops = jsonData.data;
+    
+    if (shops.length > 0) {
+        shops.forEach(shop => {
+            pm.expect(shop.address.city).to.eql("Mumbai");
+            pm.expect(shop.shopType).to.eql("retail");
+            pm.expect(shop.isActive).to.eql(true);
+        });
+    }
+});
+```
+
+---
+
+### 1.14 Get All Shops - FAILURE (Invalid Page) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops?page=0`
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid page", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/page.*positive/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Page must be a positive integer"
+}
+```
+
+---
+
+### 1.15 Get All Shops - FAILURE (Limit Exceeds Maximum) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops?limit=150`
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for limit exceeded", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/limit.*between.*1.*100/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Limit must be between 1 and 100"
+}
+```
+
+---
+
+### 1.16 Get Shop by ID - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}`
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Shop details returned successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.data).to.have.property('_id');
+    pm.expect(jsonData.data._id).to.eql(pm.collectionVariables.get('shopId'));
+});
+
+pm.test("Shop has complete details", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('name');
+    pm.expect(data).to.have.property('code');
+    pm.expect(data).to.have.property('address');
+    pm.expect(data).to.have.property('organizationId');
+    pm.expect(data).to.have.property('managerId');
+});
+
+pm.test("Populated fields are objects", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.organizationId).to.be.an('object');
+    pm.expect(data.managerId).to.be.an('object');
+});
+
+pm.test("Response time is fast", function () {
+    pm.expect(pm.response.responseTime).to.be.below(1000);
+});
+```
+
+**Expected Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "65f1234567890abcdef12345",
+    "name": "Golden Jewels Mumbai",
+    "displayName": "Golden Jewels - Premium Collection",
+    "code": "GJ-MUM-001",
+    "email": "contact@goldenjewels.com",
+    "phone": "9876543210",
+    "alternatePhone": "9876543211",
+    "whatsappNumber": "9876543210",
+    "address": {
+      "street": "123 Main Street, Andheri West",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "country": "India",
+      "pincode": "400058",
+      "location": {
+        "type": "Point",
+        "coordinates": [72.8347, 19.1136]
+      }
+    },
+    "organizationId": {
+      "_id": "65f9999999999999999999999",
+      "name": "Golden Jewels Group",
+      "displayName": "Golden Jewels",
+      "email": "contact@goldenjewelsgroup.com",
+      "phone": "9876543200"
+    },
+    "managerId": {
+      "_id": "65f8888888888888888888888",
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "john@example.com",
+      "phone": "9876543210",
+      "profileImage": "https://example.com/profile.jpg"
+    },
+    "shopType": "retail",
+    "category": "jewelry",
+    "gstNumber": "27AABCU9603R1ZM",
+    "panNumber": "AABCU9603R",
+    "establishedYear": 2020,
+    "isActive": true,
+    "isVerified": false,
+    "openingDate": "2024-02-09T00:00:00.000Z",
+    "businessHours": {
+      "monday": { "isOpen": true, "openTime": "10:00", "closeTime": "20:00" }
+    },
+    "features": {
+      "hasRepairService": true,
+      "hasCustomDesign": true
+    },
+    "createdBy": {
+      "_id": "65f8888888888888888888888",
+      "firstName": "Admin",
+      "lastName": "User"
+    },
+    "createdAt": "2024-02-09T10:30:00.000Z"
+  }
+}
+```
+
+---
+
+### 1.17 Get Shop by ID with Settings - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}?includeSettings=true`
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Shop returned with settings", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('settings');
+    pm.expect(data.settings).to.have.property('currency');
+    pm.expect(data.settings).to.have.property('gstRates');
+});
+
+pm.test("Sensitive data included for admin", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('bankDetails');
+    pm.expect(data).to.have.property('upiDetails');
+});
+```
+
+---
+
+### 1.18 Get Shop by ID - FAILURE (Invalid Shop ID) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/invalid-id`
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid ID format", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*shop.*id/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid shop ID"
+}
+```
+
+---
+
+### 1.19 Get Shop by ID - FAILURE (Shop Not Found) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/65f0000000000000000000000`
+
+**Tests:**
+```javascript
+pm.test("Status code is 404", function () {
+    pm.response.to.have.status(404);
+});
+
+pm.test("Error indicates shop not found", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/shop.*not.*found/i);
+});
+```
+
+**Expected Response (404):**
+```json
+{
+  "success": false,
+  "error": "Shop not found"
+}
+```
+
+---
+
+### 1.20 Get Shop by ID - FAILURE (No Access) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{otherShopId}}`
+
+**Headers:** Use token of user without access to this shop
+
+**Tests:**
+```javascript
+pm.test("Status code is 403", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Error indicates no access", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/not.*have.*access/i);
+});
+```
+
+**Expected Response (403):**
+```json
+{
+  "success": false,
+  "error": "You do not have access to this shop"
+}
+```
+
+---
+
+### 1.21 Update Shop - SUCCESS ✅
+
+**Endpoint:** `PUT {{baseUrl}}/shops/{{shopId}}`
+
+**Request Body:**
+```json
+{
+  "name": "Golden Jewels Mumbai - Updated",
+  "displayName": "Golden Jewels - Luxury Collection",
+  "email": "updated@goldenjewels.com",
+  "phone": "9876543215",
+  "alternatePhone": "9876543216",
+  "address": {
+    "street": "123 Main Street, Andheri West - Updated",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "pincode": "400058"
+  },
+  "shopType": "showroom",
+  "features": {
+    "hasRepairService": true,
+    "hasCustomDesign": true,
+    "hasGoldExchange": true,
+    "hasHomeDelivery": true,
+    "hasOnlineBooking": true,
+    "hasVirtualTryOn": true
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Shop updated successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.message).to.match(/shop.*updated.*successfully/i);
+});
+
+pm.test("Updated values are reflected", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.name).to.include("Updated");
+    pm.expect(data.email).to.eql("updated@goldenjewels.com");
+    pm.expect(data.phone).to.eql("9876543215");
+});
+
+pm.test("Shop code remains unchanged", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.code).to.eql(pm.collectionVariables.get('shopCode'));
+});
+
+pm.test("Organization ID remains unchanged", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.organizationId._id).to.eql(pm.collectionVariables.get('organizationId'));
+});
+```
+
+**Expected Response (200):**
+```json
+{
+  "success": true,
+  "message": "Shop updated successfully",
+  "data": {
+    "_id": "65f1234567890abcdef12345",
+    "name": "Golden Jewels Mumbai - Updated",
+    "displayName": "Golden Jewels - Luxury Collection",
+    "email": "updated@goldenjewels.com",
+    "phone": "9876543215",
+    "shopType": "showroom",
+    "updatedBy": {
+      "_id": "65f8888888888888888888888",
+      "firstName": "Admin",
+      "lastName": "User"
+    },
+    "updatedAt": "2024-02-09T11:00:00.000Z"
+  }
+}
+```
+
+---
+
+### 1.22 Update Shop - FAILURE (Invalid Phone) ❌
+
+**Endpoint:** `PUT {{baseUrl}}/shops/{{shopId}}`
+
+**Request Body:**
+```json
+{
+  "phone": "12345"
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid phone", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*phone/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid phone number"
+}
+```
+
+---
+
+### 1.23 Update Shop - FAILURE (Cannot Update Protected Fields) ❌
+
+**Endpoint:** `PUT {{baseUrl}}/shops/{{shopId}}`
+
+**Request Body:**
+```json
+{
+  "code": "NEW-CODE-123",
+  "organizationId": "65f0000000000000000000000"
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200 (fields ignored)", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Protected fields not updated", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.code).to.not.eql("NEW-CODE-123");
+    pm.expect(data.organizationId._id).to.eql(pm.collectionVariables.get('organizationId'));
+});
+```
+
+---
+
+### 1.24 Update Shop - FAILURE (Update Verified Shop GST - Non Super Admin) ❌
+
+**Endpoint:** `PUT {{baseUrl}}/shops/{{verifiedShopId}}`
+
+**Headers:** Use org_admin or shop_admin token
+
+**Request Body:**
+```json
+{
+  "gstNumber": "27AABCU9603R1ZN"
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 403", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Error indicates only super admin can update", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/only.*super.*admin.*update.*gst/i);
+});
+```
+
+**Expected Response (403):**
+```json
+{
+  "success": false,
+  "error": "Only super admin can update gstNumber of verified shop"
+}
+```
+
+---
+
+### 1.25 Update Shop - FAILURE (No Permission) ❌
+
+**Endpoint:** `PUT {{baseUrl}}/shops/{{shopId}}`
+
+**Headers:** Use staff user token without update permissions
+
+**Tests:**
+```javascript
+pm.test("Status code is 403", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Error indicates insufficient permissions", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/do.*not.*have.*permission/i);
+});
+```
+
+**Expected Response (403):**
+```json
+{
+  "success": false,
+  "error": "You do not have permission to update shop settings"
+}
+```
+
+---
+
+### 1.26 Delete Shop - SUCCESS ✅
+
+**Endpoint:** `DELETE {{baseUrl}}/shops/{{shopId}}`
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Shop deleted successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.message).to.match(/shop.*deleted.*successfully/i);
+});
+```
+
+**Expected Response (200):**
+```json
+{
+  "success": true,
+  "message": "Shop deleted successfully"
+}
+```
+
+---
+
+### 1.27 Delete Shop - FAILURE (Invalid Shop ID) ❌
+
+**Endpoint:** `DELETE {{baseUrl}}/shops/invalid-id`
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid ID", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*shop.*id/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid shop ID"
+}
+```
+
+---
+
+### 1.28 Delete Shop - FAILURE (Shop Not Found) ❌
+
+**Endpoint:** `DELETE {{baseUrl}}/shops/65f0000000000000000000000`
+
+**Tests:**
+```javascript
+pm.test("Status code is 404", function () {
+    pm.response.to.have.status(404);
+});
+
+pm.test("Error indicates shop not found", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/shop.*not.*found/i);
+});
+```
+
+**Expected Response (404):**
+```json
+{
+  "success": false,
+  "error": "Shop not found"
+}
+```
+
+---
+
+### 1.29 Delete Shop - FAILURE (Unauthorized - Not Admin) ❌
+
+**Endpoint:** `DELETE {{baseUrl}}/shops/{{shopId}}`
+
+**Headers:** Use shop_admin or manager token
+
+**Tests:**
+```javascript
+pm.test("Status code is 403", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Error indicates only admins can delete", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/only.*admin.*delete/i);
+});
+```
+
+**Expected Response (403):**
+```json
+{
+  "success": false,
+  "error": "Only Super Admin or Org Admin can delete shops"
+}
+```
+
+---
+
+## 2. SHOP SETTINGS & CONFIGURATION
+
+### 2.1 Update Shop Settings - SUCCESS ✅
+
+**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/settings`
+
+**Request Body:**
+```json
+{
+  "settings": {
+    "currency": "INR",
+    "language": "hi",
+    "timezone": "Asia/Kolkata",
+    "defaultWeightUnit": "gram",
+    "enableGST": true,
+    "gstRates": {
+      "gold": 3,
+      "silver": 3,
+      "diamond": 0.25,
+      "makingCharges": 18
+    },
+    "purityCalculation": {
+      "method": "touch_stone",
+      "decimals": 3
+    },
+    "invoiceSettings": {
+      "prefix": "INV",
+      "startingNumber": 1000,
+      "includeHSNCode": true,
+      "includeBarcode": true
+    },
+    "metalRates": {
+      "autoUpdate": false,
+      "updateFrequency": "daily",
+      "source": "manual"
+    }
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Settings updated successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.message).to.match(/settings.*updated.*successfully/i);
+});
+
+pm.test("Updated settings are reflected", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.settings).to.have.property('currency');
+    pm.expect(data.settings.currency).to.eql('INR');
+    pm.expect(data.settings.language).to.eql('hi');
+    pm.expect(data.settings.gstRates.gold).to.eql(3);
+});
+
+pm.test("All settings properties present", function () {
+    const settings = pm.response.json().data.settings;
+    pm.expect(settings).to.have.property('enableGST');
+    pm.expect(settings).to.have.property('gstRates');
+    pm.expect(settings).to.have.property('defaultWeightUnit');
+});
+```
+
+**Expected Response (200):**
+```json
+{
+  "success": true,
+  "message": "Shop settings updated successfully",
+  "data": {
+    "_id": "65f1234567890abcdef12345",
+    "name": "Golden Jewels Mumbai",
+    "settings": {
+      "currency": "INR",
+      "language": "hi",
+      "timezone": "Asia/Kolkata",
+      "defaultWeightUnit": "gram",
+      "enableGST": true,
+      "gstRates": {
+        "gold": 3,
+        "silver": 3,
+        "diamond": 0.25,
+        "makingCharges": 18
+      },
+      "purityCalculation": {
+        "method": "touch_stone",
+        "decimals": 3
+      },
+      "invoiceSettings": {
+        "prefix": "INV",
+        "startingNumber": 1000,
+        "includeHSNCode": true,
+        "includeBarcode": true
+      },
+      "metalRates": {
+        "autoUpdate": false,
+        "updateFrequency": "daily",
+        "source": "manual"
+      }
+    },
+    "updatedBy": {
+      "_id": "65f8888888888888888888888",
+      "firstName": "Admin",
+      "lastName": "User"
+    },
+    "updatedAt": "2024-02-09T11:30:00.000Z"
+  }
+}
+```
+
+---
+
+### 2.2 Update Shop Settings - FAILURE (Invalid Currency) ❌
+
+**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/settings`
+
+**Request Body:**
+```json
+{
+  "settings": {
+    "currency": "ABC"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid currency", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*currency/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid currency"
+}
+```
+
+---
+
+### 2.3 Update Shop Settings - FAILURE (Invalid Weight Unit) ❌
+
+**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/settings`
+
+**Request Body:**
+```json
+{
+  "settings": {
+    "defaultWeightUnit": "pounds"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid weight unit", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*weight.*unit/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid weight unit"
+}
+```
+
+---
+
+### 2.4 Update Shop Settings - FAILURE (Invalid GST Rate) ❌
+
+**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/settings`
+
+**Request Body:**
+```json
+{
+  "settings": {
+    "gstRates": {
+      "gold": 150
+    }
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for GST rate out of range", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*gst.*rate/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid GST rate for gold"
+}
+```
+
+---
+
+### 2.5 Update Shop Settings - FAILURE (Invalid Shop ID) ❌
+
+**Endpoint:** `PATCH {{baseUrl}}/shops/invalid-id/settings`
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid ID", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*shop.*id/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid shop ID"
+}
+```
+
+---
+
+### 2.6 Update Shop Settings - FAILURE (No Permission) ❌
+
+**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/settings`
+
+**Headers:** Use manager or staff token without settings permission
+
+**Tests:**
+```javascript
+pm.test("Status code is 403", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Error indicates no permission", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/not.*have.*permission.*settings/i);
+});
+```
+
+**Expected Response (403):**
+```json
+{
+  "success": false,
+  "error": "You do not have permission to update shop settings"
+}
+```
+
+---
+
+### 2.7 Update Shop Settings - FAILURE (Settings Not Object) ❌
+
+**Endpoint:** `PATCH {{baseUrl}}/shops/{{shopId}}/settings`
+
+**Request Body:**
+```json
+{
+  "settings": "invalid"
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for settings format", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/settings.*must.*be.*object/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Settings must be an object"
+}
+```
+
+---
+
+## 3. SHOP STATISTICS
+
+### 3.1 Get Shop Statistics - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/statistics`
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Statistics returned successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.data).to.be.an('object');
+});
+
+pm.test("Statistics has all required fields", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('totalSales');
+    pm.expect(data).to.have.property('totalPurchases');
+    pm.expect(data).to.have.property('totalCustomers');
+    pm.expect(data).to.have.property('totalProducts');
+    pm.expect(data).to.have.property('totalOrders');
+    pm.expect(data).to.have.property('revenue');
+});
+
+pm.test("All statistics are numbers", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.totalSales).to.be.a('number');
+    pm.expect(data.totalCustomers).to.be.a('number');
+    pm.expect(data.revenue).to.be.a('number');
+});
+
+pm.test("Statistics are non-negative", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.totalSales).to.be.at.least(0);
+    pm.expect(data.totalCustomers).to.be.at.least(0);
+    pm.expect(data.revenue).to.be.at.least(0);
+});
+```
+
+**Expected Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "totalSales": 150,
+    "totalPurchases": 75,
+    "totalCustomers": 250,
+    "totalProducts": 500,
+    "totalOrders": 300,
+    "totalStaff": 10,
+    "revenue": 5000000,
+    "profit": 750000,
+    "inventoryValue": 3000000,
+    "lastUpdated": "2024-02-09T12:00:00.000Z",
+    "salesByMonth": [
+      {
+        "month": "2024-01",
+        "sales": 45,
+        "revenue": 1500000
+      },
+      {
+        "month": "2024-02",
+        "sales": 52,
+        "revenue": 1750000
+      }
+    ],
+    "topSellingProducts": [
+      {
+        "productId": "65f1111111111111111111111",
+        "name": "Gold Chain 22K",
+        "soldCount": 25,
+        "revenue": 500000
+      }
+    ],
+    "topCustomers": [
+      {
+        "customerId": "65f2222222222222222222222",
+        "name": "Rajesh Kumar",
+        "totalPurchases": 15,
+        "totalSpent": 750000
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 3.2 Get Shop Statistics - FAILURE (Invalid Shop ID) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/invalid-id/statistics`
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation error for invalid ID", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/invalid.*shop.*id/i);
+});
+```
+
+**Expected Response (400):**
+```json
+{
+  "success": false,
+  "error": "Validation Error: Invalid shop ID"
+}
+```
+
+---
+
+### 3.3 Get Shop Statistics - FAILURE (Shop Not Found) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/65f0000000000000000000000/statistics`
+
+**Tests:**
+```javascript
+pm.test("Status code is 404", function () {
+    pm.response.to.have.status(404);
+});
+
+pm.test("Error indicates shop not found", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/shop.*not.*found/i);
+});
+```
+
+**Expected Response (404):**
+```json
+{
+  "success": false,
+  "error": "Shop not found"
+}
+```
+
+---
+
+### 3.4 Get Shop Statistics - FAILURE (No Access) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{otherShopId}}/statistics`
+
+**Headers:** Use token without access to this shop
+
+**Tests:**
+```javascript
+pm.test("Status code is 403", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Error indicates no access", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/not.*have.*access/i);
+});
+```
+
+**Expected Response (403):**
+```json
+{
+  "success": false,
+  "error": "You do not have access to this shop"
+}
+```
+
+---
+
+### 3.5 Get Shop Statistics - FAILURE (Insufficient Permissions) ❌
+
+**Endpoint:** `GET {{baseUrl}}/shops/{{shopId}}/statistics`
+
+**Headers:** Use staff token without statistics view permission
+
+**Tests:**
+```javascript
+pm.test("Status code is 403", function () {
+    pm.response.to.have.status(403);
+});
+
+pm.test("Error indicates insufficient permissions", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.error || jsonData.message).to.match(/not.*have.*permission/i);
+});
+```
+
+**Expected Response (403):**
+```json
+{
+  "success": false,
+  "error": "You do not have permission to view shop statistics"
+}
+```
+
+---
+
+## Summary of Test Scenarios
+
+### Total Routes Tested: 7
+
+#### Route Breakdown:
+1. **Shop CRUD Operations (5 routes)**
+   - Create Shop
+   - Get All Shops
+   - Get Shop by ID
+   - Update Shop
+   - Delete Shop (Soft Delete)
+
+2. **Shop Settings (1 route)**
+   - Update Shop Settings
+
+3. **Shop Statistics (1 route)**
+   - Get Shop Statistics
+
+#### Test Coverage:
+- **Positive Tests (Success ✅):** 11 scenarios
+- **Negative Tests (Failure ❌):** 27 scenarios
+- **Total Tests:** 38 comprehensive scenarios
+
+### Test Categories:
+
+#### 1. Validation Errors
+- Missing required fields
+- Invalid phone/email formats
+- Invalid GST/PAN numbers
+- Invalid pincode
+- Invalid coordinates
+- Invalid shop type/category
+- Invalid currency/language
+- Invalid weight unit
+- Invalid GST rates
+
+#### 2. Business Logic Errors
+- Organization shop limit reached
+- Cannot update protected fields
+- Cannot update verified shop details (non-super admin)
+- Settings must be object
+
+#### 3. Authorization Errors
+- Unauthorized role (not admin)
+- No shop access
+- Insufficient permissions
+- Cannot delete as non-admin
+
+#### 4. Not Found Errors
+- Invalid shop ID format
+- Shop not found
+- Organization not found
+
+---
+
+## Postman Collection Setup
+
+### Environment Variables
+```json
+{
+  "baseUrl": "http://localhost:3000/api/v1",
+  "authToken": "YOUR_JWT_TOKEN",
+  "superAdminToken": "SUPER_ADMIN_JWT_TOKEN",
+  "orgAdminToken": "ORG_ADMIN_JWT_TOKEN",
+  "shopAdminToken": "SHOP_ADMIN_JWT_TOKEN",
+  "managerToken": "MANAGER_JWT_TOKEN",
+  "staffToken": "STAFF_JWT_TOKEN",
+  "shopId": "",
+  "shopCode": "",
+  "organizationId": "",
+  "managerId": "",
+  "sourceShopId": "",
+  "otherShopId": "",
+  "verifiedShopId": ""
+}
+```
+
+### Pre-request Script (Collection Level)
+```javascript
+// Add authentication header
+pm.request.headers.add({
+    key: 'Authorization',
+    value: 'Bearer ' + pm.environment.get('authToken')
+});
+
+// Add timestamp for logging
+pm.environment.set('requestTimestamp', new Date().toISOString());
+
+// Log request details
+console.log(`Request: ${pm.request.method} ${pm.request.url}`);
+```
+
+### Tests Script (Collection Level)
+```javascript
+// Common tests for all requests
+pm.test("Response time is acceptable", function () {
+    pm.expect(pm.response.responseTime).to.be.below(5000);
+});
+
+pm.test("Response has proper structure", function () {
+    const jsonData = pm.response.json();
+    if ([200, 201].includes(pm.response.code)) {
+        pm.expect(jsonData).to.have.property('success');
+        if (jsonData.success) {
+            pm.expect(jsonData).to.have.property('data');
+        }
+    }
+});
+
+pm.test("Content-Type is JSON", function () {
+    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');
+});
+
+// Log response status
+console.log(`Response Status: ${pm.response.code} ${pm.response.status}`);
+```
+
+---
+
+## Testing Workflows
+
+### Workflow 1: Complete Shop Creation Flow
+```
+1. POST - Create Shop (Super Admin/Org Admin)
+2. GET - Verify Shop Created
+3. GET - Check Shop in All Shops List
+4. PATCH - Update Shop Settings
+5. GET - Verify Settings Updated
+```
+
+### Workflow 2: Shop Management Flow
+```
+1. GET - Get All Shops
+2. GET - Get Specific Shop Details
+3. PUT - Update Shop Information
+4. GET - Verify Updates
+5. GET - View Shop Statistics
+```
+
+### Workflow 3: Multi-Shop Organization Flow
+```
+1. POST - Create First Shop
+2. POST - Create Second Shop (Copy Settings)
+3. GET - List All Organization Shops
+4. GET - Compare Shop Settings
+5. DELETE - Remove Test Shop
+```
+
+### Workflow 4: Permission Testing Flow
+```
+1. POST - Create Shop (Super Admin) ✅
+2. POST - Create Shop (Staff) ❌ 403
+3. PUT - Update Shop (Shop Admin) ✅
+4. PUT - Update Shop (Manager without permission) ❌ 403
+5. DELETE - Delete Shop (Shop Admin) ❌ 403
+6. DELETE - Delete Shop (Org Admin) ✅
+```
+
+---
+
+## Response Time Benchmarks
+
+| Endpoint Type | Expected Time |
+|--------------|---------------|
+| GET Single Shop | < 500ms |
+| GET All Shops | < 1000ms |
+| POST Create Shop | < 2000ms |
+| PUT Update Shop | < 1500ms |
+| PATCH Update Settings | < 1000ms |
+| DELETE Shop | < 1500ms |
+| GET Statistics | < 1000ms |
+
+---
+
+## Error Response Standards
+
+### 400 Bad Request
+```json
+{
+  "success": false,
+  "error": "Validation Error: Phone number is required",
+  "details": [
+    {
+      "field": "phone",
+      "message": "Phone number is required"
+    }
+  ]
+}
+```
+
+### 401 Unauthorized
+```json
+{
+  "success": false,
+  "error": "Authentication required. Please login."
+}
+```
+
+### 403 Forbidden
+```json
+{
+  "success": false,
+  "error": "You do not have permission to perform this action"
+}
+```
+
+### 404 Not Found
+```json
+{
+  "success": false,
+  "error": "Shop not found"
+}
+```
+
+### 500 Internal Server Error
+```json
+{
+  "success": false,
+  "error": "Internal server error",
+  "requestId": "req_123456789"
+}
+```
+
+---
+
+## Testing Best Practices
+
+### 1. Test Data Management
+- Use unique shop names for each test
+- Clean up test shops after testing
+- Maintain separate test organization
+
+### 2. Test Execution Order
+- Authentication tests first
+- Create operations before read/update
+- Delete operations last
+- Use Collection Runner for sequential tests
+
+### 3. Assertions
+- Always verify response structure
+- Check all required fields
+- Validate data types
+- Test business logic constraints
+
+### 4. Role-Based Testing
+- Test each endpoint with different roles
+- Verify permission enforcement
+- Test access control for each shop
+
+### 5. Error Handling
+- Test all validation rules
+- Verify error messages are clear
+- Check HTTP status codes
+- Test edge cases
+
+---
+
+## Quick Reference
+
+### Shop Types
+- `retail` - Retail Shop
+- `wholesale` - Wholesale Shop
+- `manufacturing` - Manufacturing Unit
+- `showroom` - Showroom
+- `workshop` - Workshop
+- `warehouse` - Warehouse
+- `online` - Online Store
+
+### Categories
+- `jewelry` - General Jewelry
+- `gold` - Gold Jewelry
+- `silver` - Silver Jewelry
+- `diamond` - Diamond Jewelry
+- `gemstone` - Gemstone Jewelry
+- `pearls` - Pearl Jewelry
+- `platinum` - Platinum Jewelry
+- `mixed` - Mixed Categories
+
+### Currencies
+- `INR` - Indian Rupees
+- `USD` - US Dollars
+- `EUR` - Euros
+- `GBP` - British Pounds
+- `AED` - UAE Dirham
+- `SAR` - Saudi Riyal
+
+### Languages
+- `en` - English
+- `hi` - Hindi
+- `mr` - Marathi
+- `gu` - Gujarati
+- `ta` - Tamil
+- `te` - Telugu
+
+### Weight Units
+- `gram` - Grams
+- `kg` - Kilograms
+- `tola` - Tola
+- `ounce` - Ounce
+- `carat` - Carat
+
+---
+
+## Common Testing Scenarios
+
+### Scenario 1: New Organization Setup
+```javascript
+// 1. Create first shop for organization
+POST /shops (with organizationId)
+
+// 2. Verify shop created and active
+GET /shops/{{shopId}}
+
+// 3. Configure shop settings
+PATCH /shops/{{shopId}}/settings
+
+// 4. Verify organization usage updated
+GET /organizations/{{organizationId}}
+```
+
+### Scenario 2: Multi-Shop Expansion
+```javascript
+// 1. Get existing shop details
+GET /shops/{{existingShopId}}
+
+// 2. Create new shop with copied settings
+POST /shops (with copySettingsFromShopId)
+
+// 3. Verify settings copied correctly
+GET /shops/{{newShopId}}?includeSettings=true
+
+// 4. List all organization shops
+GET /shops?organizationId={{organizationId}}
+```
+
+### Scenario 3: Shop Transfer
+```javascript
+// 1. Update shop manager
+PUT /shops/{{shopId}} (change managerId)
+
+// 2. Verify old manager access revoked
+GET /shops/{{shopId}} (with old manager token)
+
+// 3. Verify new manager access granted
+GET /shops/{{shopId}} (with new manager token)
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+1. **401 Unauthorized**
+   - Check JWT token validity
+   - Verify token expiry
+   - Ensure Authorization header format
+   - Re-login if token expired
+
+2. **403 Forbidden**
+   - Verify user role permissions
+   - Check shop access for user
+   - Confirm specific permission exists
+   - Test with admin token
+
+3. **404 Not Found**
+   - Verify shop ID is correct
+   - Check if shop was deleted
+   - Confirm organization exists
+   - Use valid ObjectId format
+
+4. **400 Validation Error**
+   - Review all required fields
+   - Check field formats (phone, email, GST, PAN)
+   - Validate enum values
+   - Ensure proper data types
+
+5. **Shop Creation Fails**
+   - Check organization shop limit
+   - Verify organizationId exists
+   - Confirm user has create permission
+   - Ensure manager user exists
+
+---
+
+## Data Validation Rules
+
+### Phone Numbers
+- Format: 10 digits
+- Pattern: `^[0-9]{10}$`
+- Example: `9876543210`
+
+### Email
+- Format: Valid email
+- Example: `contact@shop.com`
+
+### GST Number
+- Format: 15 characters
+- Pattern: `^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$`
+- Example: `27AABCU9603R1ZM`
+
+### PAN Number
+- Format: 10 characters
+- Pattern: `^[A-Z]{5}[0-9]{4}[A-Z]{1}$`
+- Example: `AABCU9603R`
+
+### Pincode
+- Format: 6 digits
+- Pattern: `^[0-9]{6}$`
+- Example: `400058`
+
+### IFSC Code
+- Format: 11 characters
+- Pattern: `^[A-Z]{4}0[A-Z0-9]{6}$`
+- Example: `HDFC0001234`
+
+### UPI ID
+- Format: username@provider
+- Pattern: `^[\w.-]+@[\w.-]+$`
+- Example: `shop@paytm`
+
+---
+
+## Performance Optimization Tips
+
+### 1. Use Pagination
+```
+GET /shops?page=1&limit=20
+```
+
+### 2. Select Specific Fields
+```
+GET /shops?fields=name,code,address.city,isActive
+```
+
+### 3. Filter Results
+```
+GET /shops?city=Mumbai&isActive=true&shopType=retail
+```
+
+### 4. Sort Results
+```
+GET /shops?sort=-createdAt,name
+```
+
+### 5. Cache Strategy
+- Cache shop details for 5 minutes
+- Invalidate on update/delete
+- Use ETags for conditional requests
+
+---
+
+**Last Updated:** February 09, 2026  
+**API Version:** v1  
+**Base URL:** http://localhost:3000/api/v1  
+**Total Tests:** 38 comprehensive test scenarios  
+**Test Coverage:** 100% of all 7 routes
+
+---
+
+**Happy Testing! 🚀**
