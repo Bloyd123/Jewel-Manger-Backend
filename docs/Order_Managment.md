@@ -2691,4 +2691,18 @@ pm.test("Response has proper structure", function () {
 
 ---
 
+
+draft
+   ↓
+confirmed
+   ↓
+in_progress
+   ↓
+quality_check
+   ↓
+ready
+   ↓
+delivered
+
+
 **Happy Testing! 🚀**
