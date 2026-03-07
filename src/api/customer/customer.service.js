@@ -1,5 +1,4 @@
 // FILE: src/api/customer/customer.service.js
-// Customer Business Logic Service
 
 import Customer from '../../models/Customer.js';
 import JewelryShop from '../../models/Shop.js';
@@ -12,9 +11,6 @@ import {
   BadRequestError,
 } from '../../utils/AppError.js';
 
-/**
- * Generate Sequential Customer Code
- */
 export const generateCustomerCode = async (shopId, prefix = 'CUST') => {
   const lastCustomer = await Customer.findOne({ shopId })
     .sort({ customerCode: -1 })
@@ -32,9 +28,7 @@ export const generateCustomerCode = async (shopId, prefix = 'CUST') => {
   return `${prefix}${String(number).padStart(5, '0')}`;
 };
 
-/**
- * Check if phone already exists in shop
- */
+
 export const checkDuplicatePhone = async (shopId, phone, excludeCustomerId = null) => {
   const query = {
     shopId,
@@ -50,20 +44,15 @@ export const checkDuplicatePhone = async (shopId, phone, excludeCustomerId = nul
   return existing;
 };
 
-/**
- * Create a new customer
- */
+
 export const createCustomer = async (shopId, customerData, userId) => {
-  // Check shop exists
   const shop = await JewelryShop.findById(shopId);
   if (!shop) {
     throw new NotFoundError('Shop not found');
   }
 
-  // Normalize data
   const normalizedData = normalizeCustomerData(customerData);
 
-  // Check duplicate phone in same shop
   const duplicate = await checkDuplicatePhone(shopId, normalizedData.phone);
   if (duplicate) {
     throw new ConflictError(
@@ -71,10 +60,8 @@ export const createCustomer = async (shopId, customerData, userId) => {
     );
   }
 
-  // Generate customer code
   const customerCode = await generateCustomerCode(shopId);
 
-  // Create customer
   const customer = await Customer.create({
     organizationId: shop.organizationId,
     shopId,
@@ -100,10 +87,8 @@ export const createCustomer = async (shopId, customerData, userId) => {
     createdBy: userId,
   });
 
-  // Update shop statistics
   await updateShopStatistics(shopId);
 
-  // Cache customer
   await cacheCustomer(customer);
 
   return customer;
@@ -113,7 +98,6 @@ export const createCustomer = async (shopId, customerData, userId) => {
  * Get customer by ID
  */
 export const getCustomerById = async (customerId, shopId = null) => {
-  // Try cache first
   const cacheKey = `customer:${customerId}`;
   let customer = await cache.get(cacheKey);
 
@@ -130,24 +114,18 @@ export const getCustomerById = async (customerId, shopId = null) => {
       throw new NotFoundError('Customer not found');
     }
 
-    // Cache for 30 minutes
     await cache.set(cacheKey, customer, 1800);
   }
 
   return customer;
 };
 
-/**
- * Search customer by phone/email/code
- */
 export const searchCustomer = async (shopId, searchParams) => {
   const { phone, email, customerCode, search } = searchParams;
 
-  // Build query
   const query = { shopId, deletedAt: null };
 
   if (phone) {
-    // Try cache first for phone lookup
     const cacheKey = `customer:phone:${shopId}:${phone}`;
     const cachedId = await cache.get(cacheKey);
 
@@ -176,7 +154,6 @@ export const searchCustomer = async (shopId, searchParams) => {
     )
     .lean();
 
-  // Cache if found by phone
   if (customer && phone) {
     const cacheKey = `customer:phone:${shopId}:${phone}`;
     await cache.set(cacheKey, customer._id.toString(), 3600);
@@ -189,10 +166,8 @@ export const searchCustomer = async (shopId, searchParams) => {
  * Get all customers with filters and pagination
  */
 export const getCustomers = async (shopId, filters = {}, paginationOptions = {}) => {
-  // Build query
   const query = { shopId, deletedAt: null };
 
-  // Search filter
   if (filters.search) {
     query.$or = [
       { firstName: new RegExp(filters.search, 'i') },
@@ -203,32 +178,26 @@ export const getCustomers = async (shopId, filters = {}, paginationOptions = {})
     ];
   }
 
-  // Customer type filter
   if (filters.customerType) {
     query.customerType = filters.customerType;
   }
 
-  // Membership tier filter
   if (filters.membershipTier) {
     query.membershipTier = filters.membershipTier;
   }
 
-  // Active/Inactive filter
   if (filters.isActive !== undefined) {
     query.isActive = filters.isActive === 'true' || filters.isActive === true;
   }
 
-  // Has balance filter
   if (filters.hasBalance) {
     query.totalDue = { $gt: 0 };
   }
 
-  // VIP only filter
   if (filters.vipOnly) {
     query.$or = [{ customerType: 'vip' }, { membershipTier: 'platinum' }];
   }
 
-  // Date range filter
   if (filters.startDate || filters.endDate) {
     query.createdAt = {};
     if (filters.startDate) {
@@ -239,14 +208,12 @@ export const getCustomers = async (shopId, filters = {}, paginationOptions = {})
     }
   }
 
-  // Check cache for common queries
   const cacheKey = `customers:${shopId}:${JSON.stringify(filters)}:${JSON.stringify(paginationOptions)}`;
   const cached = await cache.get(cacheKey);
   if (cached) {
     return cached;
   }
 
-  // Execute paginated query
   const result = await paginate(Customer, query, {
     page: paginationOptions.page || 1,
     limit: paginationOptions.limit || 20,
@@ -256,17 +223,12 @@ export const getCustomers = async (shopId, filters = {}, paginationOptions = {})
     populate: [{ path: 'referredBy', select: 'firstName lastName customerCode' }],
   });
 
-  // Cache for 5 minutes
   await cache.set(cacheKey, result, 300);
 
   return result;
 };
 
-/**
- * Update customer
- */
 export const updateCustomer = async (customerId, shopId, updateData, userId) => {
-  // Get existing customer
   const customer = await Customer.findOne({
     _id: customerId,
     shopId,
@@ -277,15 +239,12 @@ export const updateCustomer = async (customerId, shopId, updateData, userId) => 
     throw new NotFoundError('Customer not found');
   }
 
-  // Check if blacklisted
   if (customer.isBlacklisted) {
     throw new ValidationError('Cannot update blacklisted customer');
   }
 
-  // Normalize data
   const normalizedData = normalizeCustomerData(updateData);
 
-  // Check phone uniqueness if changing
   if (normalizedData.phone && normalizedData.phone !== customer.phone) {
     const duplicate = await checkDuplicatePhone(shopId, normalizedData.phone, customerId);
     if (duplicate) {
@@ -293,7 +252,6 @@ export const updateCustomer = async (customerId, shopId, updateData, userId) => 
     }
   }
 
-  // Track changes for audit
   const changes = {};
   Object.keys(normalizedData).forEach(key => {
     if (JSON.stringify(customer[key]) !== JSON.stringify(normalizedData[key])) {
@@ -304,12 +262,10 @@ export const updateCustomer = async (customerId, shopId, updateData, userId) => 
     }
   });
 
-  // Update customer
   Object.assign(customer, normalizedData);
   customer.updatedBy = userId;
   await customer.save();
 
-  // Invalidate cache
   await invalidateCustomerCache(customerId, shopId, customer.phone);
 
   return { customer, changes };
@@ -329,20 +285,16 @@ export const deleteCustomer = async (customerId, shopId, userId) => {
     throw new NotFoundError('Customer not found');
   }
 
-  // Check if has outstanding balance
   if (customer.totalDue > 0) {
     throw new ValidationError(
       `Cannot delete customer with outstanding balance of ₹${customer.totalDue}`
     );
   }
 
-  // Soft delete
   await customer.softDelete();
 
-  // Invalidate cache
   await invalidateCustomerCache(customerId, shopId, customer.phone);
 
-  // Update shop statistics
   await updateShopStatistics(shopId);
 
   return customer;
@@ -368,7 +320,6 @@ export const blacklistCustomer = async (customerId, shopId, reason, userId) => {
 
   await customer.blacklist(reason);
 
-  // Invalidate cache
   await invalidateCustomerCache(customerId, shopId, customer.phone);
 
   return customer;
@@ -394,7 +345,6 @@ export const removeBlacklist = async (customerId, shopId, userId) => {
 
   await customer.removeBlacklist();
 
-  // Invalidate cache
   await invalidateCustomerCache(customerId, shopId, customer.phone);
 
   return customer;
@@ -416,7 +366,6 @@ export const addLoyaltyPoints = async (customerId, shopId, points, reason = null
 
   await customer.addLoyaltyPoints(points);
 
-  // Invalidate cache
   await invalidateCustomerCache(customerId, shopId, customer.phone);
 
   return customer;
@@ -442,7 +391,6 @@ export const redeemLoyaltyPoints = async (customerId, shopId, points) => {
 
   await customer.redeemLoyaltyPoints(points);
 
-  // Invalidate cache
   await invalidateCustomerCache(customerId, shopId, customer.phone);
 
   return customer;
@@ -489,17 +437,14 @@ export const getCustomerStatistics = async (shopId) => {
 export const normalizeCustomerData = (data) => {
   const normalized = { ...data };
 
-  // Phone
   if (normalized.phone) {
     normalized.phone = normalized.phone.trim().replace(/\s/g, '');
   }
 
-  // Email
   if (normalized.email) {
     normalized.email = normalized.email.toLowerCase().trim();
   }
 
-  // Names
   if (normalized.firstName) {
     normalized.firstName = normalized.firstName
       .trim()
@@ -516,17 +461,14 @@ export const normalizeCustomerData = (data) => {
       .join(' ');
   }
 
-  // Aadhar
   if (normalized.aadharNumber) {
     normalized.aadharNumber = normalized.aadharNumber.replace(/\s/g, '');
   }
 
-  // PAN
   if (normalized.panNumber) {
     normalized.panNumber = normalized.panNumber.toUpperCase().trim();
   }
 
-  // GST
   if (normalized.gstNumber) {
     normalized.gstNumber = normalized.gstNumber.toUpperCase().trim();
   }

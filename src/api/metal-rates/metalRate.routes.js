@@ -1,5 +1,4 @@
 // FILE: src/api/metal-rates/metalRate.routes.js
-// Metal Rate Management - Route Definitions
 
 import express from 'express';
 import metalRateController from './metalRate.controller.js';
@@ -11,7 +10,6 @@ import rateLimiter from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
-// SHOP-LEVEL ROUTES (PREFIX: /api/v1/shops/:shopId/metal-rates)
 
 // CREATE OR UPDATE TODAY'S RATE
 // POST /api/v1/shops/:shopId/metal-rates
@@ -136,7 +134,6 @@ router.get(
   metalRateController.getAverageRate
 );
 
-// ORGANIZATION-LEVEL ROUTES (PREFIX: /api/v1/organizations/:organizationId/metal-rates)
 
 // MULTI-SHOP SYNC (ORGANIZATION LEVEL)
 // POST /api/v1/organizations/:organizationId/metal-rates/sync
@@ -163,7 +160,6 @@ router.get(
   metalRateController.getOrganizationRate
 );
 
-// RATE-SPECIFIC ROUTES (PREFIX: /api/v1/metal-rates/:rateId)
 
 // DEACTIVATE RATE
 // PATCH /api/v1/metal-rates/:rateId/deactivate
@@ -190,6 +186,5 @@ router.delete(
   metalRateController.deleteRate
 );
 
-// EXPORTS
 
 export default router;

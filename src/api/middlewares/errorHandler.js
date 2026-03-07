@@ -3,12 +3,7 @@
 import logger from '../../utils/logger.js';
 import AppError from '../../utils/AppError.js';
 
-/**
- * Send error response in development mode
- * Includes full error details and stack trace
- */
 const sendErrorDev = (err, req, res) => {
-  // API Error Response
   if (req.originalUrl.startsWith('/api')) {
     return res.status(err.statusCode).json({
       success: false,
@@ -23,8 +18,7 @@ const sendErrorDev = (err, req, res) => {
     });
   }
 
-  // Rendered Website Error
-  console.error('ERROR 💥', err);
+  console.error('ERROR', err);
   return res.status(err.statusCode).json({
     success: false,
     status: err.status,
@@ -33,14 +27,9 @@ const sendErrorDev = (err, req, res) => {
   });
 };
 
-/**
- * Send error response in production mode
- * Only sends necessary error details to client
- */
+
 const sendErrorProd = (err, req, res) => {
-  // API Error Response
   if (req.originalUrl.startsWith('/api')) {
-    // Operational, trusted error: send message to client
     if (err.isOperational) {
       return res.status(err.statusCode).json({
         success: false,
@@ -51,16 +40,13 @@ const sendErrorProd = (err, req, res) => {
       });
     }
 
-    // Programming or unknown error: don't leak error details
-    // 1) Log error
-    console.error('ERROR 💥', err);
+    console.error('ERROR', err);
     logger.error('Non-operational error', {
       error: err.message,
       stack: err.stack,
       path: req.path,
     });
 
-    // 2) Send generic message
     return res.status(500).json({
       success: false,
       status: 'error',
@@ -70,7 +56,6 @@ const sendErrorProd = (err, req, res) => {
     });
   }
 
-  // Rendered Website Error
   if (err.isOperational) {
     return res.status(err.statusCode).json({
       success: false,
@@ -80,8 +65,7 @@ const sendErrorProd = (err, req, res) => {
     });
   }
 
-  // Programming or unknown error
-  console.error('ERROR 💥', err);
+  console.error('ERROR ', err);
   return res.status(500).json({
     success: false,
     status: 'error',
@@ -89,17 +73,11 @@ const sendErrorProd = (err, req, res) => {
   });
 };
 
-/**
- * Handle MongoDB Cast Error (Invalid ObjectId)
- */
 const handleCastErrorDB = err => {
   const message = `Invalid ${err.path}: ${err.value}`;
   return new AppError(message, 400, true, 'INVALID_ID');
 };
 
-/**
- * Handle MongoDB Duplicate Field Error
- */
 const handleDuplicateFieldsDB = err => {
   const field = Object.keys(err.keyValue)[0];
   const value = err.keyValue[field];
@@ -107,7 +85,6 @@ const handleDuplicateFieldsDB = err => {
   let message = `Duplicate field value: ${value}. Please use another value!`;
   let code = 'DUPLICATE_FIELD';
 
-  // Specific messages for common fields
   if (field === 'email') {
     message = 'This email is already registered';
     code = 'DUPLICATE_EMAIL';
@@ -134,32 +111,22 @@ const handleDuplicateFieldsDB = err => {
   return new AppError(message, 409, true, code);
 };
 
-/**
- * Handle MongoDB Validation Error
- */
+
 const handleValidationErrorDB = err => {
   const errors = Object.values(err.errors).map(el => el.message);
   const message = `Invalid input data. ${errors.join('. ')}`;
   return new AppError(message, 400, true, 'VALIDATION_ERROR');
 };
 
-/**
- * Handle JWT Error (Invalid Token)
- */
 const handleJWTError = () => {
   return new AppError('Invalid token. Please login again!', 401, true, 'INVALID_TOKEN');
 };
 
-/**
- * Handle JWT Expired Error
- */
+
 const handleJWTExpiredError = () => {
   return new AppError('Your session has expired. Please login again!', 401, true, 'TOKEN_EXPIRED');
 };
 
-/**
- * Handle Multer File Upload Error
- */
 const handleMulterError = err => {
   let message = 'File upload failed';
   let code = 'FILE_UPLOAD_ERROR';
@@ -178,9 +145,7 @@ const handleMulterError = err => {
   return new AppError(message, 400, true, code);
 };
 
-/**
- * Handle MongoDB Connection Error
- */
+
 const handleMongoError = err => {
   let message = 'Database connection error';
   let code = 'DATABASE_ERROR';
@@ -196,9 +161,6 @@ const handleMongoError = err => {
   return new AppError(message, 500, false, code);
 };
 
-/**
- * Handle Mongoose Disconnection
- */
 const handleDisconnectionError = () => {
   return new AppError(
     'Database connection lost. Please try again.',
@@ -208,9 +170,6 @@ const handleDisconnectionError = () => {
   );
 };
 
-/**
- * Handle Rate Limit Error
- */
 const handleRateLimitError = () => {
   return new AppError(
     'Too many requests from this IP. Please try again later.',
@@ -220,16 +179,12 @@ const handleRateLimitError = () => {
   );
 };
 
-/**
- * Handle Syntax Error (Invalid JSON)
- */
+
 const handleSyntaxError = _err => {
   return new AppError('Invalid JSON format in request body', 400, true, 'INVALID_JSON');
 };
 
-/**
- * Handle Payment Processing Errors
- */
+
 const handlePaymentError = err => {
   let message = 'Payment processing failed';
   let code = 'PAYMENT_ERROR';
@@ -248,12 +203,7 @@ const handlePaymentError = err => {
   return new AppError(message, 402, true, code);
 };
 
-/**
- * Main Error Handler Middleware
- * This should be the last middleware in the chain
- */
 const errorHandler = (err, req, res, _next) => {
-  // Set default values
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
   err.code = err.code || 'INTERNAL_SERVER_ERROR';
@@ -263,64 +213,51 @@ const errorHandler = (err, req, res, _next) => {
   error.name = err.name;
   error.stack = err.stack;
 
-  // Handle different error types
 
-  // 1. MongoDB CastError (Invalid ObjectId)
   if (err.name === 'CastError') {
     error = handleCastErrorDB(error);
   }
 
-  // 2. MongoDB Duplicate Key Error (Code 11000)
   if (err.code === 11000) {
     error = handleDuplicateFieldsDB(error);
   }
 
-  // 3. MongoDB Validation Error
   if (err.name === 'ValidationError') {
     error = handleValidationErrorDB(error);
   }
 
-  // 4. JWT Invalid Token Error
   if (err.name === 'JsonWebTokenError') {
     error = handleJWTError();
   }
 
-  // 5. JWT Expired Token Error
   if (err.name === 'TokenExpiredError') {
     error = handleJWTExpiredError();
   }
 
-  // 6. Multer File Upload Error
   if (err.name === 'MulterError') {
     error = handleMulterError(err);
   }
 
-  // 7. MongoDB Connection Errors
   if (err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError') {
     error = handleMongoError(err);
   }
 
-  // 8. Mongoose Disconnection
   if (err.message && err.message.includes('buffering timed out')) {
     error = handleDisconnectionError();
   }
 
-  // 9. Rate Limit Error
   if (err.message && err.message.includes('Too many requests')) {
     error = handleRateLimitError();
   }
 
-  // 10. JSON Syntax Error
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     error = handleSyntaxError(err);
   }
 
-  // 11. Payment Errors
   if (err.type === 'StripeCardError' || err.type === 'PaymentError') {
     error = handlePaymentError(err);
   }
 
-  // Send appropriate error response based on environment
   if (process.env.NODE_ENV === 'development') {
     sendErrorDev(error, req, res);
   } else {
@@ -328,10 +265,6 @@ const errorHandler = (err, req, res, _next) => {
   }
 };
 
-/**
- * Catch-all for undefined routes (404)
- * Place this BEFORE errorHandler in app.js
- */
 export const notFound = (req, res, next) => {
   const err = new AppError(
     `Cannot find ${req.originalUrl} on this server!`,
@@ -342,23 +275,15 @@ export const notFound = (req, res, next) => {
   next(err);
 };
 
-/**
- * Async error wrapper
- * Wraps async route handlers to catch errors automatically
- */
 export const catchAsync = fn => {
   return (req, res, next) => {
     fn(req, res, next).catch(next);
   };
 };
 
-/**
- * Handle unhandled promise rejections
- * Call this in server.js
- */
 export const handleUnhandledRejection = server => {
   process.on('unhandledRejection', err => {
-    console.error('UNHANDLED REJECTION! 💥 Shutting down...');
+    console.error('UNHANDLED REJECTION! Shutting down...');
     console.error(err.name, err.message);
     logger.error('Unhandled Rejection', {
       error: err.message,
@@ -370,14 +295,9 @@ export const handleUnhandledRejection = server => {
     });
   });
 };
-
-/**
- * Handle uncaught exceptions
- * Call this in server.js BEFORE any other code
- */
 export const handleUncaughtException = () => {
   process.on('uncaughtException', err => {
-    console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+    console.error('UNCAUGHT EXCEPTION! Shutting down...');
     console.error(err.name, err.message);
     logger.error('Uncaught Exception', {
       error: err.message,
@@ -388,17 +308,13 @@ export const handleUncaughtException = () => {
   });
 };
 
-/**
- * Graceful shutdown on SIGTERM
- * Call this in server.js
- */
 export const handleSIGTERM = server => {
   process.on('SIGTERM', () => {
-    console.log('👋 SIGTERM RECEIVED. Shutting down gracefully');
+    console.log(' SIGTERM RECEIVED. Shutting down gracefully');
     logger.info('SIGTERM received, shutting down gracefully');
 
     server.close(() => {
-      console.log('💥 Process terminated!');
+      console.log('Process terminated!');
       logger.info('Process terminated');
     });
   });

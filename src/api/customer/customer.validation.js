@@ -1,5 +1,4 @@
 // FILE: src/api/customer/customer.validation.js
-// Customer Validation Rules
 
 import { body, param, query } from 'express-validator';
 
@@ -7,7 +6,6 @@ import { body, param, query } from 'express-validator';
  * Validation for creating a new customer
  */
 export const createCustomerValidation = [
-  // Basic Information
   body('firstName')
     .trim()
     .notEmpty()
@@ -52,7 +50,6 @@ export const createCustomerValidation = [
     .withMessage('Invalid email address')
     .normalizeEmail(),
 
-  // Personal Details
   body('dateOfBirth')
     .optional()
     .isISO8601()
@@ -74,7 +71,6 @@ export const createCustomerValidation = [
 
   body('anniversaryDate').optional().isISO8601().withMessage('Invalid anniversary date'),
 
-  // Address
   body('address.street')
     .optional()
     .trim()
@@ -99,14 +95,12 @@ export const createCustomerValidation = [
     .matches(/^[1-9][0-9]{5}$/)
     .withMessage('Invalid pincode (must be 6 digits)'),
 
-  // KYC Details
   body('aadharNumber')
     .optional()
     .trim()
     .matches(/^[2-9][0-9]{11}$/)
     .withMessage('Invalid Aadhar number (must be 12 digits)')
     .custom(value => {
-      // Remove spaces if any
       const cleaned = value.replace(/\s/g, '');
       if (cleaned.length !== 12) {
         throw new Error('Aadhar must be exactly 12 digits');
@@ -128,7 +122,6 @@ export const createCustomerValidation = [
     .matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/)
     .withMessage('Invalid GST number format'),
 
-  // Customer Type
   body('customerType')
     .optional()
     .isIn(['retail', 'wholesale', 'vip', 'regular'])
@@ -139,13 +132,11 @@ export const createCustomerValidation = [
     .isIn(['gold', 'silver', 'diamond', 'platinum', 'mixed'])
     .withMessage('Invalid customer category'),
 
-  // Financial
   body('creditLimit')
     .optional()
     .isFloat({ min: 0 })
     .withMessage('Credit limit must be a positive number'),
 
-  // Preferences
   body('preferences.preferredMetal')
     .optional()
     .isIn(['gold', 'silver', 'platinum', 'diamond'])
@@ -156,7 +147,6 @@ export const createCustomerValidation = [
     .isIn(['email', 'sms', 'whatsapp', 'call', 'none'])
     .withMessage('Invalid communication preference'),
 
-  // Source
   body('source')
     .optional()
     .isIn(['walk_in', 'referral', 'online', 'phone', 'social_media', 'advertisement', 'other'])
@@ -164,7 +154,6 @@ export const createCustomerValidation = [
 
   body('referredBy').optional().isMongoId().withMessage('Invalid referral customer ID'),
 
-  // Notes
   body('notes')
     .optional()
     .trim()

@@ -1,5 +1,4 @@
 // FILE: src/api/metal-rates/metalRate.service.js
-// Metal Rate Management - Business Logic Layer
 
 import MetalRate from '../../models/MetalRate.js';
 import JewelryShop from '../../models/Shop.js';
@@ -9,21 +8,17 @@ import eventLogger from '../../utils/eventLogger.js';
 import { NotFoundError, ValidationError, ConflictError } from '../../utils/AppError.js';
 
 class MetalRateService {
-  // CREATE OR UPDATE TODAY'S RATE
 
   async createOrUpdateTodayRate(shopId, rateData, userId) {
     try {
-      // 1. Normalize today's date (start of day)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // 2. Verify shop exists and get organizationId
       const shop = await JewelryShop.findById(shopId);
       if (!shop) {
         throw new NotFoundError('Shop not found');
       }
 
-      // 3. Check if today's rate already exists
       const existingRate = await MetalRate.findOne({
         shopId,
         rateDate: { $gte: today },
@@ -34,10 +29,8 @@ class MetalRateService {
       let isUpdate = false;
 
       if (existingRate) {
-        // UPDATE EXISTING RATE
         isUpdate = true;
 
-        // Update all rate fields
         existingRate.gold = rateData.gold;
         existingRate.silver = rateData.silver;
         if (rateData.platinum) existingRate.platinum = rateData.platinum;
@@ -50,14 +43,8 @@ class MetalRateService {
 
         existingRate.updatedBy = userId;
 
-        // Pre-save middleware will handle:
-        // - baseRates calculation
-        // - autoConvertedRates calculation
-        // - trendData recalculation
-        // - rate changes recalculation
         metalRate = await existingRate.save();
       } else {
-        // CREATE NEW RATE
         metalRate = await MetalRate.create({
           shopId,
           organizationId: shop.organizationId,
@@ -76,22 +63,12 @@ class MetalRateService {
           validFrom: new Date(),
           createdBy: userId,
         });
-
-        // Pre-save middleware automatically:
-        // - Marks all old rates as NOT current
-        // - Calculates baseRates
-        // - Calculates autoConvertedRates
-        // - Calculates moving averages (ma7, ma30, ma90)
-        // - Calculates rate changes from yesterday
       }
 
-      // 4. Update shop's quick access settings
       await this.updateShopSettings(shop, metalRate);
 
-      // 5. Invalidate caches
       await this.invalidateCaches(shopId);
 
-      // 6. Log activity
       await eventLogger.logActivity({
         userId,
         organizationId: shop.organizationId,
@@ -128,11 +105,9 @@ class MetalRateService {
     }
   }
 
-  // GET CURRENT RATE (MOST USED - HEAVILY CACHED)
 
   async getCurrentRate(shopId) {
     try {
-      // 1. Try cache first
       const cacheKey = `metal-rates:${shopId}:current`;
       const cached = await cache.get(cacheKey);
 
@@ -146,14 +121,12 @@ class MetalRateService {
         };
       }
 
-      // 2. Query database if cache miss
       const currentRate = await MetalRate.getCurrentRate(shopId);
 
       if (!currentRate) {
         throw new NotFoundError("No current metal rate found. Please update today's rates.");
       }
 
-      // 3. Store in cache (1 hour)
       await cache.set(cacheKey, currentRate, 3600);
 
       logger.debug('Metal rate cache miss - stored in cache', { shopId });
@@ -170,19 +143,16 @@ class MetalRateService {
     }
   }
 
-  // GET RATE HISTORY WITH PAGINATION
 
   async getRateHistory(shopId, filters = {}) {
     try {
       const { startDate, endDate, page = 1, limit = 10, sort = '-rateDate' } = filters;
 
-      // Build query
       const query = {
         shopId,
         deletedAt: null,
       };
 
-      // Add date range filter
       if (startDate || endDate) {
         query.rateDate = {};
         if (startDate) {
@@ -197,7 +167,6 @@ class MetalRateService {
         }
       }
 
-      // Execute paginated query
       const skip = (page - 1) * limit;
       const [rates, total] = await Promise.all([
         MetalRate.find(query)
@@ -233,11 +202,9 @@ class MetalRateService {
     }
   }
 
-  // GET RATE BY SPECIFIC DATE
 
   async getRateByDate(shopId, date) {
     try {
-      // Normalize date
       const targetDate = new Date(date);
       const startOfDay = new Date(targetDate);
       startOfDay.setHours(0, 0, 0, 0);
@@ -265,11 +232,9 @@ class MetalRateService {
     }
   }
 
-  // COMPARE RATES BETWEEN TWO DATES
 
   async compareRates(shopId, fromDate, toDate) {
     try {
-      // Get rates for both dates
       const [fromRate, toRate] = await Promise.all([
         MetalRate.getRateByDate(shopId, new Date(fromDate)),
         MetalRate.getRateByDate(shopId, new Date(toDate)),
@@ -279,7 +244,6 @@ class MetalRateService {
         throw new NotFoundError('Rates not found for one or both dates');
       }
 
-      // Calculate comparisons
       const comparison = {
         fromDate,
         toDate,
@@ -329,16 +293,13 @@ class MetalRateService {
     }
   }
 
-  // GET TREND CHART DATA (NEW FEATURE)
 
   async getTrendChartData(shopId, metalType = 'gold', days = 90) {
     try {
-      // Validate metalType
       if (!['gold', 'silver', 'platinum'].includes(metalType)) {
         throw new ValidationError('Invalid metal type. Must be: gold, silver, or platinum');
       }
 
-      // Try cache first
       const cacheKey = `metal-rates:${shopId}:trends:${metalType}:${days}`;
       const cached = await cache.get(cacheKey);
 
@@ -351,7 +312,6 @@ class MetalRateService {
         };
       }
 
-      // Get trend data from database
       const trendData = await MetalRate.getTrendChartData(shopId, metalType, days);
 
       if (!trendData || trendData.length === 0) {
@@ -362,7 +322,6 @@ class MetalRateService {
         };
       }
 
-      // Format response
       const response = {
         metalType,
         period: days,
@@ -383,7 +342,6 @@ class MetalRateService {
         },
       };
 
-      // Cache for 2 hours
       await cache.set(cacheKey, response, 7200);
 
       return {
@@ -398,11 +356,9 @@ class MetalRateService {
     }
   }
 
-  // MULTI-SHOP SYNC (ORGANIZATION LEVEL)
 
   async syncToAllShops(organizationId, rateData, userId) {
     try {
-      // 1. Get all active shops in organization
       const shops = await JewelryShop.find({
         organizationId,
         isActive: true,
@@ -418,12 +374,10 @@ class MetalRateService {
         userId,
       });
 
-      // 2. Create/update rates for all shops
       const results = await Promise.allSettled(
         shops.map(shop => this.createOrUpdateTodayRate(shop._id, rateData, userId))
       );
 
-      // 3. Analyze results
       const successful = results.filter(r => r.status === 'fulfilled');
       const failed = results.filter(r => r.status === 'rejected');
 
@@ -433,7 +387,6 @@ class MetalRateService {
         error: result.reason?.message || 'Unknown error',
       }));
 
-      // 4. Log sync activity
       await eventLogger.logActivity({
         userId,
         organizationId,
@@ -469,7 +422,6 @@ class MetalRateService {
     }
   }
 
-  // GET ORGANIZATION MASTER RATE
 
   async getOrganizationRate(organizationId) {
     try {
@@ -490,7 +442,6 @@ class MetalRateService {
     }
   }
 
-  // DEACTIVATE RATE
 
   async deactivateRate(rateId, userId) {
     try {
@@ -502,10 +453,8 @@ class MetalRateService {
 
       await rate.deactivate();
 
-      // Invalidate caches
       await this.invalidateCaches(rate.shopId);
 
-      // Log activity
       await eventLogger.logActivity({
         userId,
         organizationId: rate.organizationId,
@@ -529,7 +478,6 @@ class MetalRateService {
     }
   }
 
-  // SOFT DELETE RATE
 
   async deleteRate(rateId, userId) {
     try {
@@ -539,17 +487,14 @@ class MetalRateService {
         throw new NotFoundError('Metal rate not found');
       }
 
-      // Cannot delete current rate
       if (rate.isCurrent) {
         throw new ConflictError('Cannot delete current rate. Please create a new rate first.');
       }
 
       await rate.softDelete();
 
-      // Invalidate caches
       await this.invalidateCaches(rate.shopId);
 
-      // Log activity
       await eventLogger.logActivity({
         userId,
         organizationId: rate.organizationId,
@@ -572,11 +517,6 @@ class MetalRateService {
     }
   }
 
-  // HELPER METHODS
-
-  /**
-   * Calculate rate change between two values
-   */
   calculateRateChange(oldRate, newRate) {
     const change = newRate - oldRate;
     const changePercentage = oldRate !== 0 ? (change / oldRate) * 100 : 0;
@@ -590,9 +530,6 @@ class MetalRateService {
     };
   }
 
-  /**
-   * Update shop's quick access settings
-   */
   async updateShopSettings(shop, metalRate) {
     try {
       shop.settings = shop.settings || {};
@@ -616,14 +553,10 @@ class MetalRateService {
 
       await shop.save({ validateBeforeSave: false });
     } catch (error) {
-      // Don't throw error - this is not critical
       logger.error('Error updating shop settings:', error);
     }
   }
 
-  /**
-   * Invalidate all rate-related caches for a shop
-   */
   async invalidateCaches(shopId) {
     try {
       await Promise.all([
@@ -640,5 +573,4 @@ class MetalRateService {
   }
 }
 
-// Export singleton instance
 export default new MetalRateService();

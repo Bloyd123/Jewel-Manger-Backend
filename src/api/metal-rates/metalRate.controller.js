@@ -1,5 +1,4 @@
 // FILE: src/api/metal-rates/metalRate.controller.js
-// Metal Rate Management - API Controllers
 
 import metalRateService from './metalRate.service.js';
 import catchAsync from '../../utils/catchAsync.js';
@@ -63,7 +62,6 @@ class MetalRateController {
   getRateByDate = catchAsync(async (req, res) => {
     const { shopId, date } = req.params;
 
-    // Validate date format
     if (!date || isNaN(Date.parse(date))) {
       throw new ValidationError('Invalid date format. Use YYYY-MM-DD');
     }
@@ -82,17 +80,14 @@ class MetalRateController {
     const { shopId } = req.params;
     const { fromDate, toDate } = req.query;
 
-    // Validate required parameters
     if (!fromDate || !toDate) {
       throw new ValidationError('Both fromDate and toDate are required');
     }
 
-    // Validate date formats
     if (isNaN(Date.parse(fromDate)) || isNaN(Date.parse(toDate))) {
       throw new ValidationError('Invalid date format. Use YYYY-MM-DD');
     }
 
-    // Validate date logic
     if (new Date(toDate) < new Date(fromDate)) {
       throw new ValidationError('toDate must be greater than or equal to fromDate');
     }
@@ -111,7 +106,6 @@ class MetalRateController {
     const { shopId } = req.params;
     const { metalType = 'gold', days = 90 } = req.query;
 
-    // Validate days parameter
     const validDays = [7, 30, 90, 180, 365];
     const daysNum = parseInt(days);
 
@@ -134,7 +128,6 @@ class MetalRateController {
     const { organizationId } = req.params;
     const userId = req.user._id;
 
-    // Verify user belongs to this organization (unless super_admin)
     if (req.user.role !== 'super_admin' && req.user.organizationId.toString() !== organizationId) {
       throw new ValidationError('You can only sync rates for your own organization');
     }
@@ -256,7 +249,6 @@ class MetalRateController {
       throw new ValidationError('No rate data available for average calculation');
     }
 
-    // Calculate average
     let totalBuying = 0;
     let totalSelling = 0;
 
@@ -281,5 +273,4 @@ class MetalRateController {
   });
 }
 
-// Export controller instance
 export default new MetalRateController();

@@ -2,42 +2,28 @@
 
 import logger from '../utils/logger.js';
 
-/**
- * Performance Monitoring Middleware
- * Tracks request duration, memory usage, and slow endpoints
- */
-
-// Store performance metrics
 const metrics = {
   requests: [],
   slowRequests: [],
   endpoints: new Map(),
 };
 
-/**
- * Main performance monitoring middleware
- */
 const performanceMonitor = (req, res, next) => {
   const startTime = process.hrtime();
   const startMemory = process.memoryUsage();
 
-  // Store original end function
   const originalEnd = res.end;
 
-  // Override end function to capture metrics
   res.end = function (...args) {
-    // Calculate duration
     const hrDuration = process.hrtime(startTime);
     const durationMs = (hrDuration[0] * 1000 + hrDuration[1] / 1000000).toFixed(2);
 
-    // Calculate memory usage
     const endMemory = process.memoryUsage();
     const memoryDelta = {
       heapUsed: ((endMemory.heapUsed - startMemory.heapUsed) / 1024 / 1024).toFixed(2),
       rss: ((endMemory.rss - startMemory.rss) / 1024 / 1024).toFixed(2),
     };
 
-    // Create metric object
     const metric = {
       method: req.method,
       url: req.originalUrl || req.url,
@@ -50,10 +36,8 @@ const performanceMonitor = (req, res, next) => {
       shopId: req.shopId || req.params.shopId || 'N/A',
     };
 
-    // Store metric
     storeMetric(metric);
 
-    // Log slow requests (> 1000ms)
     if (metric.duration > 1000) {
       logger.warn('Slow Request Detected', {
         ...metric,
@@ -61,7 +45,6 @@ const performanceMonitor = (req, res, next) => {
       });
     }
 
-    // Log high memory usage (> 50MB)
     if (Math.abs(parseFloat(memoryDelta.heapUsed)) > 50) {
       logger.warn('High Memory Usage', {
         ...metric,
@@ -69,29 +52,23 @@ const performanceMonitor = (req, res, next) => {
       });
     }
 
-    // Log errors (5xx status codes)
     if (res.statusCode >= 500) {
       logger.error('Server Error in Request', metric);
     }
 
-    // Restore original end function and call it
     originalEnd.apply(res, args);
   };
 
   next();
 };
 
-/**
- * Store metric in memory (keep last 1000 requests)
- */
+
 function storeMetric(metric) {
-  // Store in general requests array
   metrics.requests.push(metric);
   if (metrics.requests.length > 1000) {
     metrics.requests.shift();
   }
 
-  // Store slow requests separately
   if (metric.duration > 1000) {
     metrics.slowRequests.push(metric);
     if (metrics.slowRequests.length > 100) {
@@ -99,7 +76,6 @@ function storeMetric(metric) {
     }
   }
 
-  // Track endpoint statistics
   const endpoint = `${metric.method} ${metric.url.split('?')[0]}`;
   if (!metrics.endpoints.has(endpoint)) {
     metrics.endpoints.set(endpoint, {
@@ -124,17 +100,12 @@ function storeMetric(metric) {
   }
 }
 
-/**
- * Get performance metrics
- */
 export const getMetrics = () => {
   const now = Date.now();
   const oneHourAgo = now - 60 * 60 * 1000;
 
-  // Filter requests from last hour
   const recentRequests = metrics.requests.filter(r => new Date(r.timestamp).getTime() > oneHourAgo);
 
-  // Calculate statistics
   const totalRequests = recentRequests.length;
   const avgDuration =
     totalRequests > 0
@@ -143,14 +114,12 @@ export const getMetrics = () => {
 
   const requestsPerMinute = totalRequests / 60;
 
-  // Status code distribution
   const statusCodes = recentRequests.reduce((acc, r) => {
     const code = r.statusCode;
     acc[code] = (acc[code] || 0) + 1;
     return acc;
   }, {});
 
-  // Convert endpoint map to sorted array
   const endpointStats = Array.from(metrics.endpoints.entries())
     .map(([endpoint, stats]) => ({
       endpoint,
@@ -167,8 +136,8 @@ export const getMetrics = () => {
       slowRequests: metrics.slowRequests.length,
     },
     statusCodes,
-    endpoints: endpointStats.slice(0, 20), // Top 20 endpoints
-    slowRequests: metrics.slowRequests.slice(-10), // Last 10 slow requests
+    endpoints: endpointStats.slice(0, 20), 
+    slowRequests: metrics.slowRequests.slice(-10), 
     memoryUsage: {
       heapUsed: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2) + ' MB',
       heapTotal: (process.memoryUsage().heapTotal / 1024 / 1024).toFixed(2) + ' MB',
@@ -179,9 +148,6 @@ export const getMetrics = () => {
   };
 };
 
-/**
- * Clear metrics
- */
 export const clearMetrics = () => {
   metrics.requests = [];
   metrics.slowRequests = [];
@@ -189,10 +155,6 @@ export const clearMetrics = () => {
   logger.info('Performance metrics cleared');
 };
 
-/**
- * Performance report endpoint controller
- * Use this in your routes: GET /api/v1/admin/performance
- */
 export const getPerformanceReport = (req, res) => {
   try {
     const report = getMetrics();

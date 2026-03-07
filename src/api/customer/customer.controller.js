@@ -1,5 +1,4 @@
 // FILE: src/api/customer/customer.controller.js
-// Customer Controller - Compatible with existing sendResponse.js
 
 import { validationResult } from 'express-validator';
 import * as customerService from './customer.service.js';
@@ -14,13 +13,9 @@ import {
 import logger from '../../utils/logger.js';
 import eventLogger from '../../utils/eventLogger.js';
 
-/**
- * Create a new customer
- * POST /api/v1/shops/:shopId/customers
- */
+
 export const createCustomer = async (req, res) => {
   try {
-    // Validate request
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return sendBadRequest(res, 'Validation failed', errors.array());
@@ -29,10 +24,8 @@ export const createCustomer = async (req, res) => {
     const { shopId } = req.params;
     const customerData = req.body;
 
-    // Create customer
     const customer = await customerService.createCustomer(shopId, customerData, req.user._id);
 
-    // Log activity
     await eventLogger.logActivity({
       userId: req.user._id,
       organizationId: req.user.organizationId,
@@ -58,7 +51,6 @@ export const createCustomer = async (req, res) => {
       shopId,
     });
 
-    // Using your sendCreated format: (res, message, data)
     return sendCreated(res, 'Customer created successfully', {
       customer: {
         _id: customer._id,
@@ -127,10 +119,8 @@ export const getCustomers = async (req, res) => {
       sort,
     };
 
-    // Get customers
     const result = await customerService.getCustomers(shopId, filters, paginationOptions);
 
-    // Get summary statistics
     const summary = await customerService.getCustomerStatistics(shopId);
 
     // Using your sendSuccess format: (res, statusCode, message, data, meta)
@@ -251,7 +241,6 @@ export const updateCustomer = async (req, res) => {
       req.user._id
     );
 
-    // Log activity
     await eventLogger.logActivity({
       userId: req.user._id,
       organizationId: req.user.organizationId,
@@ -305,7 +294,6 @@ export const deleteCustomer = async (req, res) => {
 
     const customer = await customerService.deleteCustomer(customerId, shopId, req.user._id);
 
-    // Log activity
     await eventLogger.logActivity({
       userId: req.user._id,
       organizationId: req.user.organizationId,
@@ -363,7 +351,6 @@ export const blacklistCustomer = async (req, res) => {
       req.user._id
     );
 
-    // Log security event
     await eventLogger.logActivity({
       userId: req.user._id,
       organizationId: req.user.organizationId,
@@ -411,7 +398,6 @@ export const removeBlacklist = async (req, res) => {
 
     const customer = await customerService.removeBlacklist(customerId, shopId, req.user._id);
 
-    // Log activity
     await eventLogger.logActivity({
       userId: req.user._id,
       organizationId: req.user.organizationId,

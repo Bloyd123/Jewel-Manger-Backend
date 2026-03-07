@@ -319,12 +319,6 @@ customerSchema.methods.redeemLoyaltyPoints = function (points) {
   throw new Error('Insufficient loyalty points');
 };
 
-customerSchema.methods.updateBalance = function (amount) {
-  this.currentBalance += amount;
-  this.totalDue = this.currentBalance < 0 ? Math.abs(this.currentBalance) : 0;
-  return this.save();
-};
-
 customerSchema.methods.blacklist = function (reason) {
   this.isBlacklisted = true;
   this.blacklistReason = reason;

@@ -8,18 +8,6 @@ import { allowOnlyIfNoSuperAdmin } from '../middlewares/allowOnlyIfNoSuperAdmin.
 
 const router = express.Router();
 
-/**
- * Authentication Routes
- * Base path: /api/auth
- */
-
-// PUBLIC ROUTES (No authentication required)
-
-/**
- * @route   POST /api/auth/register
- * @desc    Register a new user
- * @access  Public
- */
 router.post(
   '/register/super-admin',
   rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),
@@ -28,7 +16,6 @@ router.post(
   authController.register
 );
 
-// 2. Protected registration (all other users)
 router.post(
   '/register',
   authenticate,
@@ -38,11 +25,6 @@ router.post(
   authController.register
 );
 
-/**
- * @route   POST /api/auth/login
- * @desc    Login user
- * @access  Public
- */
 router.post(
   '/login',
   rateLimiter({ max: 10, windowMs: 15 * 60 * 1000 }), // 10 requests per 15 minutes
@@ -50,23 +32,12 @@ router.post(
   authController.login
 );
 
-/**
- * @route   POST /api/auth/refresh-token
- * @desc    Refresh access token using refresh token
- * @access  Public
- */
 router.post(
   '/refresh-token',
   rateLimiter({ max: 20, windowMs: 15 * 60 * 1000 }), // 20 requests per 15 minutes
   authValidation.refreshTokenValidation,
   authController.refreshToken
 );
-
-/**
- * @route   POST /api/auth/forgot-password
- * @desc    Request password reset link
- * @access  Public
- */
 router.post(
   '/forgot-password',
   rateLimiter({ max: 3, windowMs: 60 * 60 * 1000 }), // 3 requests per hour
@@ -74,11 +45,6 @@ router.post(
   authController.forgotPassword
 );
 
-/**
- * @route   POST /api/auth/reset-password
- * @desc    Reset password using reset token
- * @access  Public
- */
 router.post(
   '/reset-password',
   rateLimiter({ max: 5, windowMs: 60 * 60 * 1000 }), // 5 requests per hour
@@ -86,11 +52,6 @@ router.post(
   authController.resetPassword
 );
 
-/**
- * @route   POST /api/auth/verify-email
- * @desc    Verify email address
- * @access  Public
- */
 router.post(
   '/verify-email',
   rateLimiter({ max: 10, windowMs: 60 * 60 * 1000 }), // 10 requests per hour
@@ -98,20 +59,9 @@ router.post(
   authController.verifyEmail
 );
 
-// PROTECTED ROUTES (Authentication required)
-
-/**
- * @route   GET /api/auth/me
- * @desc    Get current user profile
- * @access  Private
- */
 router.get('/me', authenticate, authController.getCurrentUser);
 
-/**
- * @route   PUT /api/auth/profile
- * @desc    Update user profile
- * @access  Private
- */
+
 router.put(
   '/profile',
   authenticate,
@@ -119,25 +69,11 @@ router.put(
   authController.updateProfile
 );
 
-/**
- * @route   POST /api/auth/logout
- * @desc    Logout current user
- * @access  Private
- */
 router.post('/logout', authenticate, authController.logout);
 
-/**
- * @route   POST /api/auth/logout-all
- * @desc    Logout from all devices
- * @access  Private
- */
 router.post('/logout-all', authenticate, authController.logoutAllDevices);
 
-/**
- * @route   POST /api/auth/change-password
- * @desc    Change user password
- * @access  Private
- */
+
 router.post(
   '/change-password',
   authenticate,
@@ -146,11 +82,6 @@ router.post(
   authController.changePassword
 );
 
-/**
- * @route   POST /api/auth/resend-verification
- * @desc    Resend email verification link
- * @access  Private
- */
 router.post(
   '/resend-verification',
   authenticate,
@@ -158,18 +89,10 @@ router.post(
   authController.resendVerificationEmail
 );
 
-/**
- * @route   GET /api/auth/sessions
- * @desc    Get all active sessions
- * @access  Private
- */
+
 router.get('/sessions', authenticate, authController.getActiveSessions);
 
-/**
- * @route   DELETE /api/auth/sessions/:tokenId
- * @desc    Revoke a specific session
- * @access  Private
- */
+
 router.delete(
   '/sessions/:tokenId',
   authenticate,
@@ -177,12 +100,9 @@ router.delete(
   authController.revokeSession
 );
 
-// 2FA ROUTES (Authentication required)
 
-// Enable 2FA
 router.post('/2fa/enable', authenticate, authController.enable2FA);
 
-// Verify and activate 2FA
 router.post(
   '/2fa/verify',
 
@@ -190,7 +110,6 @@ router.post(
   authController.verify2FA
 );
 
-// Disable 2FA
 router.post(
   '/2fa/disable',
   authenticate,
@@ -198,14 +117,12 @@ router.post(
   authController.disable2FA
 );
 
-// Login with 2FA code
 router.post(
   '/login/2fa',
   rateLimiter({ max: 10, windowMs: 15 * 60 * 1000 }),
   authController.verify2FALogin
 );
 
-// Login with backup code
 router.post(
   '/login/backup-code',
   rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),

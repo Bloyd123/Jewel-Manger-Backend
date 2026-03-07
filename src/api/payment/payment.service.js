@@ -4,13 +4,16 @@
 import Payment from '../../models/Payment.js';
 import Sale from '../../models/Sale.js';
 import Purchase from '../../models/Purchase.js';
-import Customer from '../../models/Customer.js';
-import Supplier from '../../models/Supplier.js';
 import { NotFoundError, ValidationError, BadRequestError } from '../../utils/AppError.js';
 import eventLogger from '../../utils/eventLogger.js';
 import logger from '../../utils/logger.js';
 import { paginate } from '../../utils/pagination.js';
 import APIFeatures from '../../utils/apiFeatures.js';
+import {
+  createCreditEntry,
+  createDebitEntry,
+  reverseEntry,
+} from '../ledger/ledger.service.js';
 
 class PaymentService {
   // 1. CREATE PAYMENT
@@ -692,50 +695,63 @@ class PaymentService {
   /**
    * Update party (customer/supplier) balance
    */
-  async updatePartyBalance(payment) {
-    try {
-      const { partyType, partyId } = payment.party;
-      const amount = payment.transactionType === 'receipt' ? -payment.amount : payment.amount;
+// PURANA FUNCTION HATAO
+// NAYA FUNCTION LAGAO:
+async updatePartyBalance(payment) {
+  const { partyType, partyId } = payment.party;
 
-      if (partyType === 'customer') {
-        const customer = await Customer.findById(partyId);
-        if (customer) {
-          await customer.updateBalance(amount);
-        }
-      } else if (partyType === 'supplier') {
-        const supplier = await Supplier.findById(partyId);
-        if (supplier) {
-          await supplier.updateBalance(amount);
-        }
-      }
-    } catch (error) {
-      logger.error('Update party balance error:', error);
-    }
-  }
+  // receipt = customer ne pay kiya = CREDIT (unka due kam hua)
+  // payment = humne supplier ko diya = CREDIT (unka due kam hua)
+  // Dono cases me CREDIT hoga — ye sahi hai
+  // Lekin agar payment type 'payment' hai aur
+  // supplier ko advance de rahe hain = DEBIT hoga
+
+  const entryFn = payment.transactionType === 'receipt'
+    ? createCreditEntry
+    : createDebitEntry;
+
+  await entryFn({
+    organizationId: payment.organizationId,
+    shopId: payment.shopId,
+    partyType,
+    partyId,
+    partyModel: partyType === 'customer' ? 'Customer' : 'Supplier',
+    partyName: payment.party.partyName,
+    amount: payment.amount,
+    referenceType: 'payment',
+    referenceId: payment._id,
+    referenceNumber: payment.paymentNumber,
+    description: `Payment - ${payment.paymentNumber}`,
+    createdBy: payment.processedBy,
+  });
+}
+
 
   /**
    * Reverse party balance (on cancellation)
    */
-  async reversePartyBalance(payment) {
-    try {
-      const { partyType, partyId } = payment.party;
-      const amount = payment.transactionType === 'receipt' ? payment.amount : -payment.amount;
+// PURANA FUNCTION HATAO
+// NAYA FUNCTION LAGAO:
 
-      if (partyType === 'customer') {
-        const customer = await Customer.findById(partyId);
-        if (customer) {
-          await customer.updateBalance(amount);
-        }
-      } else if (partyType === 'supplier') {
-        const supplier = await Supplier.findById(partyId);
-        if (supplier) {
-          await supplier.updateBalance(amount);
-        }
-      }
-    } catch (error) {
-      logger.error('Reverse party balance error:', error);
-    }
+async reversePartyBalance(payment) {
+  // Ledger me reverse entry create hogi
+  // Original entry find karke reverse karenge
+  const { LedgerEntry } = await import('../ledger/ledger.model.js');
+
+  const originalEntry = await LedgerEntry.findOne({
+    referenceId: payment._id,
+    referenceType: 'payment',
+    status: 'active',
+  });
+
+  if (originalEntry) {
+    await reverseEntry({
+      entryId: originalEntry._id,
+      createdBy: payment.processedBy,
+      description: `Payment reversed - ${payment.paymentNumber}`,
+    });
   }
+}
 
   // 14. GET UNRECONCILED PAYMENTS
 

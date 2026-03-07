@@ -3,12 +3,15 @@
 
 import Purchase from '../../models/Purchase.js';
 import Product from '../../models/Product.js';
-import Supplier from '../../models/Supplier.js';
 import InventoryTransaction from '../../models/InventoryTransaction.js';
 import eventLogger from '../../utils/eventLogger.js';
 import { businessLogger } from '../../utils/logger.js';
 import APIFeatures from '../../utils/apiFeatures.js';
 import { getPaginationData } from '../../utils/pagination.js';
+import {
+  createDebitEntry,
+  createCreditEntry,
+} from '../ledger/ledger.service.js';
 import { NotFoundError, BadRequestError, ValidationError } from '../../utils/AppError.js';
 
 // 1. PURCHASE CRUD OPERATIONS
@@ -353,10 +356,22 @@ export const receivePurchase = async (purchaseId, receiveData, userId) => {
   }
 
   // Update supplier balance
-  const supplier = await Supplier.findById(purchase.supplierId);
-  if (supplier) {
-    await supplier.updateBalance(-purchase.payment.dueAmount); // Negative = we owe supplier
-  }
+if (purchase.payment.dueAmount > 0) {
+  await createDebitEntry({
+    organizationId: purchase.organizationId,
+    shopId: purchase.shopId,
+    partyType: 'supplier',
+    partyId: purchase.supplierId,
+    partyModel: 'Supplier',
+    partyName: purchase.supplierDetails.supplierName,
+    amount: purchase.payment.dueAmount,
+    referenceType: 'purchase',
+    referenceId: purchase._id,
+    referenceNumber: purchase.purchaseNumber,
+    description: `Purchase received - ${purchase.purchaseNumber}`,
+    createdBy: userId,
+  });
+}
 
   // Log activity
   await eventLogger.logPurchase(
@@ -482,10 +497,20 @@ export const addPayment = async (purchaseId, paymentData, userId) => {
   await purchase.addPayment(paymentData);
 
   // Update supplier balance
-  const supplier = await Supplier.findById(purchase.supplierId);
-  if (supplier) {
-    await supplier.updateBalance(paymentData.amount); // Positive = payment made to supplier
-  }
+await createCreditEntry({
+  organizationId: purchase.organizationId,
+  shopId: purchase.shopId,
+  partyType: 'supplier',
+  partyId: purchase.supplierId,
+  partyModel: 'Supplier',
+  partyName: purchase.supplierDetails.supplierName,
+  amount: paymentData.amount,
+  referenceType: 'payment',
+  referenceId: purchase._id,
+  referenceNumber: purchase.purchaseNumber,
+  description: `Payment made to supplier - ${purchase.purchaseNumber}`,
+  createdBy: userId,
+});
 
   // Log activity
   await eventLogger.logPurchase(

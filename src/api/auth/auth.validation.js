@@ -1,6 +1,5 @@
 import { body, param, validationResult } from 'express-validator';
 
-// VALIDATION HELPER
 
 import { ValidationError } from '../../utils/AppError.js';
 
@@ -12,15 +11,13 @@ export const validate = (req, res, next) => {
       message: err.msg,
     }));
 
-    // Throw ValidationError - will be caught by errorHandler
     const error = new ValidationError('Validation failed');
-    error.errors = formattedErrors; // Attach validation errors
+    error.errors = formattedErrors; 
     throw error;
   }
   next();
 };
 
-// REGISTER VALIDATION
 
 export const registerValidation = [
   body('username')
@@ -112,7 +109,6 @@ export const registerValidation = [
   validate,
 ];
 
-// LOGIN VALIDATION
 
 export const loginValidation = [
   body('email')
@@ -126,7 +122,6 @@ export const loginValidation = [
   validate,
 ];
 
-// CHANGE PASSWORD VALIDATION
 
 export const changePasswordValidation = [
   body('currentPassword').notEmpty().withMessage('Current password is required'),
@@ -152,7 +147,6 @@ export const changePasswordValidation = [
   validate,
 ];
 
-// FORGOT PASSWORD VALIDATION
 
 export const forgotPasswordValidation = [
   body('email')
@@ -164,7 +158,6 @@ export const forgotPasswordValidation = [
   validate,
 ];
 
-// RESET PASSWORD VALIDATION
 
 export const resetPasswordValidation = [
   body('token').notEmpty().withMessage('Reset token is required'),
@@ -190,7 +183,6 @@ export const resetPasswordValidation = [
   validate,
 ];
 
-// VERIFY EMAIL VALIDATION
 
 export const verifyEmailValidation = [
   body('token').notEmpty().withMessage('Verification token is required'),
@@ -198,7 +190,6 @@ export const verifyEmailValidation = [
   validate,
 ];
 
-// REFRESH TOKEN VALIDATION
 
 export const refreshTokenValidation = [
   body('refreshToken').notEmpty().withMessage('Refresh token is required'),
@@ -206,7 +197,6 @@ export const refreshTokenValidation = [
   validate,
 ];
 
-// UPDATE PROFILE VALIDATION
 
 export const updateProfileValidation = [
   body('firstName')
@@ -257,7 +247,6 @@ export const updateProfileValidation = [
   validate,
 ];
 
-// REVOKE SESSION VALIDATION
 
 export const revokeSessionValidation = [
   param('tokenId')

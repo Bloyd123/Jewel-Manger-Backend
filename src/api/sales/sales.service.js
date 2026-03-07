@@ -9,6 +9,10 @@ import Payment from '../../models/Payment.js';
 import InventoryTransaction from '../../models/InventoryTransaction.js';
 import JewelryShop from '../../models/Shop.js';
 import {
+  createDebitEntry,
+  createCreditEntry,
+} from '../ledger/ledger.service.js';
+import {
   NotFoundError,
   ValidationError,
   InsufficientStockError,
@@ -115,12 +119,30 @@ export const createSale = async (shopId, saleData, userId, organizationId, ipAdd
       customer.statistics.firstOrderDate = new Date();
     }
 
-    if (sale[0].payment.paymentStatus !== 'paid') {
-      customer.currentBalance -= sale[0].payment.dueAmount;
-      customer.totalDue += sale[0].payment.dueAmount;
-    }
+    // if (sale[0].payment.paymentStatus !== 'paid') {
+    //   customer.currentBalance -= sale[0].payment.dueAmount;
+    //   customer.totalDue += sale[0].payment.dueAmount;
+      
+    // }
 
-    await customer.save({ session });
+    // await customer.save({ session });
+    if (sale[0].payment.paymentStatus !== 'paid') {
+  await createDebitEntry({
+    organizationId,
+    shopId,
+    partyType: 'customer',
+    partyId: customer._id,
+    partyModel: 'Customer',
+    partyName: customer.fullName,
+    amount: sale[0].payment.dueAmount,
+    referenceType: 'sale',
+    referenceId: sale[0]._id,
+    referenceNumber: invoiceNumber,
+    description: `Sale created - ${invoiceNumber}`,
+    createdBy: userId,
+    session,
+  });
+}
 
     await eventLogger.logSale(
       userId,
@@ -507,11 +529,28 @@ export const returnSale = async (shopId, saleId, returnData, userId) => {
     });
 
     const customer = await Customer.findById(sale.customerId).session(session);
-    if (customer) {
-      customer.statistics.totalSpent -= returnData.refundAmount || 0;
-      customer.currentBalance += returnData.refundAmount || 0;
-      await customer.save({ session });
-    }
+    if (returnData.refundAmount > 0) {
+  await createCreditEntry({
+    organizationId: sale.organizationId,
+    shopId,
+    partyType: 'customer',
+    partyId: sale.customerId,
+    partyModel: 'Customer',
+    partyName: sale.customerDetails.customerName,
+    amount: returnData.refundAmount,
+    referenceType: 'return',
+    referenceId: sale._id,
+    referenceNumber: sale.invoiceNumber,
+    description: `Return processed - ${sale.invoiceNumber}`,
+    createdBy: userId,
+    session,
+  });
+}
+    // if (customer) {
+      // customer.statistics.totalSpent -= returnData.refundAmount || 0;
+      // customer.currentBalance += returnData.refundAmount || 0;
+      // await customer.save({ session });
+    // }
 
     await eventLogger.logSale(
       userId,

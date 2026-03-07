@@ -1,5 +1,4 @@
 // FILE: middlewares/rateLimiter.js
-// Rate Limiting Middleware
 
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
@@ -7,14 +6,11 @@ import redis from '../../config/redis.js';
 
 import { sendTooManyRequests } from '../../utils/sendResponse.js';
 
-/**
- * Custom Rate Limiter Factory
- * Creates rate limiter with custom options
- */
+
 export const rateLimiter = (options = {}) => {
   const {
     windowMs = 15 * 60 * 1000, // 15 minutes
-    max = 100, // limit each IP to 100 requests per windowMs
+    max = 100, 
     message = 'Too many requests, please try again later',
     skipSuccessfulRequests = false,
     skipFailedRequests = false,
@@ -30,22 +26,20 @@ export const rateLimiter = (options = {}) => {
       message,
       retryAfter: null,
     },
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    standardHeaders: true, 
+    legacyHeaders: false, 
     skipSuccessfulRequests,
     skipFailedRequests,
 
-    // Custom key generator (by IP or user ID)
+
     keyGenerator:
       keyGenerator ||
       (req => {
         return req.user ? `user:${req.user._id}` : ipKeyGenerator(req);
       }),
 
-    // Custom skip function
     skip: skip || (() => false),
 
-    // Custom handler when rate limit is exceeded
     handler: (req, res) => {
       const retryAfter = Math.ceil(windowMs / 1000);
       res.setHeader('Retry-After', retryAfter);
@@ -53,32 +47,25 @@ export const rateLimiter = (options = {}) => {
     },
   };
 
-  // Use Redis store if Redis is available
   if (redis && redis.status === 'ready') {
     limiterOptions.store = new RedisStore({
       client: redis,
-      prefix: 'rl:', // rate limit prefix
+      prefix: 'rl:', 
     });
   }
 
   return rateLimit(limiterOptions);
 };
 
-/**
- * Strict Rate Limiter for Authentication Routes
- * Very strict limits for login, register, password reset
- */
+
 export const authRateLimiter = rateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000, 
   max: 5,
   message: 'Too many authentication attempts, please try again later',
-  skipSuccessfulRequests: true, // Don't count successful requests
+  skipSuccessfulRequests: true, 
 });
 
-/**
- * Login Rate Limiter
- * Stricter limits for login attempts
- */
+
 export const loginRateLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
@@ -90,12 +77,8 @@ export const loginRateLimiter = rateLimiter({
   },
 });
 
-/**
- * Password Reset Rate Limiter
- * Very strict for password reset requests
- */
 export const passwordResetRateLimiter = rateLimiter({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 60 * 60 * 1000, 
   max: 3,
   message: 'Too many password reset requests, please try again later',
   keyGenerator: req => {
@@ -103,10 +86,7 @@ export const passwordResetRateLimiter = rateLimiter({
   },
 });
 
-/**
- * API Rate Limiter
- * General API rate limiting
- */
+
 export const apiRateLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
@@ -130,10 +110,6 @@ export const uploadRateLimiter = rateLimiter({
   },
 });
 
-/**
- * Email/SMS Send Rate Limiter
- * Limit notification sending
- */
 export const notificationRateLimiter = rateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10,
@@ -143,10 +119,6 @@ export const notificationRateLimiter = rateLimiter({
   },
 });
 
-/**
- * Search Rate Limiter
- * Limit expensive search operations
- */
 export const searchRateLimiter = rateLimiter({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 30,
@@ -154,10 +126,6 @@ export const searchRateLimiter = rateLimiter({
   skipSuccessfulRequests: false,
 });
 
-/**
- * Report Generation Rate Limiter
- * Limit report generation (expensive operation)
- */
 export const reportRateLimiter = rateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20,
@@ -167,10 +135,6 @@ export const reportRateLimiter = rateLimiter({
   },
 });
 
-/**
- * Create/Update Rate Limiter
- * Limit create and update operations
- */
 export const createUpdateRateLimiter = rateLimiter({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 30,
@@ -180,10 +144,6 @@ export const createUpdateRateLimiter = rateLimiter({
   },
 });
 
-/**
- * Delete Rate Limiter
- * Stricter limits for delete operations
- */
 export const deleteRateLimiter = rateLimiter({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 10,
@@ -193,10 +153,6 @@ export const deleteRateLimiter = rateLimiter({
   },
 });
 
-/**
- * IP-based Rate Limiter
- * Strictly by IP address
- */
 export const ipRateLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -204,20 +160,13 @@ export const ipRateLimiter = rateLimiter({
   keyGenerator: req => ipKeyGenerator(req),
 });
 
-/**
- * Global Rate Limiter
- * Applied to all routes as baseline protection
- */
 export const globalRateLimiter = rateLimiter({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 60, // 60 requests per minute
   message: 'Too many requests, please slow down',
 });
 
-/**
- * Flexible Rate Limiter by Plan
- * Adjusts limits based on subscription plan
- */
+
 export const planBasedRateLimiter = (baseMax = 100) => {
   return rateLimiter({
     windowMs: 15 * 60 * 1000,
@@ -226,7 +175,6 @@ export const planBasedRateLimiter = (baseMax = 100) => {
         return baseMax;
       }
 
-      // Adjust rate limit based on subscription plan
       const planMultipliers = {
         free: 1,
         basic: 2,
@@ -244,10 +192,7 @@ export const planBasedRateLimiter = (baseMax = 100) => {
   });
 };
 
-/**
- * Skip Rate Limiter for Specific IPs
- * Whitelist certain IPs (e.g., internal services)
- */
+
 export const createRateLimiterWithWhitelist = (whitelist = [], options = {}) => {
   return rateLimiter({
     ...options,
@@ -255,10 +200,7 @@ export const createRateLimiterWithWhitelist = (whitelist = [], options = {}) => 
   });
 };
 
-/**
- * Dynamic Rate Limiter
- * Adjusts based on request properties
- */
+
 export const dynamicRateLimiter = getOptions => {
   return async (req, res, next) => {
     const options = await getOptions(req);

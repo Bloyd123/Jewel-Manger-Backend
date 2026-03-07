@@ -1,15 +1,9 @@
 // FILE: src/api/metal-rates/metalRate.validation.js
-// Metal Rate Management - Input Validation
 
 import { body, param, query, validationResult } from 'express-validator';
 import { ValidationError } from '../../utils/AppError.js';
 import mongoose from 'mongoose';
 
-// VALIDATION MIDDLEWARE
-
-/**
- * Middleware to handle validation errors
- */
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
 
@@ -26,11 +20,6 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// VALIDATION RULES
-
-/**
- * Validate Metal Rate Object Structure
- */
 const rateObjectValidation = [
   body('gold.gold24K.buyingRate')
     .notEmpty()
@@ -184,13 +173,7 @@ const rateObjectValidation = [
     .withMessage('Reference source cannot exceed 200 characters'),
 ];
 
-// ROUTE-SPECIFIC VALIDATIONS
 
-/**
- * CREATE OR UPDATE RATE VALIDATION
- * POST /api/v1/shops/:shopId/metal-rates
- * POST /api/v1/organizations/:organizationId/metal-rates/sync
- */
 export const createOrUpdateRate = [
   param('shopId')
     .optional()
@@ -207,10 +190,7 @@ export const createOrUpdateRate = [
   handleValidationErrors,
 ];
 
-/**
- * GET RATE HISTORY VALIDATION
- * GET /api/v1/shops/:shopId/metal-rates/history
- */
+
 export const getRateHistory = [
   param('shopId')
     .notEmpty()
@@ -246,10 +226,6 @@ export const getRateHistory = [
   handleValidationErrors,
 ];
 
-/**
- * GET RATE BY DATE VALIDATION
- * GET /api/v1/shops/:shopId/metal-rates/date/:date
- */
 export const getRateByDate = [
   param('shopId')
     .notEmpty()
@@ -266,10 +242,6 @@ export const getRateByDate = [
   handleValidationErrors,
 ];
 
-/**
- * COMPARE RATES VALIDATION
- * GET /api/v1/shops/:shopId/metal-rates/compare
- */
 export const compareRates = [
   param('shopId')
     .notEmpty()
@@ -298,10 +270,7 @@ export const compareRates = [
   handleValidationErrors,
 ];
 
-/**
- * GET TREND DATA VALIDATION
- * GET /api/v1/shops/:shopId/metal-rates/trends
- */
+
 export const getTrendData = [
   param('shopId')
     .notEmpty()
@@ -322,10 +291,6 @@ export const getTrendData = [
   handleValidationErrors,
 ];
 
-/**
- * GET RATE FOR PURITY VALIDATION
- * GET /api/v1/shops/:shopId/metal-rates/current/purity/:metalType/:purity
- */
 export const getRateForPurity = [
   param('shopId')
     .notEmpty()
@@ -361,10 +326,6 @@ export const getRateForPurity = [
   handleValidationErrors,
 ];
 
-/**
- * GET AVERAGE RATE VALIDATION
- * GET /api/v1/shops/:shopId/metal-rates/average
- */
 export const getAverageRate = [
   param('shopId')
     .notEmpty()
@@ -387,11 +348,6 @@ export const getAverageRate = [
   handleValidationErrors,
 ];
 
-/**
- * RATE ID PARAM VALIDATION
- * PATCH /api/v1/metal-rates/:rateId/deactivate
- * DELETE /api/v1/metal-rates/:rateId
- */
 export const rateIdParam = [
   param('rateId')
     .notEmpty()
@@ -402,11 +358,6 @@ export const rateIdParam = [
   handleValidationErrors,
 ];
 
-// CUSTOM VALIDATORS
-
-/**
- * Validate that selling rate is greater than or equal to buying rate
- */
 export const validateSellingRate = (sellingRate, buyingRate, metalName) => {
   return body(sellingRate).custom((value, { req }) => {
     const buyingRateValue = req.body[buyingRate];
@@ -417,9 +368,6 @@ export const validateSellingRate = (sellingRate, buyingRate, metalName) => {
   });
 };
 
-/**
- * Validate date range logic
- */
 export const validateDateRange = () => {
   return query('endDate').custom((value, { req }) => {
     if (req.query.startDate && new Date(value) < new Date(req.query.startDate)) {
@@ -428,8 +376,6 @@ export const validateDateRange = () => {
     return true;
   });
 };
-
-// EXPORTS
 
 export default {
   createOrUpdateRate,

@@ -1,5 +1,4 @@
 // FILE: middlewares/auth.js
-// Authentication Middleware (CLEANED - Removed duplicate shop access functions)
 
 import jwt from 'jsonwebtoken';
 import User from '../../models/User.js';
@@ -7,13 +6,9 @@ import Organization from '../../models/Organization.js';
 import cache from '../../utils/cache.js';
 import { sendUnauthorized, sendForbidden } from '../../utils/sendResponse.js';
 
-/**
- * Authenticate User Middleware
- * Verifies JWT token and attaches user to request
- */
+
 export const authenticate = async (req, res, next) => {
   try {
-    // Get token from header
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -22,19 +17,15 @@ export const authenticate = async (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
 
-    // Check if token is blacklisted (in case of logout)
     const isBlacklisted = await cache.get(`blacklist:${token}`);
     if (isBlacklisted) {
       return sendUnauthorized(res, 'Token has been revoked');
     }
 
-    // Try to get user from cache first
     let user = await cache.get(cache.userKey(decoded.userId));
 
-    // If not in cache, fetch from database
     if (!user) {
       user = await User.findById(decoded.userId).lean();
 
@@ -42,16 +33,13 @@ export const authenticate = async (req, res, next) => {
         return sendUnauthorized(res, 'User not found');
       }
 
-      // Cache the user
       cache.set(cache.userKey(user._id), user, 600);
     }
 
-    // Check if user is active
     if (!user.isActive) {
       return sendUnauthorized(res, 'Your account has been deactivated');
     }
 
-    // Check organization status (skip for super_admin)
     let organization = null;
     if (user.role !== 'super_admin') {
       organization = await Organization.findById(user.organizationId);
@@ -59,13 +47,11 @@ export const authenticate = async (req, res, next) => {
         return sendUnauthorized(res, 'Organization is inactive');
       }
 
-      // Check subscription
       if (!organization.isSubscriptionActive() && !organization.isTrialActive()) {
         return sendUnauthorized(res, 'Organization subscription has expired');
       }
     }
 
-    // Attach user and token info to request
     req.user = user;
     req.token = decoded.tokenId;
     req.organization = organization;
@@ -82,13 +68,6 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
-/**
- * Authorize by Role
- * Checks if user has required role
- *
- * NOTE: This is deprecated - use restrictTo from restrictTo.js instead
- * Kept for backward compatibility
- */
 export const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -103,13 +82,6 @@ export const authorize = (...allowedRoles) => {
   };
 };
 
-// REMOVED: checkShopAccess - Use the one from checkShopAccess.js instead
-// REMOVED: checkPermission - Use the one from checkShopAccess.js instead
-
-/**
- * Optional Authentication
- * Authenticates if token is present, but doesn't fail if not
- */
 export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -130,15 +102,10 @@ export const optionalAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    // If optional auth fails, just continue without user
     next();
   }
 };
 
-/**
- * Verify Email Required
- * Checks if user's email is verified
- */
 export const requireEmailVerification = (req, res, next) => {
   if (!req.user) {
     return sendUnauthorized(res, 'Authentication required');
@@ -151,10 +118,6 @@ export const requireEmailVerification = (req, res, next) => {
   next();
 };
 
-/**
- * Check Organization Feature
- * Verifies if organization has access to a specific feature
- */
 export const requireFeature = featureName => {
   return async (req, res, next) => {
     if (!req.organization) {
@@ -172,9 +135,7 @@ export const requireFeature = featureName => {
   };
 };
 
-/**
- * Check if user is organization owner
- */
+
 export const isOrganizationOwner = (req, res, next) => {
   if (!req.user || !req.organization) {
     return sendUnauthorized(res, 'Authentication required');

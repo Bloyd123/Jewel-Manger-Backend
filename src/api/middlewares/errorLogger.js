@@ -1,9 +1,5 @@
 import logger from '../../utils/logger.js';
 
-/**
- * Error logging middleware
- * Logs all errors with full context
- */
 const errorLogger = (err, req, res, next) => {
   const errorLog = {
     message: err.message,
@@ -21,12 +17,10 @@ const errorLogger = (err, req, res, next) => {
     timestamp: new Date().toISOString(),
   };
 
-  // Log stack trace for non-operational errors
   if (!err.isOperational && err.stack) {
     errorLog.stack = err.stack;
   }
 
-  // Log based on severity
   if (err.statusCode >= 500) {
     logger.error('Server Error', errorLog);
   } else if (err.statusCode >= 400) {
