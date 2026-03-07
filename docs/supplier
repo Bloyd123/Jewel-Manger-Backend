@@ -1,0 +1,1741 @@
+# Supplier Management - Postman Test Collection
+## Complete Test Suite for All Routes
+
+### Table of Contents
+1. [Setup & Prerequisites](#setup--prerequisites)
+2. [Main CRUD Routes (5 Routes)](#1-main-crud-routes)
+3. [Supplier Management Routes (7 Routes)](#2-supplier-management-routes)
+4. [Statistics & Reports Routes (2 Routes)](#3-statistics--reports-routes)
+
+---
+
+## Setup & Prerequisites
+
+### Collection Variables
+```javascript
+baseUrl: http://localhost:5000/api/v1
+authToken: YOUR_JWT_TOKEN
+shopId: YOUR_SHOP_ID
+organizationId: YOUR_ORGANIZATION_ID
+supplierId: (auto-set from create)
+```
+
+### Headers (Global)
+```
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+```
+
+---
+
+## 1. MAIN CRUD ROUTES
+
+### 1.1 Create Supplier
+
+#### 1.1.1 Create Supplier - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/suppliers`
+
+**Permission Required:** `canCreateSuppliers`
+
+**Request Body:**
+```json
+{
+  "businessName": "Rajesh Gold Suppliers Pvt Ltd",
+  "displayName": "Rajesh Gold",
+  "contactPerson": {
+    "firstName": "Rajesh",
+    "lastName": "Kumar",
+    "designation": "Owner",
+    "email": "rajesh@rajeshgold.com",
+    "phone": "9876543210",
+    "alternatePhone": "9876543211",
+    "whatsappNumber": "9876543210"
+  },
+  "businessEmail": "info@rajeshgold.com",
+  "businessPhone": "0221234567",
+  "website": "https://rajeshgold.com",
+  "address": {
+    "street": "123, Zaveri Bazaar",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "pincode": "400002"
+  },
+  "gstNumber": "27AAAAA0000A1Z5",
+  "panNumber": "ABCDE1234F",
+  "supplierType": "wholesaler",
+  "supplierCategory": "gold",
+  "paymentTerms": "net30",
+  "creditPeriod": 30,
+  "creditLimit": 500000,
+  "bankDetails": {
+    "bankName": "HDFC Bank",
+    "accountNumber": "12345678901234",
+    "ifscCode": "HDFC0001234",
+    "accountHolderName": "Rajesh Gold Suppliers Pvt Ltd"
+  },
+  "upiId": "rajeshgold@paytm",
+  "productsSupplied": ["Gold Bars", "Gold Coins", "Gold Chains"],
+  "tags": ["trusted", "fast-delivery", "wholesale"],
+  "notes": "Reliable supplier with 15 years experience",
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Supplier created successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "shopId": "65c4f5e8a1234567890abcd0",
+    "organizationId": "65c4f5e8a1234567890abc00",
+    "supplierCode": "SUP-2024-001",
+    "businessName": "Rajesh Gold Suppliers Pvt Ltd",
+    "displayName": "Rajesh Gold",
+    "contactPerson": {
+      "firstName": "Rajesh",
+      "lastName": "Kumar",
+      "designation": "Owner",
+      "email": "rajesh@rajeshgold.com",
+      "phone": "9876543210",
+      "alternatePhone": "9876543211",
+      "whatsappNumber": "9876543210"
+    },
+    "businessEmail": "info@rajeshgold.com",
+    "businessPhone": "0221234567",
+    "website": "https://rajeshgold.com",
+    "address": {
+      "street": "123, Zaveri Bazaar",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "pincode": "400002"
+    },
+    "gstNumber": "27AAAAA0000A1Z5",
+    "panNumber": "ABCDE1234F",
+    "supplierType": "wholesaler",
+    "supplierCategory": "gold",
+    "paymentTerms": "net30",
+    "creditPeriod": 30,
+    "creditLimit": 500000,
+    "totalPurchases": 0,
+    "totalDue": 0,
+    "advancePayment": 0,
+    "rating": {
+      "overall": 0,
+      "quality": 0,
+      "delivery": 0,
+      "price": 0
+    },
+    "bankDetails": {
+      "bankName": "HDFC Bank",
+      "accountNumber": "12345678901234",
+      "ifscCode": "HDFC0001234",
+      "accountHolderName": "Rajesh Gold Suppliers Pvt Ltd"
+    },
+    "upiId": "rajeshgold@paytm",
+    "productsSupplied": ["Gold Bars", "Gold Coins", "Gold Chains"],
+    "tags": ["trusted", "fast-delivery", "wholesale"],
+    "notes": "Reliable supplier with 15 years experience",
+    "isActive": true,
+    "isVerified": false,
+    "isPreferred": false,
+    "isBlacklisted": false,
+    "createdBy": "65c4f5e8a1234567890abc11",
+    "createdAt": "2024-02-09T05:30:00.000Z",
+    "updatedAt": "2024-02-09T05:30:00.000Z"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Supplier created successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.message).to.include("created successfully");
+});
+
+pm.test("Supplier has all required fields", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('_id');
+    pm.expect(data).to.have.property('supplierCode');
+    pm.expect(data).to.have.property('businessName');
+    pm.expect(data).to.have.property('contactPerson');
+    pm.expect(data.contactPerson).to.have.property('phone');
+    
+    // Save supplierId for later tests
+    pm.collectionVariables.set('supplierId', data._id);
+});
+
+pm.test("Auto-generated fields are correct", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.supplierCode).to.match(/^SUP-\d{4}-\d{3}$/);
+    pm.expect(data.totalPurchases).to.eql(0);
+    pm.expect(data.totalDue).to.eql(0);
+    pm.expect(data.isActive).to.eql(true);
+});
+
+pm.test("Response time is acceptable", function () {
+    pm.expect(pm.response.responseTime).to.be.below(2000);
+});
+```
+
+---
+
+#### 1.1.2 Create Supplier - FAILURE (Missing Required Fields) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers`
+
+**Request Body:**
+```json
+{
+  "businessName": "Incomplete Supplier"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "contactPerson.firstName",
+      "message": "Contact person first name is required",
+      "value": undefined
+    },
+    {
+      "field": "contactPerson.phone",
+      "message": "Contact phone is required",
+      "value": undefined
+    }
+  ]
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 400", function () {
+    pm.response.to.have.status(400);
+});
+
+pm.test("Validation errors for missing required fields", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(false);
+    pm.expect(jsonData.errors).to.be.an('array');
+    pm.expect(jsonData.errors.length).to.be.greaterThan(0);
+});
+```
+
+---
+
+#### 1.1.3 Create Supplier - FAILURE (Invalid Phone Number) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers`
+
+**Request Body:**
+```json
+{
+  "businessName": "Test Supplier",
+  "contactPerson": {
+    "firstName": "Test",
+    "lastName": "User",
+    "phone": "12345"
+  }
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "contactPerson.phone",
+      "message": "Phone must be 10 digits",
+      "value": "12345"
+    }
+  ]
+}
+```
+
+---
+
+#### 1.1.4 Create Supplier - FAILURE (Invalid GST Number) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers`
+
+**Request Body:**
+```json
+{
+  "businessName": "Test Supplier",
+  "contactPerson": {
+    "firstName": "Test",
+    "phone": "9876543210"
+  },
+  "gstNumber": "INVALID_GST"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "gstNumber",
+      "message": "Invalid GST number format (e.g., 27AAAAA0000A1Z5)",
+      "value": "INVALID_GST"
+    }
+  ]
+}
+```
+
+---
+
+#### 1.1.5 Create Supplier - FAILURE (Duplicate GST Number) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers`
+
+**Request Body:**
+```json
+{
+  "businessName": "Another Supplier",
+  "contactPerson": {
+    "firstName": "Another",
+    "phone": "9876543211"
+  },
+  "gstNumber": "27AAAAA0000A1Z5"
+}
+```
+
+**Expected Response (409 Conflict):**
+```json
+{
+  "success": false,
+  "message": "Supplier with this GST number already exists",
+  "statusCode": 409
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 409", function () {
+    pm.response.to.have.status(409);
+});
+
+pm.test("Conflict error for duplicate GST", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.message).to.match(/GST number already exists/i);
+});
+```
+
+---
+
+#### 1.1.6 Create Supplier - FAILURE (Invalid Email) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers`
+
+**Request Body:**
+```json
+{
+  "businessName": "Test Supplier",
+  "contactPerson": {
+    "firstName": "Test",
+    "phone": "9876543210",
+    "email": "invalid-email"
+  }
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "contactPerson.email",
+      "message": "Invalid email address",
+      "value": "invalid-email"
+    }
+  ]
+}
+```
+
+---
+
+### 1.2 Get All Suppliers
+
+#### 1.2.1 Get All Suppliers - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/suppliers?page=1&limit=20&shopId={{shopId}}`
+
+**Permission Required:** `canViewSuppliers`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Suppliers fetched successfully",
+  "data": [
+    {
+      "_id": "65c4f5e8a1234567890abcde",
+      "supplierCode": "SUP-2024-001",
+      "businessName": "Rajesh Gold Suppliers Pvt Ltd",
+      "displayName": "Rajesh Gold",
+      "contactPerson": {
+        "firstName": "Rajesh",
+        "phone": "9876543210"
+      },
+      "supplierType": "wholesaler",
+      "supplierCategory": "gold",
+      "totalPurchases": 150000,
+      "totalDue": 25000,
+      "rating": {
+        "overall": 4.5
+      },
+      "isActive": true,
+      "isPreferred": true,
+      "isBlacklisted": false
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "pages": 3
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Suppliers list returned", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.data).to.be.an('array');
+});
+
+pm.test("Pagination data present", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.pagination).to.have.property('page');
+    pm.expect(jsonData.pagination).to.have.property('limit');
+    pm.expect(jsonData.pagination).to.have.property('total');
+    pm.expect(jsonData.pagination).to.have.property('pages');
+});
+
+pm.test("Response time is fast", function () {
+    pm.expect(pm.response.responseTime).to.be.below(1000);
+});
+```
+
+---
+
+#### 1.2.2 Get All Suppliers with Search - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/suppliers?search=Rajesh&shopId={{shopId}}`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Suppliers fetched successfully",
+  "data": [
+    {
+      "_id": "65c4f5e8a1234567890abcde",
+      "businessName": "Rajesh Gold Suppliers Pvt Ltd",
+      "supplierCode": "SUP-2024-001"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "pages": 1
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Search returns filtered results", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.length).to.be.greaterThan(0);
+    
+    // Check if search term appears in results
+    const searchTerm = "Rajesh";
+    const hasSearchTerm = data.some(supplier => 
+        supplier.businessName.includes(searchTerm) || 
+        supplier.supplierCode.includes(searchTerm)
+    );
+    pm.expect(hasSearchTerm).to.be.true;
+});
+```
+
+---
+
+#### 1.2.3 Get All Suppliers with Filters - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/suppliers?supplierType=wholesaler&supplierCategory=gold&isActive=true&isPreferred=true&shopId={{shopId}}`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Suppliers fetched successfully",
+  "data": [
+    {
+      "_id": "65c4f5e8a1234567890abcde",
+      "supplierType": "wholesaler",
+      "supplierCategory": "gold",
+      "isActive": true,
+      "isPreferred": true
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 5,
+    "pages": 1
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Filters applied correctly", function () {
+    const data = pm.response.json().data;
+    
+    data.forEach(supplier => {
+        pm.expect(supplier.supplierType).to.eql('wholesaler');
+        pm.expect(supplier.supplierCategory).to.eql('gold');
+        pm.expect(supplier.isActive).to.eql(true);
+        pm.expect(supplier.isPreferred).to.eql(true);
+    });
+});
+```
+
+---
+
+#### 1.2.4 Get All Suppliers - FAILURE (Invalid Page Number) ❌
+
+**Endpoint:** `GET {{baseUrl}}/suppliers?page=-1&shopId={{shopId}}`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "page",
+      "message": "Page must be a positive integer",
+      "value": "-1"
+    }
+  ]
+}
+```
+
+---
+
+#### 1.2.5 Get All Suppliers - FAILURE (Invalid Limit) ❌
+
+**Endpoint:** `GET {{baseUrl}}/suppliers?limit=150&shopId={{shopId}}`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "limit",
+      "message": "Limit must be between 1 and 100",
+      "value": "150"
+    }
+  ]
+}
+```
+
+---
+
+### 1.3 Get Supplier by ID
+
+#### 1.3.1 Get Supplier by ID - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/suppliers/{{supplierId}}?shopId={{shopId}}`
+
+**Permission Required:** `canViewSuppliers`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier fetched successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "shopId": "65c4f5e8a1234567890abcd0",
+    "organizationId": "65c4f5e8a1234567890abc00",
+    "supplierCode": "SUP-2024-001",
+    "businessName": "Rajesh Gold Suppliers Pvt Ltd",
+    "displayName": "Rajesh Gold",
+    "contactPerson": {
+      "firstName": "Rajesh",
+      "lastName": "Kumar",
+      "designation": "Owner",
+      "email": "rajesh@rajeshgold.com",
+      "phone": "9876543210",
+      "alternatePhone": "9876543211",
+      "whatsappNumber": "9876543210"
+    },
+    "address": {
+      "street": "123, Zaveri Bazaar",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "pincode": "400002"
+    },
+    "gstNumber": "27AAAAA0000A1Z5",
+    "panNumber": "ABCDE1234F",
+    "supplierType": "wholesaler",
+    "supplierCategory": "gold",
+    "paymentTerms": "net30",
+    "creditPeriod": 30,
+    "creditLimit": 500000,
+    "totalPurchases": 150000,
+    "totalDue": 25000,
+    "advancePayment": 5000,
+    "rating": {
+      "overall": 4.5,
+      "quality": 5,
+      "delivery": 4,
+      "price": 4.5
+    },
+    "bankDetails": {
+      "bankName": "HDFC Bank",
+      "accountNumber": "12345678901234",
+      "ifscCode": "HDFC0001234",
+      "accountHolderName": "Rajesh Gold Suppliers Pvt Ltd"
+    },
+    "isActive": true,
+    "isPreferred": true,
+    "isBlacklisted": false,
+    "createdBy": {
+      "_id": "65c4f5e8a1234567890abc11",
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin@example.com"
+    },
+    "createdAt": "2024-02-09T05:30:00.000Z",
+    "updatedAt": "2024-02-09T05:30:00.000Z"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Supplier details retrieved", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('_id');
+    pm.expect(data).to.have.property('supplierCode');
+    pm.expect(data).to.have.property('businessName');
+});
+
+pm.test("Populated fields present", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.createdBy).to.have.property('firstName');
+    pm.expect(data.createdBy).to.have.property('email');
+});
+```
+
+---
+
+#### 1.3.2 Get Supplier by ID - FAILURE (Invalid Supplier ID) ❌
+
+**Endpoint:** `GET {{baseUrl}}/suppliers/invalid_id?shopId={{shopId}}`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "id",
+      "message": "Invalid supplier ID",
+      "value": "invalid_id"
+    }
+  ]
+}
+```
+
+---
+
+#### 1.3.3 Get Supplier by ID - FAILURE (Supplier Not Found) ❌
+
+**Endpoint:** `GET {{baseUrl}}/suppliers/65c4f5e8a1234567890fffff?shopId={{shopId}}`
+
+**Expected Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "Supplier not found",
+  "statusCode": 404
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 404", function () {
+    pm.response.to.have.status(404);
+});
+
+pm.test("Not found error message", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.message).to.match(/supplier not found/i);
+});
+```
+
+---
+
+### 1.4 Update Supplier
+
+#### 1.4.1 Update Supplier - SUCCESS ✅
+
+**Endpoint:** `PATCH {{baseUrl}}/suppliers/{{supplierId}}`
+
+**Permission Required:** `canEditSuppliers`
+
+**Request Body:**
+```json
+{
+  "businessName": "Rajesh Gold Suppliers Pvt Ltd - Updated",
+  "displayName": "Rajesh Gold Plus",
+  "contactPerson": {
+    "firstName": "Rajesh",
+    "lastName": "Kumar",
+    "phone": "9876543210",
+    "alternatePhone": "9876543299",
+    "email": "rajesh.new@rajeshgold.com"
+  },
+  "creditLimit": 750000,
+  "isActive": true,
+  "notes": "Increased credit limit due to good payment history",
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier updated successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "businessName": "Rajesh Gold Suppliers Pvt Ltd - Updated",
+    "displayName": "Rajesh Gold Plus",
+    "contactPerson": {
+      "firstName": "Rajesh",
+      "lastName": "Kumar",
+      "phone": "9876543210",
+      "alternatePhone": "9876543299",
+      "email": "rajesh.new@rajeshgold.com"
+    },
+    "creditLimit": 750000,
+    "isActive": true,
+    "notes": "Increased credit limit due to good payment history",
+    "updatedBy": "65c4f5e8a1234567890abc11",
+    "updatedAt": "2024-02-09T09:30:00.000Z"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Supplier updated successfully", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.businessName).to.include("Updated");
+    pm.expect(data.creditLimit).to.eql(750000);
+});
+
+pm.test("Updated timestamp changed", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('updatedAt');
+    pm.expect(data).to.have.property('updatedBy');
+});
+```
+
+---
+
+#### 1.4.2 Update Supplier - FAILURE (Invalid Data) ❌
+
+**Endpoint:** `PATCH {{baseUrl}}/suppliers/{{supplierId}}`
+
+**Request Body:**
+```json
+{
+  "creditLimit": -1000,
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "creditLimit",
+      "message": "Credit limit must be a positive number",
+      "value": -1000
+    }
+  ]
+}
+```
+
+---
+
+#### 1.4.3 Update Supplier - FAILURE (Duplicate GST) ❌
+
+**Endpoint:** `PATCH {{baseUrl}}/suppliers/{{supplierId}}`
+
+**Request Body:**
+```json
+{
+  "gstNumber": "27BBBBB0000B1Z5",
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (409 Conflict):**
+```json
+{
+  "success": false,
+  "message": "Supplier with this GST number already exists",
+  "statusCode": 409
+}
+```
+
+---
+
+### 1.5 Delete Supplier (Soft Delete)
+
+#### 1.5.1 Delete Supplier - SUCCESS ✅
+
+**Endpoint:** `DELETE {{baseUrl}}/suppliers/{{supplierId}}?shopId={{shopId}}`
+
+**Permission Required:** `canDeleteSuppliers`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier deleted successfully"
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Supplier deleted successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.eql(true);
+    pm.expect(jsonData.message).to.match(/deleted successfully/i);
+});
+```
+
+---
+
+#### 1.5.2 Delete Supplier - FAILURE (Already Deleted) ❌
+
+**Endpoint:** `DELETE {{baseUrl}}/suppliers/{{supplierId}}?shopId={{shopId}}`
+
+**Expected Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "Supplier not found",
+  "statusCode": 404
+}
+```
+
+---
+
+## 2. SUPPLIER MANAGEMENT ROUTES
+
+### 2.1 Restore Supplier
+
+#### 2.1.1 Restore Supplier - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/restore`
+
+**Permission Required:** `canRestoreSupplier`
+
+**Request Body:**
+```json
+{
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier restored successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "supplierCode": "SUP-2024-001",
+    "businessName": "Rajesh Gold Suppliers Pvt Ltd",
+    "deletedAt": null,
+    "isActive": true
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Supplier restored successfully", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.deletedAt).to.be.null;
+});
+```
+
+---
+
+#### 2.1.2 Restore Supplier - FAILURE (Not Deleted) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/restore`
+
+**Request Body:**
+```json
+{
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Supplier is not deleted",
+  "statusCode": 400
+}
+```
+
+---
+
+### 2.2 Update Rating
+
+#### 2.2.1 Update Rating - SUCCESS ✅
+
+**Endpoint:** `PATCH {{baseUrl}}/suppliers/{{supplierId}}/rating`
+
+**Permission Required:** `canUpdateSupplierRating`
+
+**Request Body:**
+```json
+{
+  "qualityRating": 5,
+  "deliveryRating": 4,
+  "priceRating": 5,
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier rating updated successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "rating": {
+      "overall": 4.67,
+      "quality": 5,
+      "delivery": 4,
+      "price": 5
+    },
+    "updatedAt": "2024-02-09T10:00:00.000Z"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Rating updated correctly", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.rating.quality).to.eql(5);
+    pm.expect(data.rating.delivery).to.eql(4);
+    pm.expect(data.rating.price).to.eql(5);
+    pm.expect(data.rating.overall).to.be.greaterThan(0);
+});
+```
+
+---
+
+#### 2.2.2 Update Rating - FAILURE (Invalid Rating) ❌
+
+**Endpoint:** `PATCH {{baseUrl}}/suppliers/{{supplierId}}/rating`
+
+**Request Body:**
+```json
+{
+  "qualityRating": 6,
+  "deliveryRating": 0,
+  "priceRating": 3,
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "qualityRating",
+      "message": "Quality rating must be between 1 and 5",
+      "value": 6
+    },
+    {
+      "field": "deliveryRating",
+      "message": "Delivery rating must be between 1 and 5",
+      "value": 0
+    }
+  ]
+}
+```
+
+---
+
+### 2.3 Blacklist Supplier
+
+#### 2.3.1 Blacklist Supplier - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/blacklist`
+
+**Permission Required:** `canBlacklistSupplier`
+
+**Request Body:**
+```json
+{
+  "reason": "Poor quality products delivered multiple times. Delayed deliveries causing business issues.",
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier blacklisted successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "isBlacklisted": true,
+    "blacklistReason": "Poor quality products delivered multiple times. Delayed deliveries causing business issues.",
+    "blacklistedAt": "2024-02-09T10:15:00.000Z",
+    "isActive": false
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Supplier blacklisted", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.isBlacklisted).to.eql(true);
+    pm.expect(data.blacklistReason).to.be.a('string');
+    pm.expect(data.isActive).to.eql(false);
+});
+```
+
+---
+
+#### 2.3.2 Blacklist Supplier - FAILURE (Already Blacklisted) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/blacklist`
+
+**Request Body:**
+```json
+{
+  "reason": "Some reason",
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Supplier is already blacklisted",
+  "statusCode": 400
+}
+```
+
+---
+
+#### 2.3.3 Blacklist Supplier - FAILURE (Short Reason) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/blacklist`
+
+**Request Body:**
+```json
+{
+  "reason": "Bad",
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "reason",
+      "message": "Reason must be between 10 and 500 characters",
+      "value": "Bad"
+    }
+  ]
+}
+```
+
+---
+
+### 2.4 Remove from Blacklist
+
+#### 2.4.1 Remove from Blacklist - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/remove-blacklist`
+
+**Permission Required:** `canRemoveSupplierBlacklist`
+
+**Request Body:**
+```json
+{
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier removed from blacklist successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "isBlacklisted": false,
+    "blacklistReason": null,
+    "blacklistedAt": null,
+    "isActive": true
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Supplier removed from blacklist", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.isBlacklisted).to.eql(false);
+    pm.expect(data.blacklistReason).to.be.null;
+});
+```
+
+---
+
+#### 2.4.2 Remove from Blacklist - FAILURE (Not Blacklisted) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/remove-blacklist`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Supplier is not blacklisted",
+  "statusCode": 400
+}
+```
+
+---
+
+### 2.5 Mark as Preferred
+
+#### 2.5.1 Mark as Preferred - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/preferred`
+
+**Permission Required:** `canMarkPreferredSupplier`
+
+**Request Body:**
+```json
+{
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier marked as preferred successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "isPreferred": true,
+    "preferredSince": "2024-02-09T10:30:00.000Z"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Supplier marked as preferred", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.isPreferred).to.eql(true);
+    pm.expect(data).to.have.property('preferredSince');
+});
+```
+
+---
+
+### 2.6 Remove Preferred Status
+
+#### 2.6.1 Remove Preferred - SUCCESS ✅
+
+**Endpoint:** `DELETE {{baseUrl}}/suppliers/{{supplierId}}/preferred`
+
+**Permission Required:** `canRemovePreferredSupplier`
+
+**Request Body:**
+```json
+{
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier removed from preferred list successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "isPreferred": false,
+    "preferredSince": null
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Preferred status removed", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.isPreferred).to.eql(false);
+    pm.expect(data.preferredSince).to.be.null;
+});
+```
+
+---
+
+### 2.7 Update Balance
+
+#### 2.7.1 Update Balance (Payment) - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/balance`
+
+**Permission Required:** `canUpdateSupplierBalance`
+
+**Request Body:**
+```json
+{
+  "amount": 10000,
+  "type": "payment",
+  "note": "Payment for invoice #INV-001",
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier balance updated successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "totalDue": 15000,
+    "totalPurchases": 150000,
+    "lastPaymentDate": "2024-02-09T11:00:00.000Z"
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Balance updated correctly", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('totalDue');
+    pm.expect(data).to.have.property('lastPaymentDate');
+});
+```
+
+---
+
+#### 2.7.2 Update Balance (Purchase) - SUCCESS ✅
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/balance`
+
+**Request Body:**
+```json
+{
+  "amount": 25000,
+  "type": "purchase",
+  "note": "New purchase order #PO-045",
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier balance updated successfully",
+  "data": {
+    "_id": "65c4f5e8a1234567890abcde",
+    "totalDue": 40000,
+    "totalPurchases": 175000
+  }
+}
+```
+
+---
+
+#### 2.7.3 Update Balance - FAILURE (Zero Amount) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/balance`
+
+**Request Body:**
+```json
+{
+  "amount": 0,
+  "type": "payment",
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "amount",
+      "message": "Amount cannot be zero",
+      "value": 0
+    }
+  ]
+}
+```
+
+---
+
+#### 2.7.4 Update Balance - FAILURE (Invalid Type) ❌
+
+**Endpoint:** `POST {{baseUrl}}/suppliers/{{supplierId}}/balance`
+
+**Request Body:**
+```json
+{
+  "amount": 5000,
+  "type": "refund",
+  "shopId": "{{shopId}}"
+}
+```
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "type",
+      "message": "Type must be payment, purchase, or adjustment",
+      "value": "refund"
+    }
+  ]
+}
+```
+
+---
+
+## 3. STATISTICS & REPORTS ROUTES
+
+### 3.1 Get Supplier Statistics
+
+#### 3.1.1 Get Stats - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/suppliers/stats?shopId={{shopId}}`
+
+**Permission Required:** `canViewSupplierStatistics`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Supplier statistics fetched successfully",
+  "data": {
+    "totalSuppliers": 45,
+    "activeSuppliers": 42,
+    "preferredSuppliers": 8,
+    "blacklistedSuppliers": 2,
+    "totalPurchases": 5250000,
+    "totalDue": 325000,
+    "totalAdvance": 15000
+  }
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("All statistics present", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.have.property('totalSuppliers');
+    pm.expect(data).to.have.property('activeSuppliers');
+    pm.expect(data).to.have.property('preferredSuppliers');
+    pm.expect(data).to.have.property('blacklistedSuppliers');
+    pm.expect(data).to.have.property('totalPurchases');
+    pm.expect(data).to.have.property('totalDue');
+    pm.expect(data).to.have.property('totalAdvance');
+});
+
+pm.test("Statistics are numbers", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.totalSuppliers).to.be.a('number');
+    pm.expect(data.activeSuppliers).to.be.a('number');
+    pm.expect(data.totalPurchases).to.be.a('number');
+});
+
+pm.test("Active suppliers <= total suppliers", function () {
+    const data = pm.response.json().data;
+    pm.expect(data.activeSuppliers).to.be.at.most(data.totalSuppliers);
+});
+```
+
+---
+
+### 3.2 Get Top Suppliers
+
+#### 3.2.1 Get Top Suppliers - SUCCESS ✅
+
+**Endpoint:** `GET {{baseUrl}}/suppliers/top?shopId={{shopId}}&limit=10`
+
+**Permission Required:** `canViewTopSuppliers`
+
+**Expected Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Top suppliers fetched successfully",
+  "data": [
+    {
+      "_id": "65c4f5e8a1234567890abcde",
+      "supplierCode": "SUP-2024-001",
+      "businessName": "Rajesh Gold Suppliers Pvt Ltd",
+      "totalPurchases": 850000,
+      "totalDue": 45000,
+      "rating": {
+        "overall": 4.8
+      },
+      "isPreferred": true,
+      "lastPurchaseDate": "2024-02-08T00:00:00.000Z"
+    },
+    {
+      "_id": "65c4f5e8a1234567890abcdf",
+      "supplierCode": "SUP-2024-002",
+      "businessName": "Mumbai Diamond House",
+      "totalPurchases": 720000,
+      "totalDue": 65000,
+      "rating": {
+        "overall": 4.5
+      },
+      "isPreferred": true,
+      "lastPurchaseDate": "2024-02-07T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Top suppliers returned", function () {
+    const data = pm.response.json().data;
+    pm.expect(data).to.be.an('array');
+    pm.expect(data.length).to.be.at.most(10);
+});
+
+pm.test("Suppliers ordered by total purchases", function () {
+    const data = pm.response.json().data;
+    
+    for (let i = 0; i < data.length - 1; i++) {
+        pm.expect(data[i].totalPurchases).to.be.at.least(data[i + 1].totalPurchases);
+    }
+});
+
+pm.test("Each supplier has required fields", function () {
+    const data = pm.response.json().data;
+    
+    data.forEach(supplier => {
+        pm.expect(supplier).to.have.property('supplierCode');
+        pm.expect(supplier).to.have.property('businessName');
+        pm.expect(supplier).to.have.property('totalPurchases');
+    });
+});
+```
+
+---
+
+#### 3.2.2 Get Top Suppliers - FAILURE (Invalid Limit) ❌
+
+**Endpoint:** `GET {{baseUrl}}/suppliers/top?shopId={{shopId}}&limit=200`
+
+**Expected Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "limit",
+      "message": "Limit must be between 1 and 100",
+      "value": "200"
+    }
+  ]
+}
+```
+
+---
+
+## Summary
+
+### Total Routes: 14
+
+#### Main CRUD Routes: 5
+1. ✅ POST `/api/v1/suppliers` - Create Supplier
+2. ✅ GET `/api/v1/suppliers` - Get All Suppliers
+3. ✅ GET `/api/v1/suppliers/:id` - Get Supplier by ID
+4. ✅ PATCH `/api/v1/suppliers/:id` - Update Supplier
+5. ✅ DELETE `/api/v1/suppliers/:id` - Delete Supplier
+
+#### Supplier Management Routes: 7
+6. ✅ POST `/api/v1/suppliers/:id/restore` - Restore Supplier
+7. ✅ PATCH `/api/v1/suppliers/:id/rating` - Update Rating
+8. ✅ POST `/api/v1/suppliers/:id/blacklist` - Blacklist Supplier
+9. ✅ POST `/api/v1/suppliers/:id/remove-blacklist` - Remove from Blacklist
+10. ✅ POST `/api/v1/suppliers/:id/preferred` - Mark as Preferred
+11. ✅ DELETE `/api/v1/suppliers/:id/preferred` - Remove Preferred
+12. ✅ POST `/api/v1/suppliers/:id/balance` - Update Balance
+
+#### Statistics & Reports Routes: 2
+13. ✅ GET `/api/v1/suppliers/stats` - Get Statistics
+14. ✅ GET `/api/v1/suppliers/top` - Get Top Suppliers
+
+### Test Coverage
+
+#### Positive Tests (Success ✅): 18
+- All routes have success scenarios
+- Multiple variations for complex routes
+
+#### Negative Tests (Failure ❌): 25+
+- Validation errors
+- Missing required fields
+- Invalid data formats (phone, email, GST, PAN)
+- Duplicate constraints (GST number)
+- Business logic violations
+- Authorization failures
+- Permission denials
+- Not found errors
+- Conflict errors
+
+### Common Validation Patterns
+
+#### Phone Number Validation
+```
+Valid: "9876543210" (10 digits)
+Invalid: "12345", "98765432101", "abc1234567"
+```
+
+#### GST Number Validation
+```
+Valid: "27AAAAA0000A1Z5"
+Invalid: "INVALID_GST", "27AAAAA"
+Format: 15 characters - 2 digits + 10 alphanumeric + 3 specific chars
+```
+
+#### PAN Number Validation
+```
+Valid: "ABCDE1234F"
+Invalid: "ABCD1234", "ABCDE12345"
+Format: 5 letters + 4 digits + 1 letter
+```
+
+#### Email Validation
+```
+Valid: "user@example.com"
+Invalid: "invalid-email", "user@", "@example.com"
+```
+
+#### Pincode Validation
+```
+Valid: "400002"
+Invalid: "4000", "40000200"
+Format: Exactly 6 digits
+```
+
+### Response Time Benchmarks
+- GET requests: < 500ms
+- POST/PATCH: < 1000ms
+- DELETE: < 800ms
+- Statistics: < 1500ms
+
+### How to Use This Collection
+
+1. **Import to Postman:**
+   - Create new collection "Supplier Management"
+   - Set collection variables
+   - Copy-paste each request
+
+2. **Configure Variables:**
+   ```javascript
+   baseUrl: http://localhost:5000/api/v1
+   authToken: (Get from login endpoint)
+   shopId: (Valid MongoDB ObjectId)
+   organizationId: (Valid MongoDB ObjectId)
+   supplierId: (Auto-set from create response)
+   ```
+
+3. **Authentication Setup:**
+   - Login as different users to test permissions
+   - Save JWT tokens for each role
+   - Test role-based access control
+
+4. **Test Execution Order:**
+   ```
+   1. Create Supplier (saves supplierId)
+   2. Get All Suppliers
+   3. Get Supplier by ID
+   4. Update Supplier
+   5. Update Rating
+   6. Mark as Preferred
+   7. Update Balance
+   8. Get Statistics
+   9. Get Top Suppliers
+   10. Blacklist Supplier
+   11. Remove from Blacklist
+   12. Delete Supplier
+   13. Restore Supplier
+   14. All failure scenarios
+   ```
+
+5. **Run Tests:**
+   - Run individual requests
+   - Use Collection Runner for batch testing
+   - Monitor test results in Console
+   - Check response times
+   - Verify database state
+
+6. **Best Practices:**
+   - Run success scenarios first
+   - Follow test order for dependencies
+   - Clean up test data after runs
+   - Test with different user roles
+   - Verify permissions
+   - Check validation messages
+
+### Permission Matrix
+
+| Route | Roles | Permission |
+|-------|-------|------------|
+| Create | Admin, Manager | canCreateSuppliers |
+| View All | All Staff | canViewSuppliers |
+| View Single | All Staff | canViewSuppliers |
+| Update | Admin, Manager | canEditSuppliers |
+| Delete | Admin only | canDeleteSuppliers |
+| Restore | Admin, Manager | canRestoreSupplier |
+| Update Rating | Admin, Manager | canUpdateSupplierRating |
+| Blacklist | Admin only | canBlacklistSupplier |
+| Remove Blacklist | Admin only | canRemoveSupplierBlacklist |
+| Mark Preferred | Admin, Manager | canMarkPreferredSupplier |
+| Remove Preferred | Admin, Manager | canRemovePreferredSupplier |
+| Update Balance | Admin, Manager, Accountant | canUpdateSupplierBalance |
+| View Stats | Admin, Manager, Accountant | canViewSupplierStatistics |
+| View Top | Admin, Manager | canViewTopSuppliers |
+
+---
+
+**Last Updated:** February 2026  
+**API Version:** v1  
+**Total Test Scenarios:** 43+ test cases (14 routes with 3+ test cases each)
+**Bhai, ready hai test karne ke liye! 🚀**
