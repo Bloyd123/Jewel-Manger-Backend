@@ -18,21 +18,34 @@ import {
 class PaymentService {
   // 1. CREATE PAYMENT
 
-  async createPayment(shopId, organizationId, userId, paymentData) {
-    try {
-      // Generate payment number
-      const paymentNumber = await Payment.generatePaymentNumber(shopId, 'PAY');
-
-      // Prepare payment document
-      const payment = new Payment({
-        organizationId,
+async createPayment(shopId, organizationId, userId, paymentData) {
+  try {
+    // Idempotency check — duplicate request toh same payment return karo
+    if (paymentData.idempotencyKey) {
+      const existing = await Payment.findOne({
         shopId,
-        paymentNumber,
-        paymentDate: new Date(),
-        ...paymentData,
-        processedBy: userId,
-        createdBy: userId,
+        idempotencyKey: paymentData.idempotencyKey,
       });
+      if (existing) {
+        return {
+          success: true,
+          data: existing,
+          message: 'Payment already recorded',
+        };
+      }
+    }
+
+    const paymentNumber = await Payment.generatePaymentNumber(shopId, 'PAY');
+
+    const payment = new Payment({
+      organizationId,
+      shopId,
+      paymentNumber,
+      paymentDate: new Date(),
+      ...paymentData,
+      processedBy: userId,
+      createdBy: userId,
+    });
 
       // Auto-complete for cash/UPI payments
       if (
@@ -618,33 +631,11 @@ class PaymentService {
       const { referenceType, referenceId } = payment.reference;
 
       if (referenceType === 'sale') {
-        const sale = await Sale.findById(referenceId);
-        if (sale) {
-          sale.payment.paidAmount += payment.amount;
-          sale.payment.dueAmount = sale.payment.totalAmount - sale.payment.paidAmount;
 
-          if (sale.payment.paidAmount >= sale.payment.totalAmount) {
-            sale.payment.paymentStatus = 'paid';
-          } else if (sale.payment.paidAmount > 0) {
-            sale.payment.paymentStatus = 'partial';
-          }
+    await Sale.applyPayment(referenceId, payment.amount);
 
-          await sale.save();
-        }
       } else if (referenceType === 'purchase') {
-        const purchase = await Purchase.findById(referenceId);
-        if (purchase) {
-          purchase.payment.paidAmount += payment.amount;
-          purchase.payment.dueAmount = purchase.payment.totalAmount - purchase.payment.paidAmount;
-
-          if (purchase.payment.paidAmount >= purchase.payment.totalAmount) {
-            purchase.payment.paymentStatus = 'paid';
-          } else if (purchase.payment.paidAmount > 0) {
-            purchase.payment.paymentStatus = 'partial';
-          }
-
-          await purchase.save();
-        }
+    await Purchase.applyPayment(referenceId, payment.amount);
       }
     } catch (error) {
       logger.error('Update reference payment status error:', error);
@@ -659,33 +650,9 @@ class PaymentService {
       const { referenceType, referenceId } = payment.reference;
 
       if (referenceType === 'sale') {
-        const sale = await Sale.findById(referenceId);
-        if (sale) {
-          sale.payment.paidAmount -= payment.amount;
-          sale.payment.dueAmount = sale.payment.totalAmount - sale.payment.paidAmount;
-
-          if (sale.payment.paidAmount === 0) {
-            sale.payment.paymentStatus = 'unpaid';
-          } else if (sale.payment.paidAmount < sale.payment.totalAmount) {
-            sale.payment.paymentStatus = 'partial';
-          }
-
-          await sale.save();
-        }
+await Sale.reversePayment(referenceId, payment.amount);
       } else if (referenceType === 'purchase') {
-        const purchase = await Purchase.findById(referenceId);
-        if (purchase) {
-          purchase.payment.paidAmount -= payment.amount;
-          purchase.payment.dueAmount = purchase.payment.totalAmount - purchase.payment.paidAmount;
-
-          if (purchase.payment.paidAmount === 0) {
-            purchase.payment.paymentStatus = 'unpaid';
-          } else if (purchase.payment.paidAmount < purchase.payment.totalAmount) {
-            purchase.payment.paymentStatus = 'partial';
-          }
-
-          await purchase.save();
-        }
+ await Purchase.reversePayment(referenceId, payment.amount);
       }
     } catch (error) {
       logger.error('Reverse reference payment status error:', error);

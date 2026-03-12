@@ -1,5 +1,4 @@
 // FILE: src/api/customer/customer.controller.js
-
 import { validationResult } from 'express-validator';
 import * as customerService from './customer.service.js';
 import {
@@ -81,10 +80,7 @@ export const createCustomer = async (req, res) => {
   }
 };
 
-/**
- * Get all customers with filters and pagination
- * GET /api/v1/shops/:shopId/customers
- */
+  // GET /api/v1/shops/:shopId/customers
 export const getCustomers = async (req, res) => {
   try {
     const { shopId } = req.params;
@@ -123,7 +119,6 @@ export const getCustomers = async (req, res) => {
 
     const summary = await customerService.getCustomerStatistics(shopId);
 
-    // Using your sendSuccess format: (res, statusCode, message, data, meta)
     return sendSuccess(
       res,
       200,
@@ -147,10 +142,8 @@ export const getCustomers = async (req, res) => {
   }
 };
 
-/**
- * Get single customer by ID
- * GET /api/v1/shops/:shopId/customers/:customerId
- */
+
+  // GET /api/v1/shops/:shopId/customers/:customerId
 export const getCustomerById = async (req, res) => {
   try {
     const { shopId, customerId } = req.params;
@@ -177,10 +170,8 @@ export const getCustomerById = async (req, res) => {
   }
 };
 
-/**
- * Search customer by phone/email/code
- * GET /api/v1/shops/:shopId/customers/search
- */
+  // GET /api/v1/shops/:shopId/customers/search
+
 export const searchCustomer = async (req, res) => {
   try {
     const { shopId } = req.params;
@@ -219,13 +210,10 @@ export const searchCustomer = async (req, res) => {
   }
 };
 
-/**
- * Update customer
- * PUT /api/v1/shops/:shopId/customers/:customerId
- */
+  // PUT /api/v1/shops/:shopId/customers/:customerId
+ 
 export const updateCustomer = async (req, res) => {
   try {
-    // Validate request
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return sendBadRequest(res, 'Validation failed', errors.array());
@@ -285,7 +273,6 @@ export const updateCustomer = async (req, res) => {
 };
 
 /**
- * Delete customer (soft delete)
  * DELETE /api/v1/shops/:shopId/customers/:customerId
  */
 export const deleteCustomer = async (req, res) => {
@@ -388,10 +375,7 @@ export const blacklistCustomer = async (req, res) => {
   }
 };
 
-/**
- * Remove blacklist
- * PATCH /api/v1/shops/:shopId/customers/:customerId/unblacklist
- */
+  // PATCH /api/v1/shops/:shopId/customers/:customerId/unblacklist
 export const removeBlacklist = async (req, res) => {
   try {
     const { shopId, customerId } = req.params;
@@ -433,10 +417,7 @@ export const removeBlacklist = async (req, res) => {
   }
 };
 
-/**
- * Add loyalty points
- * POST /api/v1/shops/:shopId/customers/:customerId/loyalty/add
- */
+  // POST /api/v1/shops/:shopId/customers/:customerId/loyalty/add
 export const addLoyaltyPoints = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -470,10 +451,9 @@ export const addLoyaltyPoints = async (req, res) => {
   }
 };
 
-/**
- * Redeem loyalty points
- * POST /api/v1/shops/:shopId/customers/:customerId/loyalty/redeem
- */
+
+//  POST /api/v1/shops/:shopId/customers/:customerId/loyalty/redeem
+
 export const redeemLoyaltyPoints = async (req, res) => {
   try {
     const errors = validationResult(req);

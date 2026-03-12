@@ -2,12 +2,15 @@
 // Purchase Module Service - Business Logic Layer
 
 import Purchase from '../../models/Purchase.js';
-import Product from '../../models/Product.js';
-import InventoryTransaction from '../../models/InventoryTransaction.js';
 import eventLogger from '../../utils/eventLogger.js';
 import { businessLogger } from '../../utils/logger.js';
 import APIFeatures from '../../utils/apiFeatures.js';
 import { getPaginationData } from '../../utils/pagination.js';
+import {
+  increaseStock,
+  createProductFromPurchase,
+} from '../inventory/inventory.service.js';
+import Supplier from '../../models/Supplier.js';
 import {
   createDebitEntry,
   createCreditEntry,
@@ -270,88 +273,28 @@ export const receivePurchase = async (purchaseId, receiveData, userId) => {
   // Update inventory for each item
   for (const item of purchase.items) {
     if (item.productId) {
-      // Update existing product stock
-      const product = await Product.findById(item.productId);
-      if (product) {
-        await product.updateStock(item.quantity, 'add');
-
-        // Create inventory transaction
-        await InventoryTransaction.create({
-          organizationId: purchase.organizationId,
-          shopId: purchase.shopId,
-          productId: product._id,
-          productCode: product.productCode,
-          transactionType: 'PURCHASE',
-          quantity: item.quantity,
-          previousQuantity: product.stock.quantity - item.quantity,
-          newQuantity: product.stock.quantity,
-          transactionDate: new Date(),
-          referenceType: 'purchase',
-          referenceId: purchase._id,
-          referenceNumber: purchase.purchaseNumber,
-          value: item.itemTotal,
-          performedBy: userId,
-          reason: 'Purchase received',
-        });
-      }
+await increaseStock({
+  organizationId: purchase.organizationId,
+  shopId: purchase.shopId,
+  productId: item.productId,
+  quantity: item.quantity,
+  referenceId: purchase._id,
+  referenceNumber: purchase.purchaseNumber,
+  value: item.itemTotal,
+  performedBy: userId,
+});
+      
     } else {
-      // Create new product if productId is null
-      const newProduct = await Product.create({
-        organizationId: purchase.organizationId,
-        shopId: purchase.shopId,
-        name: item.productName,
-        productCode: await Product.generateProductCode(purchase.shopId),
-        category: item.category || 'other',
-        metal: {
-          type: item.metalType,
-          purity: item.purity,
-        },
-        weight: {
-          grossWeight: item.grossWeight,
-          stoneWeight: item.stoneWeight,
-          netWeight: item.netWeight,
-          unit: item.weightUnit,
-        },
-        stock: {
-          quantity: item.quantity,
-        },
-        pricing: {
-          costPrice: item.itemTotal / item.quantity,
-          sellingPrice: (item.itemTotal / item.quantity) * 1.2, // 20% markup
-        },
-        supplierId: purchase.supplierId,
-        supplierDetails: {
-          supplierName: purchase.supplierDetails.supplierName,
-          supplierCode: purchase.supplierDetails.supplierCode,
-          purchaseDate: purchase.purchaseDate,
-          purchasePrice: item.itemTotal / item.quantity,
-          invoiceNumber: purchase.purchaseNumber,
-        },
-        huid: item.huid,
-        hallmarking: {
-          isHallmarked: item.isHallmarked,
-        },
-        createdBy: userId,
-      });
-
-      // Create inventory transaction for new product
-      await InventoryTransaction.create({
-        organizationId: purchase.organizationId,
-        shopId: purchase.shopId,
-        productId: newProduct._id,
-        productCode: newProduct.productCode,
-        transactionType: 'IN',
-        quantity: item.quantity,
-        previousQuantity: 0,
-        newQuantity: item.quantity,
-        transactionDate: new Date(),
-        referenceType: 'product_creation',
-        referenceId: purchase._id,
-        referenceNumber: purchase.purchaseNumber,
-        value: item.itemTotal,
-        performedBy: userId,
-        reason: 'Initial stock from purchase',
-      });
+await createProductFromPurchase({
+  organizationId: purchase.organizationId,
+  shopId: purchase.shopId,
+  item,
+  purchaseId: purchase._id,
+  purchaseNumber: purchase.purchaseNumber,
+  supplierId: purchase.supplierId,
+  supplierDetails: purchase.supplierDetails,
+  userId,
+});
     }
   }
 

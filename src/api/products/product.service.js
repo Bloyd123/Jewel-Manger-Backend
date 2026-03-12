@@ -2,6 +2,7 @@ import Product from '../../models/Product.js';
 import MetalRate from '../../models/MetalRate.js';
 import InventoryTransaction from '../../models/InventoryTransaction.js';
 import JewelryShop from '../../models/Shop.js';
+import { adjustStock } from '../inventory/inventory.service.js';
 import eventLogger from '../../utils/eventLogger.js';
 import cache from '../../utils/cache.js';
 import {
@@ -126,23 +127,14 @@ export async function createProduct(productData, shopId, organizationId, userId)
     saleStatus: 'available',
   });
 
-  // 8. Create inventory transaction
-  await InventoryTransaction.create({
-    organizationId,
-    shopId,
-    productId: product._id,
-    productCode: product.productCode,
-    transactionType: 'IN',
-    quantity: product.stock.quantity,
-    previousQuantity: 0,
-    newQuantity: product.stock.quantity,
-    transactionDate: new Date(),
-    referenceType: 'product_creation',
-    referenceId: product._id,
-    performedBy: userId,
-    reason: 'Initial stock entry',
-    value: product.pricing.sellingPrice * product.stock.quantity,
-  });
+await adjustStock({
+  organizationId,
+  shopId,
+  productId: product._id,
+  newQuantity: product.stock.quantity,
+  reason: 'Initial stock entry',
+  performedBy: userId,
+});
 
   // 9. Update shop statistics
   const shop = await JewelryShop.findById(shopId);
@@ -598,29 +590,19 @@ export async function updateStock(productId, shopId, organizationId, stockData, 
       throw new ValidationError('Invalid operation');
   }
 
-  // Update product stock
-  await product.updateStock(newQuantity, 'set');
 
   // Create inventory transaction
   const transactionType =
     operation === 'add' ? 'IN' : operation === 'subtract' ? 'OUT' : 'ADJUSTMENT';
 
-  await InventoryTransaction.create({
-    organizationId,
-    shopId,
-    productId: product._id,
-    productCode: product.productCode,
-    transactionType,
-    quantity: Math.abs(quantity),
-    previousQuantity,
-    newQuantity,
-    transactionDate: new Date(),
-    referenceType: referenceType || 'stock_update',
-    referenceId: referenceId || null,
-    performedBy: userId,
-    reason: reason || `Stock ${operation}`,
-    value: product.pricing.sellingPrice * Math.abs(quantity),
-  });
+await adjustStock({
+  organizationId,
+  shopId,
+  productId: product._id,
+  newQuantity,
+  reason: reason || `Stock ${operation}`,
+  performedBy: userId,
+});
 
   // Invalidate cache
   cache.del(cache.productKey(productId));

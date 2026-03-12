@@ -3,17 +3,21 @@
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
-  "scripts": {
-    "seed:categories": "node seeds/categorySeeder.js",
-    "dev": "nodemon -r dotenv/config src/server.js",
-    "start": "node -r dotenv/config src/server.js",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "check": "npm run lint && npm run format:check",
-    "fix": "npm run lint:fix && npm run format"
-  },
+"scripts": {
+  "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+  "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+  "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+  "test:verbose": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose",
+  "seed:categories": "node seeds/categorySeeder.js",
+  "dev": "nodemon -r dotenv/config src/server.js",
+  "start": "node -r dotenv/config src/server.js",
+  "lint": "eslint .",
+  "lint:fix": "eslint . --fix",
+  "format": "prettier --write .",
+  "format:check": "prettier --check .",
+  "check": "npm run lint && npm run format:check",
+  "fix": "npm run lint:fix && npm run format"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -45,12 +49,14 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^5.5.4",
     "jest": "^30.2.0",
+    "mongodb-memory-server": "^11.0.1",
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "supertest": "^7.1.4"

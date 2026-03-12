@@ -3,10 +3,14 @@
 
 import mongoose from 'mongoose';
 import Sale from '../../models/Sale.js';
-import Product from '../../models/Product.js';
+// import Product from '../../models/Product.js';
 import Customer from '../../models/Customer.js';
-import Payment from '../../models/Payment.js';
-import InventoryTransaction from '../../models/InventoryTransaction.js';
+// import InventoryTransaction from '../../models/InventoryTransaction.js';
+
+import {
+  decreaseStock,
+  returnStock,
+} from '../inventory/inventory.service.js';
 import JewelryShop from '../../models/Shop.js';
 import {
   createDebitEntry,
@@ -37,17 +41,6 @@ export const createSale = async (shopId, saleData, userId, organizationId, ipAdd
 
     const invoiceNumber = await Sale.generateInvoiceNumber(shopId, shop.settings.invoicePrefix);
 
-    for (const item of saleData.items) {
-      if (item.productId) {
-        const product = await Product.findById(item.productId).session(session);
-        if (!product) throw new NotFoundError(`Product ${item.productCode} not found`);
-        if (product.stock.quantity < item.quantity) {
-          throw new InsufficientStockError(
-            `Insufficient stock for ${product.name}. Available: ${product.stock.quantity}`
-          );
-        }
-      }
-    }
 
     const sale = await Sale.create(
       [
@@ -75,49 +68,22 @@ export const createSale = async (shopId, saleData, userId, organizationId, ipAdd
 
     for (const item of saleData.items) {
       if (item.productId) {
-        const product = await Product.findById(item.productId).session(session);
-        const previousQty = product.stock.quantity;
-        await product.updateStock(item.quantity, 'subtract');
-
-        if (product.stock.quantity === 0) {
-          await product.markAsSold(customer._id);
-        }
-
-        await InventoryTransaction.create(
-          [
-            {
-              organizationId,
-              shopId,
-              productId: item.productId,
-              productCode: item.productCode,
-              transactionType: 'SALE',
-              quantity: item.quantity,
-              previousQuantity: previousQty,
-              newQuantity: product.stock.quantity,
-              transactionDate: new Date(),
-              referenceType: 'sale',
-              referenceId: sale[0]._id,
-              referenceNumber: invoiceNumber,
-              value: item.itemTotal,
-              performedBy: userId,
-              reason: `Product sold via invoice ${invoiceNumber}`,
-            },
-          ],
-          { session }
-        );
+    await decreaseStock({
+  organizationId,
+  shopId,
+  productId: item.productId,
+  quantity: item.quantity,
+  referenceId: sale[0]._id,
+  referenceNumber: invoiceNumber,
+  value: item.itemTotal,
+  performedBy: userId,
+  customerId: customer._id,
+  session,
+});
       }
     }
 
-    customer.statistics.totalOrders += 1;
-    customer.statistics.completedOrders += 1;
-    customer.statistics.totalSpent += sale[0].financials.grandTotal;
-    customer.statistics.lastOrderDate = new Date();
-    customer.statistics.averageOrderValue =
-      customer.statistics.totalSpent / customer.statistics.completedOrders;
-
-    if (!customer.statistics.firstOrderDate) {
-      customer.statistics.firstOrderDate = new Date();
-    }
+await Customer.recordPurchase(customer._id, sale[0].financials.grandTotal, session);
 
     // if (sale[0].payment.paymentStatus !== 'paid') {
     //   customer.currentBalance -= sale[0].payment.dueAmount;
@@ -297,34 +263,21 @@ export const deleteSale = async (shopId, saleId, reason, userId, organizationId)
 
     for (const item of sale.items) {
       if (item.productId) {
-        const product = await Product.findById(item.productId).session(session);
-        if (product) {
-          const previousQty = product.stock.quantity;
-          await product.updateStock(item.quantity, 'add');
 
-          await InventoryTransaction.create(
-            [
-              {
-                organizationId,
-                shopId,
-                productId: item.productId,
-                productCode: item.productCode,
-                transactionType: 'ADJUSTMENT',
-                quantity: item.quantity,
-                previousQuantity: previousQty,
-                newQuantity: product.stock.quantity,
-                referenceType: 'sale',
-                referenceId: sale._id,
-                referenceNumber: sale.invoiceNumber,
-                performedBy: userId,
-                reason: `Sale ${sale.invoiceNumber} cancelled - stock restored`,
-              },
-            ],
-            { session }
-          );
+
+await returnStock({
+  organizationId,
+  shopId,
+  productId: item.productId,
+  quantity: item.quantity,
+  referenceId: sale._id,
+  referenceNumber: sale.invoiceNumber,
+  performedBy: userId,
+  session,
+});
         }
       }
-    }
+    
 
     await sale.softDelete();
 
@@ -402,12 +355,19 @@ export const cancelSale = async (shopId, saleId, reason, refundAmount, userId) =
 
     for (const item of sale.items) {
       if (item.productId) {
-        const product = await Product.findById(item.productId).session(session);
-        if (product) {
-          await product.updateStock(item.quantity, 'add');
+          await returnStock({
+  organizationId: sale.organizationId,
+  shopId,
+  productId: item.productId,
+  quantity: item.quantity,
+  referenceId: sale._id,
+  referenceNumber: sale.invoiceNumber,
+  performedBy: userId,
+  session,
+});
         }
       }
-    }
+
 
     await sale.cancel();
     sale.cancellation = {
@@ -492,34 +452,19 @@ export const returnSale = async (shopId, saleId, returnData, userId) => {
       );
 
       if (saleItem && saleItem.productId) {
-        const product = await Product.findById(saleItem.productId).session(session);
-        if (product) {
-          await product.updateStock(returnItem.quantity || saleItem.quantity, 'add');
-
-          await InventoryTransaction.create(
-            [
-              {
-                organizationId: sale.organizationId,
-                shopId,
-                productId: saleItem.productId,
-                productCode: saleItem.productCode,
-                transactionType: 'RETURN',
-                quantity: returnItem.quantity || saleItem.quantity,
-                previousQuantity:
-                  product.stock.quantity - (returnItem.quantity || saleItem.quantity),
-                newQuantity: product.stock.quantity,
-                referenceType: 'sale',
-                referenceId: sale._id,
-                referenceNumber: sale.invoiceNumber,
-                performedBy: userId,
-                reason: `Product returned from sale ${sale.invoiceNumber}`,
-              },
-            ],
-            { session }
-          );
+await returnStock({
+  organizationId: sale.organizationId,
+  shopId,
+  productId: saleItem.productId,
+  quantity: returnItem.quantity || saleItem.quantity,
+  referenceId: sale._id,
+  referenceNumber: sale.invoiceNumber,
+  performedBy: userId,
+  session,
+});
         }
       }
-    }
+    
 
     await sale.processReturn({
       returnDate: returnData.returnDate || new Date(),
@@ -528,7 +473,6 @@ export const returnSale = async (shopId, saleId, returnData, userId) => {
       returnedBy: userId,
     });
 
-    const customer = await Customer.findById(sale.customerId).session(session);
     if (returnData.refundAmount > 0) {
   await createCreditEntry({
     organizationId: sale.organizationId,
@@ -977,12 +921,19 @@ export const bulkDeleteSales = async (shopId, saleIds, reason, userId) => {
         // Restore inventory
         for (const item of sale.items) {
           if (item.productId) {
-            const product = await Product.findById(item.productId).session(session);
-            if (product) {
-              await product.updateStock(item.quantity, 'add');
+             await returnStock({
+  organizationId: sale.organizationId,
+  shopId,
+  productId: item.productId,
+  quantity: item.quantity,
+  referenceId: sale._id,
+  referenceNumber: sale.invoiceNumber,
+  performedBy: userId,
+  session,
+});
             }
           }
-        }
+        
 
         await sale.softDelete();
         deletedCount++;

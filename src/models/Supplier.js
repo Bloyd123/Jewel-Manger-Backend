@@ -371,11 +371,6 @@ supplierSchema.methods.restore = function () {
   return this.save();
 };
 
-supplierSchema.methods.updateBalance = function (amount) {
-  this.currentBalance += amount;
-  this.totalDue = this.currentBalance < 0 ? Math.abs(this.currentBalance) : 0;
-  return this.save();
-};
 
 supplierSchema.methods.blacklist = function (reason) {
   this.isBlacklisted = true;

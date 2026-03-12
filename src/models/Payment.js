@@ -242,7 +242,11 @@ const paymentSchema = new mongoose.Schema(
       receiptSentAt: Date,
       receiptSentTo: String, // email or phone
     },
-
+    idempotencyKey: {
+      type: String,
+      sparse: true,
+      index: true,
+    },
     // Notes
     notes: {
       type: String,
@@ -462,19 +466,13 @@ paymentSchema.methods.reject = function (userId, reason) {
 paymentSchema.statics.generatePaymentNumber = async function (shopId, prefix = 'PAY') {
   const currentYear = new Date().getFullYear().toString().slice(-2);
 
-  let number = 1;
-  const lastPayment = await this.findOne({ shopId })
-    .sort({ paymentNumber: -1 })
-    .select('paymentNumber');
+  const counter = await mongoose.model('Counter').findOneAndUpdate(
+    { name: `payment_${shopId}` },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
 
-  if (lastPayment && lastPayment.paymentNumber) {
-    const lastNumber = parseInt(lastPayment.paymentNumber.split('-').pop());
-    if (!isNaN(lastNumber)) {
-      number = lastNumber + 1;
-    }
-  }
-
-  return `${prefix}-${currentYear}-${String(number).padStart(6, '0')}`;
+  return `${prefix}-${currentYear}-${String(counter.seq).padStart(6, '0')}`;
 };
 
 paymentSchema.statics.findByShop = function (shopId, options = {}) {

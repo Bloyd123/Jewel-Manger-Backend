@@ -42,7 +42,7 @@ const loadExpressApp = app => {
         'http://localhost:3000',
         'http://localhost:3001',
         'http://192.168.1.36:3000',
-        'http://192.168.1.37:3000',
+        'http://192.168.1.43:3000',
       ];
 
       if (!origin || allowedOrigins.includes(origin)) {

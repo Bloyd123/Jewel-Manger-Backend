@@ -36,12 +36,12 @@ const customerSchema = new mongoose.Schema(
       trim: true,
     },
     email: {
-      type: String,
-      lowercase: true,
-      trim: true,
-      sparse: true,
-      match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Invalid email'],
-    },
+  type: String,
+  lowercase: true,
+  trim: true,
+  sparse: true,
+  match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Invalid email'],
+},
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
@@ -367,6 +367,23 @@ customerSchema.statics.findVIPCustomers = function (shopId) {
 
 customerSchema.statics.findByMembershipTier = function (shopId, tier) {
   return this.find({ shopId, membershipTier: tier, deletedAt: null, isActive: true });
+};
+customerSchema.statics.recordPurchase = async function (customerId, amount, session) {
+  const customer = await this.findById(customerId).session(session);
+  if (!customer) return;
+
+  customer.statistics.totalOrders += 1;
+  customer.statistics.completedOrders += 1;
+  customer.statistics.totalSpent += amount;
+  customer.statistics.lastOrderDate = new Date();
+  customer.statistics.averageOrderValue =
+    customer.statistics.totalSpent / customer.statistics.completedOrders;
+
+  if (!customer.statistics.firstOrderDate) {
+    customer.statistics.firstOrderDate = new Date();
+  }
+
+  await customer.save({ session });
 };
 
 customerSchema.statics.findTopCustomers = function (shopId, limit = 10) {

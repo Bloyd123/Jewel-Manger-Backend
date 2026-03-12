@@ -108,7 +108,7 @@ activityLogSchema.index({ level: 1, createdAt: -1 });
 activityLogSchema.index({ status: 1, createdAt: -1 });
 
 // TTL index to auto-delete old logs (optional - adjust as needed)
-// Uncomment to auto-delete logs older than 90 days
+// Uncomment to auto-delete  logs older than 90 days
 // activityLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7776000 }); // 90 days
 
 // VIRTUALS

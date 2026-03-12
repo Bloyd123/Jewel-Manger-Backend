@@ -568,22 +568,15 @@ purchaseSchema.methods.cancel = function () {
 
 // Static Methods
 purchaseSchema.statics.generatePurchaseNumber = async function (shopId, prefix = 'PUR') {
-  const _shop = await mongoose.model('JewelryShop').findById(shopId);
   const currentYear = new Date().getFullYear().toString().slice(-2);
 
-  let number = 1;
-  const lastPurchase = await this.findOne({ shopId })
-    .sort({ purchaseNumber: -1 })
-    .select('purchaseNumber');
+  const counter = await mongoose.model('Counter').findOneAndUpdate(
+    { name: `purchase_${shopId}` },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
 
-  if (lastPurchase && lastPurchase.purchaseNumber) {
-    const lastNumber = parseInt(lastPurchase.purchaseNumber.split('-').pop());
-    if (!isNaN(lastNumber)) {
-      number = lastNumber + 1;
-    }
-  }
-
-  return `${prefix}-${currentYear}-${String(number).padStart(5, '0')}`;
+  return `${prefix}-${currentYear}-${String(counter.seq).padStart(5, '0')}`;
 };
 
 purchaseSchema.statics.findByShop = function (shopId, options = {}) {
@@ -620,6 +613,45 @@ purchaseSchema.statics.findUnpaid = function (shopId) {
     'payment.paymentStatus': { $in: ['unpaid', 'partial'] },
     status: { $ne: 'cancelled' },
     deletedAt: null,
+  });
+};
+purchaseSchema.statics.applyPayment = async function (purchaseId, amount) {
+  const purchase = await this.findById(purchaseId);
+  if (!purchase) return;
+
+  const paidAmount = purchase.payment.paidAmount + amount;
+  const dueAmount = purchase.payment.totalAmount - paidAmount;
+  let paymentStatus = 'partial';
+
+  if (paidAmount >= purchase.payment.totalAmount) {
+    paymentStatus = 'paid';
+  } else if (paidAmount <= 0) {
+    paymentStatus = 'unpaid';
+  }
+
+  await this.findByIdAndUpdate(purchaseId, {
+    $set: {
+      'payment.paidAmount': paidAmount,
+      'payment.dueAmount': Math.max(0, dueAmount),
+      'payment.paymentStatus': paymentStatus,
+    },
+  });
+};
+
+purchaseSchema.statics.reversePayment = async function (purchaseId, amount) {
+  const purchase = await this.findById(purchaseId);
+  if (!purchase) return;
+
+  const paidAmount = Math.max(0, purchase.payment.paidAmount - amount);
+  const dueAmount = purchase.payment.totalAmount - paidAmount;
+  const paymentStatus = paidAmount <= 0 ? 'unpaid' : 'partial';
+
+  await this.findByIdAndUpdate(purchaseId, {
+    $set: {
+      'payment.paidAmount': paidAmount,
+      'payment.dueAmount': dueAmount,
+      'payment.paymentStatus': paymentStatus,
+    },
   });
 };
 

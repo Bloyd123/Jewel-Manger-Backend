@@ -683,19 +683,13 @@ saleSchema.methods.processReturn = function (returnData) {
 saleSchema.statics.generateInvoiceNumber = async function (shopId, prefix = 'INV') {
   const currentYear = new Date().getFullYear().toString().slice(-2);
 
-  let number = 1;
-  const lastSale = await this.findOne({ shopId })
-    .sort({ invoiceNumber: -1 })
-    .select('invoiceNumber');
+  const counter = await mongoose.model('Counter').findOneAndUpdate(
+    { name: `invoice_${shopId}` },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
 
-  if (lastSale && lastSale.invoiceNumber) {
-    const lastNumber = parseInt(lastSale.invoiceNumber.split('-').pop());
-    if (!isNaN(lastNumber)) {
-      number = lastNumber + 1;
-    }
-  }
-
-  return `${prefix}-${currentYear}-${String(number).padStart(5, '0')}`;
+  return `${prefix}-${currentYear}-${String(counter.seq).padStart(5, '0')}`;
 };
 
 saleSchema.statics.findByShop = function (shopId, options = {}) {
@@ -705,7 +699,45 @@ saleSchema.statics.findByShop = function (shopId, options = {}) {
 saleSchema.statics.findByCustomer = function (customerId, options = {}) {
   return this.find({ customerId, deletedAt: null, ...options });
 };
+saleSchema.statics.applyPayment = async function (saleId, amount) {
+  const sale = await this.findById(saleId);
+  if (!sale) return;
 
+  const paidAmount = sale.payment.paidAmount + amount;
+  const dueAmount = sale.payment.totalAmount - paidAmount;
+  let paymentStatus = 'partial';
+
+  if (paidAmount >= sale.payment.totalAmount) {
+    paymentStatus = 'paid';
+  } else if (paidAmount <= 0) {
+    paymentStatus = 'unpaid';
+  }
+
+  await this.findByIdAndUpdate(saleId, {
+    $set: {
+      'payment.paidAmount': paidAmount,
+      'payment.dueAmount': Math.max(0, dueAmount),
+      'payment.paymentStatus': paymentStatus,
+    },
+  });
+};
+
+saleSchema.statics.reversePayment = async function (saleId, amount) {
+  const sale = await this.findById(saleId);
+  if (!sale) return;
+
+  const paidAmount = Math.max(0, sale.payment.paidAmount - amount);
+  const dueAmount = sale.payment.totalAmount - paidAmount;
+  const paymentStatus = paidAmount <= 0 ? 'unpaid' : 'partial';
+
+  await this.findByIdAndUpdate(saleId, {
+    $set: {
+      'payment.paidAmount': paidAmount,
+      'payment.dueAmount': dueAmount,
+      'payment.paymentStatus': paymentStatus,
+    },
+  });
+};
 saleSchema.statics.findByStatus = function (shopId, status) {
   return this.find({ shopId, status, deletedAt: null });
 };
