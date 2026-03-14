@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Auth API Flow — Hook → Slice → Service</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 24px; color: #1a1a1a; }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .subtitle { font-size: 13px; color: #666; margin-bottom: 20px; }
+
+    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+    .api-btn {
+      padding: 6px 14px; border-radius: 6px;
+      border: 1px solid #ddd; background: #fff;
+      color: #333; font-size: 12px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .api-btn:hover { background: #f0f0f0; }
+    .api-btn.active { background: #e8f0fe; border-color: #4285f4; color: #1a56db; font-weight: 500; }
+
+    .flow-card { background: #fff; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; }
+
+    /* Column headers */
+    .col-headers { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; background: #fafafa; border-bottom: 1px solid #e0e0e0; }
+    .col-header { padding: 10px 16px; font-size: 12px; font-weight: 600; color: #555; text-align: center; }
+
+    /* Forward flow */
+    .forward-flow { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; align-items: center; padding: 16px; gap: 0; border-bottom: 1px solid #f0f0f0; }
+    .flow-box { border-radius: 8px; padding: 10px 12px; text-align: center; position: relative; }
+    .flow-box .title { font-size: 13px; font-weight: 600; }
+    .flow-box .sub { font-size: 11px; margin-top: 3px; opacity: 0.8; }
+    .arrow { text-align: center; font-size: 18px; color: #999; }
+
+    .box-component { background: #f1f1f1; color: #444; }
+    .box-hook      { background: #e1f5ee; color: #0f6e56; }
+    .box-slice     { background: #eeedfe; color: #3c3489; }
+    .box-service   { background: #faece7; color: #712b13; }
+
+    /* States row */
+    .states-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 16px; border-bottom: 1px solid #f0f0f0; }
+    .state-box { border-radius: 8px; padding: 10px 14px; }
+    .state-box .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .state-box .value { font-size: 12px; }
+    .state-box .value2 { font-size: 11px; margin-top: 2px; opacity: 0.75; }
+
+    .state-pending  { background: #faeeda; color: #633806; }
+    .state-fulfilled { background: #eaf3de; color: #27500a; }
+    .state-rejected  { background: #fcebeb; color: #791f1f; }
+
+    /* Return flow */
+    .return-flow { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; align-items: center; padding: 16px; gap: 0; }
+    .return-label { font-size: 12px; color: #888; text-align: center; padding: 8px 16px; background: #fafafa; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0; }
+
+    /* Legend */
+    .legend { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<h1>Auth API Flow</h1>
+<p class="subtitle">API chunno — Hook → Slice → Service ka poora flow dikhega</p>
+
+<div class="btn-group">
+  <button class="api-btn active" onclick="showFlow('login', this)">login</button>
+  <button class="api-btn" onclick="showFlow('register', this)">register</button>
+  <button class="api-btn" onclick="showFlow('logout', this)">logout</button>
+  <button class="api-btn" onclick="showFlow('logoutAll', this)">logout all</button>
+  <button class="api-btn" onclick="showFlow('refreshToken', this)">refresh token</button>
+  <button class="api-btn" onclick="showFlow('forgotPassword', this)">forgot password</button>
+  <button class="api-btn" onclick="showFlow('resetPassword', this)">reset password</button>
+  <button class="api-btn" onclick="showFlow('verifyEmail', this)">verify email</button>
+  <button class="api-btn" onclick="showFlow('resendVerification', this)">resend verification</button>
+  <button class="api-btn" onclick="showFlow('getUser', this)">get user (/me)</button>
+  <button class="api-btn" onclick="showFlow('updateProfile', this)">update profile</button>
+  <button class="api-btn" onclick="showFlow('changePassword', this)">change password</button>
+  <button class="api-btn" onclick="showFlow('sessions', this)">sessions</button>
+  <button class="api-btn" onclick="showFlow('revokeSession', this)">revoke session</button>
+  <button class="api-btn" onclick="showFlow('enable2FA', this)">enable 2FA</button>
+  <button class="api-btn" onclick="showFlow('verify2FA', this)">verify 2FA</button>
+  <button class="api-btn" onclick="showFlow('disable2FA', this)">disable 2FA</button>
+  <button class="api-btn" onclick="showFlow('login2FA', this)">login 2FA</button>
+  <button class="api-btn" onclick="showFlow('backupCode', this)">backup code</button>
+</div>
+
+<div class="flow-card">
+  <div class="col-headers">
+    <div class="col-header">Component</div>
+    <div class="col-header">Hook</div>
+    <div class="col-header">Slice / Dispatch</div>
+    <div class="col-header">Service → API</div>
+  </div>
+
+  <!-- Forward flow -->
+  <div class="forward-flow">
+    <div class="flow-box box-component">
+      <div class="title" id="txt-component">LoginPage</div>
+      <div class="sub" id="txt-component2">user clicks</div>
+    </div>
+    <div class="flow-box box-hook">
+      <div class="title" id="txt-hook">useAuth.login()</div>
+      <div class="sub" id="txt-hook2">useAuthActions</div>
+    </div>
+    <div class="flow-box box-slice">
+      <div class="title" id="txt-slice">dispatch(login)</div>
+      <div class="sub" id="txt-slice2">createAsyncThunk</div>
+    </div>
+    <div class="flow-box box-service">
+      <div class="title" id="txt-service">authService.login()</div>
+      <div class="sub" id="txt-service2">POST /auth/login</div>
+    </div>
+  </div>
+
+  <!-- States -->
+  <div class="return-label">Response aata hai — teen states</div>
+  <div class="states-row">
+    <div class="state-box state-pending">
+      <div class="label">Pending</div>
+      <div class="value" id="txt-pending">isLoading: true</div>
+      <div class="value2" id="txt-pending2">spinner ON</div>
+    </div>
+    <div class="state-box state-fulfilled">
+      <div class="label">Fulfilled</div>
+      <div class="value" id="txt-fulfilled">isAuthenticated: true</div>
+      <div class="value2" id="txt-fulfilled2">tokens save, state update</div>
+    </div>
+    <div class="state-box state-rejected">
+      <div class="label">Rejected</div>
+      <div class="value" id="txt-error">isLoading: false</div>
+      <div class="value2" id="txt-error2">error message set</div>
+    </div>
+  </div>
+
+  <!-- Return flow -->
+  <div class="return-label">UI update — useSelector se component mein</div>
+  <div class="return-flow">
+    <div class="flow-box box-component">
+      <div class="title" id="txt-ui">UI update</div>
+      <div class="sub" id="txt-ui2">navigate to /</div>
+    </div>
+    <div class="flow-box box-hook">
+      <div class="title" id="txt-selector">useSelector</div>
+      <div class="sub" id="txt-selector2">hook se state lo</div>
+    </div>
+    <div class="flow-box box-slice">
+      <div class="title" id="txt-state">state update</div>
+      <div class="sub" id="txt-state2">isAuthenticated: true</div>
+    </div>
+    <div class="flow-box box-service">
+      <div class="title" id="txt-fulfilled-detail">user, tokens, shops</div>
+      <div class="sub" id="txt-fulfilled-detail2">response data</div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#e0e0e0"></div> Component</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#5dcaa5"></div> Hook</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7f77dd"></div> Slice</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d85a30"></div> Service</div>
+</div>
+
+<script>
+const flows = {
+  login: {
+    component: ['LoginPage', 'user clicks'],
+    hook: ['useAuth.login()', 'useAuthActions'],
+    slice: ['dispatch(login)', 'createAsyncThunk'],
+    service: ['authService.login()', 'POST /auth/login'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['isAuthenticated: true', 'tokens + user + shops'],
+    state: ['state update', 'setUserFromLogin'],
+    selector: ['useSelector', 'hook se state lo'],
+    ui: ['UI update', 'navigate to /dashboard'],
+    fulfilledDetail: ['user, tokens, shops', 'response data'],
+    error: ['isLoading: false', 'error message set'],
+  },
+  register: {
+    component: ['RegisterPage', 'form submit'],
+    hook: ['useAuth.register()', 'useAuthActions'],
+    slice: ['no slice', 'direct service call'],
+    service: ['authService.register()', 'POST /auth/register'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['user created', 'verify email message'],
+    state: ['no state change', 'user needs verification'],
+    selector: ['useSelector', 'success message'],
+    ui: ['UI update', 'verify email page'],
+    fulfilledDetail: ['user object', 'tokens returned'],
+    error: ['isLoading: false', 'duplicate email error'],
+  },
+  logout: {
+    component: ['Any Page', 'logout click'],
+    hook: ['useAuth.logout()', 'useAuthActions'],
+    slice: ['dispatch(logout)', 'getState → tokens'],
+    service: ['authService.logout()', 'POST /auth/logout'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['Object.assign', 'initialState reset'],
+    state: ['clearUserProfile', 'clearPermissions'],
+    selector: ['state cleared', 'all slices reset'],
+    ui: ['UI update', 'navigate to /login'],
+    fulfilledDetail: ['tokens revoked', 'blacklisted'],
+    error: ['state clear anyway', 'tokens cleared'],
+  },
+  logoutAll: {
+    component: ['SettingsPage', 'logout all click'],
+    hook: ['useAuth.logoutAll()', 'useAuthActions'],
+    slice: ['no slice', 'direct service'],
+    service: ['authService.logoutAllDevices()', 'POST /auth/logout-all'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['revokedCount returned', 'all tokens revoked'],
+    state: ['state reset', 'all slices cleared'],
+    selector: ['useSelector', 'success message'],
+    ui: ['UI update', 'navigate to /login'],
+    fulfilledDetail: ['revokedCount', 'N devices logged out'],
+    error: ['isLoading: false', 'server error'],
+  },
+  refreshToken: {
+    component: ['axios interceptor', '401 error mila'],
+    hook: ['useToken', 'checkTokenValidity'],
+    slice: ['dispatch(refreshAccessToken)', 'getState → refreshToken'],
+    service: ['authService.refreshToken()', 'POST /auth/refresh-token'],
+    pending: ['isRefreshing: true', 'background mein'],
+    fulfilled: ['new accessToken mila', 'tokenService.save'],
+    state: ['state update', 'new tokens'],
+    selector: ['retry original', 'request'],
+    ui: ['UI update', 'seamless — no reload'],
+    fulfilledDetail: ['accessToken', 'refreshToken new'],
+    error: ['isRefreshing: false', 'logout → /login'],
+  },
+  forgotPassword: {
+    component: ['ForgotPasswordPage', 'email submit'],
+    hook: ['useAuth.forgotPassword()', 'usePasswordActions'],
+    slice: ['no slice', 'direct service'],
+    service: ['authService.forgotPassword()', 'POST /auth/forgot-password'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['email sent (maybe)', 'security: same response'],
+    state: ['no state change', 'security reason'],
+    selector: ['useSelector', 'success message'],
+    ui: ['UI update', 'check email message'],
+    fulfilledDetail: ['success: true', 'always (security)'],
+    error: ['isLoading: false', 'rate limit error'],
+  },
+  resetPassword: {
+    component: ['ResetPasswordPage', 'token + new password'],
+    hook: ['useAuth.resetPassword()', 'usePasswordActions'],
+    slice: ['no slice', 'direct service'],
+    service: ['authService.resetPassword()', 'POST /auth/reset-password'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['password changed', 'all tokens revoked'],
+    state: ['no state change', 'user must re-login'],
+    selector: ['useSelector', 'success message'],
+    ui: ['UI update', 'navigate to /login'],
+    fulfilledDetail: ['success: true', 'tokens revoked'],
+    error: ['isLoading: false', 'token expired error'],
+  },
+  verifyEmail: {
+    component: ['VerifyEmailPage', 'token from URL'],
+    hook: ['direct service', 'no hook needed'],
+    slice: ['no slice', 'direct call'],
+    service: ['authService.verifyEmail()', 'POST /auth/verify-email'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['isEmailVerified: true', 'token deleted'],
+    state: ['no state change', 'user fetch again'],
+    selector: ['useSelector', 'verified message'],
+    ui: ['UI update', 'navigate to /login'],
+    fulfilledDetail: ['success: true', 'or alreadyVerified'],
+    error: ['isLoading: false', 'token expired error'],
+  },
+  resendVerification: {
+    component: ['VerifyEmailPage', 'resend click'],
+    hook: ['useAuth.resendVerification()', 'useAuthActions'],
+    slice: ['no slice', 'direct service'],
+    service: ['authService.resendVerificationEmail()', 'POST /auth/resend-verification'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['naya token generate', 'email bheja'],
+    state: ['no state change', 'email sent'],
+    selector: ['useSelector', 'success message'],
+    ui: ['UI update', 'check email message'],
+    fulfilledDetail: ['success: true', 'new token 24hr'],
+    error: ['isLoading: false', 'already verified'],
+  },
+  getUser: {
+    component: ['App.tsx', 'page reload'],
+    hook: ['useAuth.initialize()', 'useAuthActions'],
+    slice: ['dispatch(initializeAuth)', 'getState → tokens'],
+    service: ['authService.getCurrentUser()', 'GET /auth/me'],
+    pending: ['isInitializing: true', 'full page loader'],
+    fulfilled: ['user profile mila', 'setUserFromLogin'],
+    state: ['state update', 'hasPersistedPermissions check'],
+    selector: ['useSelector', 'user profile'],
+    ui: ['UI update', 'app ready'],
+    fulfilledDetail: ['user object', 'from /me endpoint'],
+    error: ['isInitializing: false', 'logout'],
+  },
+  updateProfile: {
+    component: ['ProfilePage', 'form submit'],
+    hook: ['useAuth.updateProfile()', 'useUserProfile'],
+    slice: ['dispatch(updateUserProfile)', 'userSlice thunk'],
+    service: ['authService.updateProfile()', 'PUT /auth/profile'],
+    pending: ['isUpdating: true', 'spinner ON'],
+    fulfilled: ['updated user mila', 'allowedUpdates filter'],
+    state: ['profile merge', 'userSlice update'],
+    selector: ['useSelector', 'new profile'],
+    ui: ['UI update', 'success toast'],
+    fulfilledDetail: ['updated user', 'filtered fields only'],
+    error: ['isUpdating: false', 'validation error'],
+  },
+  changePassword: {
+    component: ['SettingsPage', 'password form'],
+    hook: ['useAuth.changePassword()', 'usePasswordActions'],
+    slice: ['no slice', 'direct service'],
+    service: ['authService.changePassword()', 'POST /auth/change-password'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['password changed', 'all tokens revoked'],
+    state: ['no state change', 'user must re-login'],
+    selector: ['useSelector', 'success message'],
+    ui: ['UI update', 'navigate to /login'],
+    fulfilledDetail: ['success: true', 'revokeAll tokens'],
+    error: ['isLoading: false', 'wrong password error'],
+  },
+  sessions: {
+    component: ['SessionsPage', 'page load'],
+    hook: ['useAuth.getSessions()', 'useSession'],
+    slice: ['no slice', 'direct service'],
+    service: ['authService.getActiveSessions()', 'GET /auth/sessions'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['sessions list mila', 'isCurrent check'],
+    state: ['local state', 'component useState'],
+    selector: ['local useState', 'sessions list'],
+    ui: ['UI update', 'devices list dikhao'],
+    fulfilledDetail: ['sessions array', 'device, ip, lastUsed'],
+    error: ['isLoading: false', 'fetch error'],
+  },
+  revokeSession: {
+    component: ['SessionsPage', 'revoke click'],
+    hook: ['useAuth.revokeSession(tokenId)', 'useSession'],
+    slice: ['no slice', 'direct service'],
+    service: ['authService.revokeSession()', 'DELETE /auth/sessions/:id'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['session revoked', 'eventLogger called'],
+    state: ['local state update', 'session removed from list'],
+    selector: ['local useState', 'updated sessions'],
+    ui: ['UI update', 'device hatao list se'],
+    fulfilledDetail: ['success: true', 'tokenId revoked'],
+    error: ['isLoading: false', 'not found error'],
+  },
+  enable2FA: {
+    component: ['2FASetupPage', 'enable click'],
+    hook: ['useAuth.enable2FA()', 'use2FA'],
+    slice: ['no slice', 'direct service'],
+    service: ['authService.enable2FA()', 'POST /auth/2fa/enable'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['secret + QR code', 'twoFactorEnabled: FALSE'],
+    state: ['no state change', 'wait for verify'],
+    selector: ['local useState', 'QR code dikhao'],
+    ui: ['UI update', 'QR scan karo'],
+    fulfilledDetail: ['secret, qrCodeDataURL', 'scan in auth app'],
+    error: ['isLoading: false', 'server error'],
+  },
+  verify2FA: {
+    component: ['2FASetupPage', 'code submit'],
+    hook: ['useAuth.verify2FA(token)', 'use2FA'],
+    slice: ['no slice', 'direct service'],
+    service: ['authService.verify2FA()', 'POST /auth/2fa/verify'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['twoFactorEnabled: TRUE', '10 backup codes'],
+    state: ['no state change', 'backup codes dikhao'],
+    selector: ['local useState', 'backup codes'],
+    ui: ['UI update', 'backup codes copy karo!'],
+    fulfilledDetail: ['backupCodes array', 'sirf ek baar dikhega'],
+    error: ['isLoading: false', 'invalid code error'],
+  },
+  disable2FA: {
+    component: ['2FASetupPage', 'disable click'],
+    hook: ['useAuth.disable2FA()', 'use2FA'],
+    slice: ['no slice', 'direct service'],
+    service: ['authService.disable2FA()', 'POST /auth/2fa/disable'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['twoFactorEnabled: false', 'secret deleted'],
+    state: ['no state change', '2FA off'],
+    selector: ['local useState', 'success message'],
+    ui: ['UI update', '2FA disabled'],
+    fulfilledDetail: ['success: true', 'backupCodes deleted'],
+    error: ['isLoading: false', 'wrong password/code'],
+  },
+  login2FA: {
+    component: ['2FALoginPage', 'code submit'],
+    hook: ['useAuth.verify2FALogin()', 'use2FA'],
+    slice: ['dispatch(complete2FALogin)', 'authSlice thunk'],
+    service: ['authService.verify2FALogin()', 'POST /auth/login/2fa'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['isAuthenticated: true', 'requires2FA: false'],
+    state: ['state update', 'tempToken: null'],
+    selector: ['useSelector', 'isAuthenticated'],
+    ui: ['UI update', 'navigate to /dashboard'],
+    fulfilledDetail: ['user, tokens, shops', 'full login response'],
+    error: ['isLoading: false', 'invalid 2FA code (retry ok)'],
+  },
+  backupCode: {
+    component: ['2FALoginPage', 'backup code submit'],
+    hook: ['useAuth.verifyBackupCode()', 'use2FA'],
+    slice: ['dispatch(complete2FALogin)', 'isBackupCode: true'],
+    service: ['authService.verifyBackupCode()', 'POST /auth/login/backup-code'],
+    pending: ['isLoading: true', 'spinner ON'],
+    fulfilled: ['isAuthenticated: true', 'remainingBackupCodes'],
+    state: ['state update', 'requires2FA: false'],
+    selector: ['useSelector', 'isAuthenticated'],
+    ui: ['UI update', 'navigate to /dashboard'],
+    fulfilledDetail: ['user, tokens', 'remainingBackupCodes: N'],
+    error: ['isLoading: false', 'already used / invalid'],
+  },
+}
+
+function showFlow(key, btn) {
+  const f = flows[key]
+  document.querySelectorAll('.api-btn').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+
+  set('txt-component', f.component[0]); set('txt-component2', f.component[1])
+  set('txt-hook', f.hook[0]); set('txt-hook2', f.hook[1])
+  set('txt-slice', f.slice[0]); set('txt-slice2', f.slice[1])
+  set('txt-service', f.service[0]); set('txt-service2', f.service[1])
+  set('txt-pending', f.pending[0]); set('txt-pending2', f.pending[1])
+  set('txt-fulfilled', f.fulfilled[0]); set('txt-fulfilled2', f.fulfilled[1])
+  set('txt-state', f.state[0]); set('txt-state2', f.state[1])
+  set('txt-selector', f.selector[0]); set('txt-selector2', f.selector[1])
+  set('txt-ui', f.ui[0]); set('txt-ui2', f.ui[1])
+  set('txt-fulfilled-detail', f.fulfilledDetail[0]); set('txt-fulfilled-detail2', f.fulfilledDetail[1])
+  set('txt-error', f.error[0]); set('txt-error2', f.error[1])
+}
+
+function set(id, val) {
+  const el = document.getElementById(id)
+  if (el) el.textContent = val
+}
+</script>
+</body>
+</html>

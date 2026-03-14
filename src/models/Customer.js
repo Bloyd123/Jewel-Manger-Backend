@@ -373,11 +373,13 @@ customerSchema.statics.recordPurchase = async function (customerId, amount, sess
   if (!customer) return;
 
   customer.statistics.totalOrders += 1;
-  customer.statistics.completedOrders += 1;
+  // if (sale.status === 'completed') {
+  //   customer.statistics.completedOrders += 1;
+  // }
   customer.statistics.totalSpent += amount;
   customer.statistics.lastOrderDate = new Date();
-  customer.statistics.averageOrderValue =
-    customer.statistics.totalSpent / customer.statistics.completedOrders;
+  // customer.statistics.averageOrderValue =
+  //   customer.statistics.totalSpent / customer.statistics.completedOrders;
 
   if (!customer.statistics.firstOrderDate) {
     customer.statistics.firstOrderDate = new Date();

@@ -10,6 +10,7 @@ import Customer from '../../models/Customer.js';
 import {
   decreaseStock,
   returnStock,
+  LedgerEntry
 } from '../inventory/inventory.service.js';
 import JewelryShop from '../../models/Shop.js';
 import {
@@ -261,22 +262,22 @@ export const deleteSale = async (shopId, saleId, reason, userId, organizationId)
       throw new BadRequestError('Can only delete draft sales');
     }
 
-    for (const item of sale.items) {
-      if (item.productId) {
+//     for (const item of sale.items) {
+//   if (item.productId && sale.status === 'confirmed') {
 
 
-await returnStock({
-  organizationId,
-  shopId,
-  productId: item.productId,
-  quantity: item.quantity,
-  referenceId: sale._id,
-  referenceNumber: sale.invoiceNumber,
-  performedBy: userId,
-  session,
-});
-        }
-      }
+// await returnStock({
+//   organizationId,
+//   shopId,
+//   productId: item.productId,
+//   quantity: item.quantity,
+//   referenceId: sale._id,
+//   referenceNumber: sale.invoiceNumber,
+//   performedBy: userId,
+//   session,
+// });
+//         }
+//       }
     
 
     await sale.softDelete();
@@ -287,7 +288,8 @@ await returnStock({
       shopId,
       'delete',
       sale._id,
-      `Cancelled sale ${sale.invoiceNumber}`,
+      // `Cancelled sale ${sale.invoiceNumber}`,
+      `Deleted draft sale ${sale.invoiceNumber}`,
       { saleId: sale._id, reason }
     );
 
@@ -324,10 +326,12 @@ export const deliverSale = async (shopId, saleId, deliveryData, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
   if (!sale) throw new NotFoundError('Sale not found');
 
-  await sale.markAsDelivered(userId);
+    sale.status = 'delivered';
+  sale.delivery.deliveredAt = new Date();
+  sale.delivery.deliveredBy = userId;
   Object.assign(sale.delivery, deliveryData);
-  await sale.save();
-
+  sale.updatedBy = userId;
+  await sale.save(); 
   cache.invalidateShop(shopId);
   return sale;
 };
@@ -336,7 +340,27 @@ export const completeSale = async (shopId, saleId, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
   if (!sale) throw new NotFoundError('Sale not found');
 
-  await sale.markAsCompleted();
+  // ✅ Customer statistics update karo
+  const customer = await Customer.findById(sale.customerId);
+  
+  await Customer.findByIdAndUpdate(
+    sale.customerId,
+    {
+      $inc: {
+        'statistics.completedOrders': +1, // ✅ ab yahan badhao
+      },
+      $set: {
+        'statistics.averageOrderValue': 
+          customer.statistics.totalSpent / (customer.statistics.completedOrders + 1), // ✅ sahi average
+      }
+    }
+  );
+
+  // ✅ markAsCompleted ki jagah seedha set karo — ek hi save
+  sale.status = 'completed';
+  sale.updatedBy = userId;
+  await sale.save();
+
   cache.invalidateShop(shopId);
   return sale;
 };
@@ -352,7 +376,7 @@ export const cancelSale = async (shopId, saleId, reason, refundAmount, userId) =
     if (sale.status === 'cancelled') {
       throw new BadRequestError('Sale is already cancelled');
     }
-
+  // 1. Stock wapas karo
     for (const item of sale.items) {
       if (item.productId) {
           await returnStock({
@@ -367,9 +391,36 @@ export const cancelSale = async (shopId, saleId, reason, refundAmount, userId) =
 });
         }
       }
+       // 2. Ledger entry reverse karo
+const ledgerEntry = await LedgerEntry.findOne({
+  referenceId: sale._id,
+  referenceType: 'sale',
+  status: 'active',
+}).session(session); // ✅
 
+if (ledgerEntry) {
+  await reverseEntry({
+    entryId: ledgerEntry._id,
+    createdBy: userId,
+    description: `Sale cancelled - ${sale.invoiceNumber}`,
+    session, // ✅
+  });
+}
+// Statistics update karo - order track
+await Customer.findByIdAndUpdate(
+  sale.customerId,
+  {
+    $inc: {
+      'statistics.cancelledOrders': +1, // ← cancel count badha
+      'statistics.completedOrders': -1, // ← completed count ghatao
+      'statistics.totalSpent': -sale.financials.grandTotal,
+    }
+  },
+  { session }
+);
 
-    await sale.cancel();
+    // await sale.cancel();
+    sale.status = 'cancelled';
     sale.cancellation = {
       isCancelled: true,
       cancelledAt: new Date(),
@@ -395,12 +446,41 @@ export const cancelSale = async (shopId, saleId, reason, refundAmount, userId) =
 // 11-13. PAYMENT MANAGEMENT
 
 export const addPayment = async (shopId, saleId, paymentData, userId) => {
-  const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
-  if (!sale) throw new NotFoundError('Sale not found');
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
+  try {
+    const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null }).session(session);;
+    if (!sale) throw new NotFoundError('Sale not found');
 
-  await sale.addPayment({ ...paymentData, receivedBy: userId });
-  cache.invalidateShop(shopId);
-  return sale;
+    await sale.addPayment({ ...paymentData, receivedBy: userId });
+
+    await createCreditEntry({
+      organizationId: sale.organizationId,
+      shopId,
+      partyType: 'customer',
+      partyId: sale.customerId,
+      partyModel: 'Customer',
+      partyName: sale.customerDetails.customerName,
+      amount: paymentData.amount,
+      referenceType: 'payment',
+      referenceId: sale._id,
+      referenceNumber: sale.invoiceNumber,
+      description: `Payment received - ${sale.invoiceNumber}`,
+      createdBy: userId,
+      session,
+    });
+
+    await session.commitTransaction();
+    cache.invalidateShop(shopId);
+    return sale;
+
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
 
 export const getSalePayments = async (shopId, saleId) => {
@@ -730,14 +810,31 @@ export const getCustomerSales = async (shopId, customerId, filters) => {
 };
 
 export const getCustomerSalesSummary = async (shopId, customerId) => {
-  const sales = await Sale.find({ shopId, customerId, deletedAt: null });
+const result = await Sale.aggregate([
+  { 
+    $match: { 
+      shopId: new mongoose.Types.ObjectId(shopId), 
+      customerId: new mongoose.Types.ObjectId(customerId),
+      deletedAt: null 
+    } 
+  },
+  { 
+    $group: {
+      _id: null,
+      totalSales: { $sum: 1 },
+      totalAmount: { $sum: '$financials.grandTotal' },
+      totalDue: { $sum: '$payment.dueAmount' },
+      lastPurchase: { $max: '$saleDate' }, // ← latest date
+    }
+  }
+]);
 
-  return {
-    totalSales: sales.length,
-    totalAmount: sales.reduce((sum, s) => sum + s.financials.grandTotal, 0),
-    totalDue: sales.reduce((sum, s) => sum + s.payment.dueAmount, 0),
-    lastPurchase: sales[0]?.saleDate || null,
-  };
+return result[0] || {
+  totalSales: 0,
+  totalAmount: 0,
+  totalDue: 0,
+  lastPurchase: null,
+};
 };
 
 export const getSalesPersonSales = async (shopId, userId, filters) => {
