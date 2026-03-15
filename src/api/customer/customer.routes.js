@@ -51,8 +51,8 @@ router.use(authenticate);
 router.get(
   '/analytics',
   shopIdValidation,
-  checkShopAccess,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
  checkPermission(PERMISSIONS.VIEW_CUSTOMER_ANALYTICS), 
   rateLimiter({ max: 30, windowMs: 60000 }),
   getCustomerAnalytics
