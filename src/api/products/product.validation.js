@@ -17,10 +17,8 @@ const isPositiveNumber = value => {
   return true;
 };
 
-// CREATE PRODUCT VALIDATION
 
 export const createProductValidation = [
-  // Basic fields
   body('name')
     .trim()
     .notEmpty()
@@ -373,8 +371,18 @@ export const calculatePriceValidation = [
   param('id').custom(isValidObjectId),
 
   body('useCurrentRate').optional().isBoolean().withMessage('useCurrentRate must be boolean'),
-
-  body('customRate').optional().isFloat({ min: 0 }).withMessage('Custom rate must be positive'),
+body('customRate')
+  .optional()
+  .isFloat({ min: 0 }),
+body('customRates.gold')
+  .optional()
+  .isFloat({ min: 0 }),
+body('customRates.silver')
+  .optional()
+  .isFloat({ min: 0 }),
+body('customRates.platinum')
+  .optional()
+  .isFloat({ min: 0 }),
 ];
 
 // SEARCH PRODUCTS VALIDATION

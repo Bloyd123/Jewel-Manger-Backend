@@ -9,11 +9,9 @@ import {
 } from '../../utils/sendResponse.js';
 import catchAsync from '../../utils/catchAsync.js';
 import { ValidationError } from '../../utils/AppError.js';
-
-// CREATE PRODUCT
+import Product from '../../models/Product.js';
 
 export const createProduct = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -28,10 +26,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
   return sendCreated(res, 'Product created successfully', product);
 });
 
-// GET ALL PRODUCTS
-
 export const getProducts = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -57,10 +52,8 @@ export const getProducts = catchAsync(async (req, res, next) => {
   );
 });
 
-// GET SINGLE PRODUCT
 
 export const getProductById = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -75,10 +68,8 @@ export const getProductById = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, 'Product retrieved successfully', product);
 });
 
-// UPDATE PRODUCT
 
 export const updateProduct = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -100,10 +91,7 @@ export const updateProduct = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, 'Product updated successfully', product);
 });
 
-// DELETE PRODUCT
-
 export const deleteProduct = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -119,10 +107,8 @@ export const deleteProduct = catchAsync(async (req, res, next) => {
   return sendNoContent(res);
 });
 
-// UPDATE STOCK
 
 export const updateStock = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -138,10 +124,8 @@ export const updateStock = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, 'Stock updated successfully', result);
 });
 
-// RESERVE PRODUCT
 
 export const reserveProduct = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -163,7 +147,6 @@ export const reserveProduct = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, 'Product reserved successfully', result);
 });
 
-// CANCEL RESERVATION
 
 export const cancelReservation = catchAsync(async (req, res, next) => {
   const { id } = req.params;
@@ -176,10 +159,8 @@ export const cancelReservation = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, 'Reservation cancelled successfully', result);
 });
 
-// MARK AS SOLD
 
 export const markAsSold = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -195,10 +176,8 @@ export const markAsSold = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, 'Product marked as sold successfully', result);
 });
 
-// CALCULATE/RECALCULATE PRICE
 
 export const calculatePrice = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -220,10 +199,8 @@ export const calculatePrice = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, 'Price recalculated successfully', result);
 });
 
-// GET LOW STOCK PRODUCTS
 
 export const getLowStock = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -240,10 +217,8 @@ export const getLowStock = catchAsync(async (req, res, next) => {
   });
 });
 
-// SEARCH PRODUCTS (QUICK SEARCH FOR POS)
 
 export const searchProducts = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -263,7 +238,6 @@ export const searchProducts = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, 'Search results', products);
 });
 
-// GET PRODUCT HISTORY
 
 export const getProductHistory = catchAsync(async (req, res, next) => {
   const { id } = req.params;
@@ -276,10 +250,8 @@ export const getProductHistory = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, 'Product history retrieved successfully', result);
 });
 
-// BULK DELETE PRODUCTS
 
 export const bulkDeleteProducts = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -300,10 +272,8 @@ export const bulkDeleteProducts = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, `${result.deletedCount} products deleted successfully`, result);
 });
 
-// BULK UPDATE STATUS
 
 export const bulkUpdateStatus = catchAsync(async (req, res, next) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return sendValidationError(res, errors.array());
@@ -325,14 +295,11 @@ export const bulkUpdateStatus = catchAsync(async (req, res, next) => {
   return sendSuccess(res, 200, `${result.modifiedCount} products updated successfully`, result);
 });
 
-// GET PRODUCT ANALYTICS (OPTIONAL)
 
 export const getProductAnalytics = catchAsync(async (req, res, next) => {
   const shopId = req.params.shopId || req.query.shopId;
   const organizationId = req.user.organizationId;
 
-  // Example analytics - you can expand this
-  const Product = require('../../models/Product').default;
 
   const [
     totalProducts,
@@ -383,7 +350,6 @@ export const getProductAnalytics = catchAsync(async (req, res, next) => {
         },
       },
       { $sort: { count: -1 } },
-      // ADD LOOKUP TO GET CATEGORY NAMES
       {
         $lookup: {
           from: 'categories',

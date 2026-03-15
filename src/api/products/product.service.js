@@ -13,13 +13,9 @@ import {
 } from '../../utils/AppError.js';
 import Category from '../../models/Category.js';
 
-// CREATE PRODUCT
-
 export async function createProduct(productData, shopId, organizationId, userId) {
-  // 1. Generate product code
   const productCode = await Product.generateProductCode(shopId, 'PRD');
 
-  // 2. Get current metal rates
   const metalRates = await MetalRate.getCurrentRate(shopId);
   if (!metalRates) {
     throw new ValidationError(
@@ -27,12 +23,10 @@ export async function createProduct(productData, shopId, organizationId, userId)
     );
   }
 
-  // 3. Calculate net weight
   const grossWeight = parseFloat(productData.weight?.grossWeight) || 0;
   const stoneWeight = parseFloat(productData.weight?.stoneWeight) || 0;
   const netWeight = grossWeight - stoneWeight;
 
-  // 4. Calculate pricing
   const pricing = await calculateProductPrice(
     {
       ...productData,
@@ -46,14 +40,12 @@ export async function createProduct(productData, shopId, organizationId, userId)
     metalRates
   );
 
-  // 5. Process stones
   if (productData.stones && productData.stones.length > 0) {
     productData.stones.forEach(stone => {
       stone.totalStonePrice = (stone.stonePrice || 0) * (stone.pieceCount || 1);
     });
   }
 
-  // 6. Set initial stock status
   const quantity = productData.stock?.quantity || 1;
   const reorderLevel = productData.stock?.reorderLevel || 0;
   let stockStatus = 'in_stock';
@@ -64,7 +56,6 @@ export async function createProduct(productData, shopId, organizationId, userId)
     stockStatus = 'low_stock';
   }
 
-  // STEP 1: "OTHER" MAPPING FIRST
 
   let finalCategoryId = productData.categoryId;
   let finalSubCategoryId = productData.subCategoryId;
@@ -77,7 +68,6 @@ export async function createProduct(productData, shopId, organizationId, userId)
     finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
   }
 
-  // STEP 2: CATEGORY VALIDATION
 
   const categoryExists = await Category.findOne({
     _id: finalCategoryId,
@@ -100,8 +90,6 @@ export async function createProduct(productData, shopId, organizationId, userId)
       throw new ValidationError('Invalid subcategory selected');
     }
   }
-
-  // 7. Create product
   const product = await Product.create({
     organizationId,
     shopId,
@@ -136,7 +124,6 @@ await adjustStock({
   performedBy: userId,
 });
 
-  // 9. Update shop statistics
   const shop = await JewelryShop.findById(shopId);
   if (shop) {
     shop.statistics.totalProducts += 1;
@@ -144,7 +131,6 @@ await adjustStock({
     await shop.save();
   }
 
-  // 10. Log activity
   await eventLogger.logProduct(
     userId,
     organizationId,
@@ -160,18 +146,15 @@ await adjustStock({
     }
   );
 
-  // 11. Cache product
   cache.set(cache.productKey(product._id), product.toJSON(), 1800);
 
   return product;
 }
 
-// CALCULATE PRODUCT PRICE
 
 export async function calculateProductPrice(productData, metalRates) {
   const { metal, weight, makingCharges, stones, pricing } = productData;
 
-  // 1. Get metal rate based on type and purity
   let metalRate = 0;
 
   if (metal.type === 'gold') {
@@ -206,11 +189,9 @@ export async function calculateProductPrice(productData, metalRates) {
     metalRate = metalRates.platinum?.sellingRate || 0;
   }
 
-  // 2. Calculate metal value
   const netWeight = weight.netWeight || 0;
   const metalValue = netWeight * metalRate;
 
-  // 3. Calculate making charges
   let makingChargesAmount = 0;
   if (makingCharges?.type === 'per_gram') {
     makingChargesAmount = netWeight * (makingCharges.value || 0);
@@ -220,19 +201,15 @@ export async function calculateProductPrice(productData, metalRates) {
     makingChargesAmount = makingCharges.value || 0;
   }
 
-  // 4. Calculate stone value
   const stoneValue =
     stones?.reduce((sum, stone) => {
       return sum + (stone.stonePrice || 0) * (stone.pieceCount || 1);
     }, 0) || 0;
 
-  // 5. Calculate other charges
   const otherCharges = pricing?.otherCharges || 0;
 
-  // 6. Calculate subtotal
   const subtotal = metalValue + stoneValue + makingChargesAmount + otherCharges;
 
-  // 7. Apply discount
   let discountAmount = 0;
   if (pricing?.discount?.type === 'percentage') {
     discountAmount = (subtotal * (pricing.discount.value || 0)) / 100;
@@ -242,11 +219,9 @@ export async function calculateProductPrice(productData, metalRates) {
 
   const afterDiscount = subtotal - discountAmount;
 
-  // 8. Calculate GST
   const gstPercentage = pricing?.gst?.percentage || 3;
   const gstAmount = (afterDiscount * gstPercentage) / 100;
 
-  // 9. Calculate total price
   const totalPrice = afterDiscount + gstAmount;
 
   return {
@@ -270,7 +245,6 @@ export async function calculateProductPrice(productData, metalRates) {
   };
 }
 
-// GET ALL PRODUCTS
 
 export async function getProducts(shopId, organizationId, filters = {}, options = {}) {
   const {
@@ -355,10 +329,8 @@ export async function getProducts(shopId, organizationId, filters = {}, options 
   };
 }
 
-// GET PRODUCT BY ID
 
 export async function getProductById(productId, shopId, organizationId) {
-  // Check cache first
   const cacheKey = cache.productKey(productId);
   const cached = cache.get(cacheKey);
   if (cached) return cached;
@@ -370,8 +342,8 @@ export async function getProductById(productId, shopId, organizationId) {
     deletedAt: null,
   })
     .populate('supplierId', 'name code contactPerson phone email')
-    .populate('categoryId', 'name code') // ADD
-    .populate('subCategoryId', 'name code') // ADD
+    .populate('categoryId', 'name code') 
+    .populate('subCategoryId', 'name code') 
     .populate('createdBy', 'firstName lastName email')
     .populate('updatedBy', 'firstName lastName email')
     .lean();
@@ -379,14 +351,11 @@ export async function getProductById(productId, shopId, organizationId) {
   if (!product) {
     throw new ProductNotFoundError('Product not found');
   }
-
-  // Cache product
   cache.set(cacheKey, product, 1800);
 
   return product;
 }
 
-// UPDATE PRODUCT
 
 export async function updateProduct(productId, shopId, organizationId, updateData, userId) {
   const product = await Product.findOne({
@@ -400,12 +369,10 @@ export async function updateProduct(productId, shopId, organizationId, updateDat
     throw new ProductNotFoundError('Product not found');
   }
 
-  // Cannot update productCode
   if (updateData.productCode) {
     delete updateData.productCode;
   }
 
-  // If weight or rates change, recalculate pricing
   if (
     updateData.weight?.grossWeight ||
     updateData.weight?.stoneWeight ||
@@ -424,7 +391,6 @@ export async function updateProduct(productId, shopId, organizationId, updateDat
     }
   }
 
-  // Update stock status automatically if quantity changes
   if (updateData.stock?.quantity !== undefined) {
     const newQuantity = updateData.stock.quantity;
     const reorderLevel = updateData.stock.reorderLevel || product.stock.reorderLevel || 0;
@@ -438,12 +404,10 @@ export async function updateProduct(productId, shopId, organizationId, updateDat
     }
   }
 
-  // CATEGORY VALIDATION (UPDATE)
 
   let finalCategoryId = updateData.categoryId;
   let finalSubCategoryId = updateData.subCategoryId;
 
-  // OTHER mapping
   if (finalCategoryId === 'OTHER') {
     finalCategoryId = process.env.OTHER_CATEGORY_ID;
   }
@@ -451,7 +415,6 @@ export async function updateProduct(productId, shopId, organizationId, updateDat
     finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
   }
 
-  // Validate only if category is being updated
   if (finalCategoryId) {
     const categoryExists = await Category.findOne({
       _id: finalCategoryId,
@@ -464,7 +427,6 @@ export async function updateProduct(productId, shopId, organizationId, updateDat
     }
   }
 
-  // Validate subcategory only if provided
   if (finalSubCategoryId) {
     const subCategoryExists = await Category.findOne({
       _id: finalSubCategoryId,
@@ -477,20 +439,15 @@ export async function updateProduct(productId, shopId, organizationId, updateDat
     }
   }
 
-  // assign safe values
   updateData.categoryId = finalCategoryId;
   updateData.subCategoryId = finalSubCategoryId;
 
-  // Apply updates
   Object.assign(product, updateData);
   product.updatedBy = userId;
   await product.save();
 
-  // Invalidate cache
   cache.del(cache.productKey(productId));
   cache.deletePattern(`products:${shopId}:*`);
-
-  // Log activity
   await eventLogger.logProduct(
     userId,
     organizationId,
@@ -504,7 +461,6 @@ export async function updateProduct(productId, shopId, organizationId, updateDat
   return product;
 }
 
-// DELETE PRODUCT (SOFT DELETE)
 
 export async function deleteProduct(productId, shopId, organizationId, userId) {
   const product = await Product.findOne({
@@ -518,13 +474,8 @@ export async function deleteProduct(productId, shopId, organizationId, userId) {
     throw new ProductNotFoundError('Product not found');
   }
 
-  // Check if product is in any pending sale/order
-  // You can add additional checks here
-
-  // Soft delete
   await product.softDelete();
 
-  // Update shop statistics
   const shop = await JewelryShop.findById(shopId);
   if (shop) {
     shop.statistics.totalProducts = Math.max(0, shop.statistics.totalProducts - 1);
@@ -534,12 +485,9 @@ export async function deleteProduct(productId, shopId, organizationId, userId) {
     );
     await shop.save();
   }
-
-  // Invalidate cache
   cache.del(cache.productKey(productId));
   cache.deletePattern(`products:${shopId}:*`);
 
-  // Log activity
   await eventLogger.logProduct(
     userId,
     organizationId,
@@ -553,7 +501,6 @@ export async function deleteProduct(productId, shopId, organizationId, userId) {
   return { success: true };
 }
 
-// UPDATE STOCK
 
 export async function updateStock(productId, shopId, organizationId, stockData, userId) {
   const { operation, quantity, reason, referenceType, referenceId } = stockData;
@@ -572,7 +519,6 @@ export async function updateStock(productId, shopId, organizationId, stockData, 
   const previousQuantity = product.stock.quantity;
   let newQuantity;
 
-  // Perform operation
   switch (operation) {
     case 'add':
       newQuantity = previousQuantity + quantity;
@@ -591,7 +537,6 @@ export async function updateStock(productId, shopId, organizationId, stockData, 
   }
 
 
-  // Create inventory transaction
   const transactionType =
     operation === 'add' ? 'IN' : operation === 'subtract' ? 'OUT' : 'ADJUSTMENT';
 
@@ -604,11 +549,8 @@ await adjustStock({
   performedBy: userId,
 });
 
-  // Invalidate cache
   cache.del(cache.productKey(productId));
   cache.deletePattern(`products:${shopId}:*`);
-
-  // Log activity
   await eventLogger.logProduct(
     userId,
     organizationId,
@@ -633,7 +575,6 @@ await adjustStock({
   };
 }
 
-// RESERVE PRODUCT
 
 export async function reserveProduct(productId, shopId, organizationId, reservationData, userId) {
   const { customerId, reservationDays = 7, notes } = reservationData;
@@ -661,10 +602,8 @@ export async function reserveProduct(productId, shopId, organizationId, reservat
     throw new InsufficientStockError('Product is out of stock');
   }
 
-  // Reserve product
   await product.reserveProduct(customerId, reservationDays);
 
-  // Create inventory transaction
   await InventoryTransaction.create({
     organizationId,
     shopId,
@@ -680,11 +619,8 @@ export async function reserveProduct(productId, shopId, organizationId, reservat
     reason: notes || 'Product reserved for customer',
     metadata: { customerId, reservationDays },
   });
-
-  // Invalidate cache
   cache.del(cache.productKey(productId));
 
-  // Log activity
   await eventLogger.logProduct(
     userId,
     organizationId,
@@ -701,7 +637,6 @@ export async function reserveProduct(productId, shopId, organizationId, reservat
   };
 }
 
-// CANCEL RESERVATION
 
 export async function cancelReservation(productId, shopId, organizationId, userId) {
   const product = await Product.findOne({
@@ -721,10 +656,8 @@ export async function cancelReservation(productId, shopId, organizationId, userI
 
   const customerId = product.reservedFor?.customerId;
 
-  // Cancel reservation
   await product.cancelReservation();
 
-  // Create inventory transaction
   await InventoryTransaction.create({
     organizationId,
     shopId,
@@ -741,10 +674,7 @@ export async function cancelReservation(productId, shopId, organizationId, userI
     metadata: { customerId },
   });
 
-  // Invalidate cache
   cache.del(cache.productKey(productId));
-
-  // Log activity
   await eventLogger.logProduct(
     userId,
     organizationId,
@@ -757,8 +687,6 @@ export async function cancelReservation(productId, shopId, organizationId, userI
 
   return { saleStatus: product.saleStatus };
 }
-
-// MARK AS SOLD
 
 export async function markAsSold(productId, shopId, organizationId, saleData, userId) {
   const { customerId, saleId } = saleData;
@@ -781,11 +709,8 @@ export async function markAsSold(productId, shopId, organizationId, saleData, us
   if (product.stock.quantity < 1) {
     throw new InsufficientStockError('Product is out of stock');
   }
-
-  // Mark as sold
   await product.markAsSold(customerId);
 
-  // Create inventory transaction
   await InventoryTransaction.create({
     organizationId,
     shopId,
@@ -804,11 +729,8 @@ export async function markAsSold(productId, shopId, organizationId, saleData, us
     metadata: { customerId },
   });
 
-  // Invalidate cache
   cache.del(cache.productKey(productId));
   cache.deletePattern(`products:${shopId}:*`);
-
-  // Log activity
   await eventLogger.logProduct(
     userId,
     organizationId,
@@ -826,10 +748,8 @@ export async function markAsSold(productId, shopId, organizationId, saleData, us
   };
 }
 
-// CALCULATE/RECALCULATE PRICE
-
 export async function recalculatePrice(productId, shopId, organizationId, priceData, userId) {
-  const { useCurrentRate = true, customRate } = priceData;
+  const { useCurrentRate = true, customRate, customRates } = priceData;
 
   const product = await Product.findOne({
     _id: productId,
@@ -850,35 +770,31 @@ export async function recalculatePrice(productId, shopId, organizationId, priceD
     if (!metalRates) {
       throw new ValidationError('Current metal rates not found');
     }
-  } else if (customRate) {
-    // Use custom rate (create mock metalRates object)
-    metalRates = {
-      gold: {
-        gold24K: { sellingRate: customRate },
-        gold22K: { sellingRate: customRate },
-        gold18K: { sellingRate: customRate },
-      },
-      silver: {
-        pure: { sellingRate: customRate },
-        sterling: { sellingRate: customRate },
-      },
-      platinum: { sellingRate: customRate },
-    };
+} else if (customRate || customRates) {
+  metalRates = {
+    gold: {
+      gold24K: { sellingRate: customRates?.gold || customRate },
+      gold22K: { sellingRate: customRates?.gold || customRate },
+      gold18K: { sellingRate: customRates?.gold || customRate },
+    },
+    silver: {
+      pure:     { sellingRate: customRates?.silver || customRate },
+      sterling: { sellingRate: customRates?.silver || customRate },
+    },
+    platinum: { sellingRate: customRates?.platinum || customRate },
+  };
   } else {
     throw new ValidationError('Either useCurrentRate or customRate must be provided');
   }
 
-  // Recalculate pricing
   await product.calculatePrice(metalRates);
 
   const newPrice = product.pricing.sellingPrice;
   const difference = newPrice - oldPrice;
   const differencePercentage = oldPrice > 0 ? (difference / oldPrice) * 100 : 0;
 
-  // Invalidate cache
   cache.del(cache.productKey(productId));
 
-  // Log activity
   await eventLogger.logProduct(
     userId,
     organizationId,
@@ -898,7 +814,6 @@ export async function recalculatePrice(productId, shopId, organizationId, priceD
   };
 }
 
-// GET LOW STOCK PRODUCTS
 
 export async function getLowStockProducts(shopId, organizationId, threshold) {
   const query = {
@@ -909,7 +824,6 @@ export async function getLowStockProducts(shopId, organizationId, threshold) {
     $or: [{ status: 'low_stock' }, { status: 'out_of_stock' }],
   };
 
-  // If custom threshold provided
   if (threshold !== undefined) {
     query.$or = [{ 'stock.quantity': { $lte: threshold } }, { status: 'out_of_stock' }];
   }
@@ -929,8 +843,6 @@ export async function getLowStockProducts(shopId, organizationId, threshold) {
     },
   };
 }
-
-// SEARCH PRODUCTS (QUICK SEARCH FOR POS)
 
 export async function searchProducts(shopId, organizationId, searchQuery, limit = 10) {
   const query = {
@@ -960,8 +872,6 @@ export async function searchProducts(shopId, organizationId, searchQuery, limit 
   return products;
 }
 
-// GET PRODUCT HISTORY
-
 export async function getProductHistory(productId, shopId, organizationId, limit = 50) {
   const product = await Product.findOne({
     _id: productId,
@@ -986,7 +896,6 @@ export async function getProductHistory(productId, shopId, organizationId, limit
   };
 }
 
-// BULK DELETE PRODUCTS
 
 export async function bulkDeleteProducts(productIds, shopId, organizationId, userId) {
   const products = await Product.find({
@@ -1002,22 +911,18 @@ export async function bulkDeleteProducts(productIds, shopId, organizationId, use
 
   const deletedCount = products.length;
 
-  // Soft delete all products
   for (const product of products) {
     await product.softDelete();
   }
 
-  // Update shop statistics
   const shop = await JewelryShop.findById(shopId);
   if (shop) {
     shop.statistics.totalProducts = Math.max(0, shop.statistics.totalProducts - deletedCount);
     await shop.save();
   }
 
-  // Invalidate cache
   cache.deletePattern(`products:${shopId}:*`);
 
-  // Log activity
   await eventLogger.logActivity({
     userId,
     organizationId,
@@ -1032,7 +937,6 @@ export async function bulkDeleteProducts(productIds, shopId, organizationId, use
   return { deletedCount };
 }
 
-// BULK UPDATE STATUS
 
 export async function bulkUpdateStatus(productIds, shopId, organizationId, status, userId) {
   const result = await Product.updateMany(
@@ -1054,11 +958,8 @@ export async function bulkUpdateStatus(productIds, shopId, organizationId, statu
   if (result.modifiedCount === 0) {
     throw new ProductNotFoundError('No products found to update');
   }
-
-  // Invalidate cache
   cache.deletePattern(`products:${shopId}:*`);
 
-  // Log activity
   await eventLogger.logActivity({
     userId,
     organizationId,

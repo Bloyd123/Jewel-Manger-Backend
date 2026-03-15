@@ -1,5 +1,5 @@
 import express from 'express';
-import  * as productController from './product.controller.js';
+import * as productController from './product.controller.js';
 import {
   createProductValidation,
   updateProductValidation,
@@ -17,7 +17,6 @@ import {
 } from './product.validation.js';
 import { authenticate } from '../middlewares/auth.js';
 import { restrictTo } from '../middlewares/restrictTo.js';
-
 import {
   checkShopAccess,
   checkPermission,
@@ -27,254 +26,177 @@ import { rateLimiter } from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
-// ALL ROUTES REQUIRE AUTHENTICATION
-
 router.use(authenticate);
 
-// PRODUCT CRUD ROUTES
-
-/**
- * @route   POST /api/v1/shops/:shopId/products
- * @desc    Create a new product
- * @access  Private (shop_admin, manager)
- * @permission canManageProducts
- */
+// POST /api/v1/shops/:shopId/products
 router.post(
   '/',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canManageProducts'),
-  rateLimiter({ max: 100, windowMs: 15 * 60 * 1000 }), // 100 requests per 15 minutes
+  rateLimiter({ max: 50, windowMs: 60000 }),
   createProductValidation,
   productController.createProduct
 );
 
-/**
- * @route   GET /api/v1/shops/:shopId/products
- * @desc    Get all products for a shop (with filters, search, pagination)
- * @access  Private (all authenticated users)
- * @permission canViewInventory
- */
+// GET /api/v1/shops/:shopId/products
 router.get(
   '/',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
   checkShopAccess,
   checkPermission('canViewInventory'),
+  rateLimiter({ max: 100, windowMs: 60000 }),
   getProductsValidation,
   productController.getProducts
 );
 
-/**
- * @route   GET /api/v1/shops/:shopId/products/search
- * @desc    Quick search products (for POS)
- * @access  Private (all authenticated users)
- * @permission canViewInventory
- */
+// GET /api/v1/shops/:shopId/products/search
 router.get(
   '/search',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
   checkShopAccess,
   checkPermission('canViewInventory'),
+  rateLimiter({ max: 100, windowMs: 60000 }),
   searchProductsValidation,
   productController.searchProducts
 );
 
-/**
- * @route   GET /api/v1/shops/:shopId/products/low-stock
- * @desc    Get low stock products
- * @access  Private (shop_admin, manager)
- * @permission canViewInventory
- */
+// GET /api/v1/shops/:shopId/products/low-stock
 router.get(
   '/low-stock',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canViewInventory'),
+  rateLimiter({ max: 30, windowMs: 60000 }),
   getLowStockValidation,
   productController.getLowStock
 );
 
-/**
- * @route   GET /api/v1/shops/:shopId/products/analytics
- * @desc    Get product analytics
- * @access  Private (shop_admin, manager)
- * @permission canViewAnalytics
- */
+// GET /api/v1/shops/:shopId/products/analytics
 router.get(
   '/analytics',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
   checkPermission('canViewAnalytics'),
+  rateLimiter({ max: 20, windowMs: 60000 }),
   productController.getProductAnalytics
 );
 
-/**
- * @route   GET /api/v1/shops/:shopId/products/:id
- * @desc    Get single product by ID
- * @access  Private (all authenticated users)
- * @permission canViewInventory
- */
+// GET /api/v1/shops/:shopId/products/:id
 router.get(
   '/:id',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
   checkShopAccess,
   checkPermission('canViewInventory'),
+  rateLimiter({ max: 100, windowMs: 60000 }),
   getProductByIdValidation,
   productController.getProductById
 );
 
-/**
- * @route   PUT /api/v1/shops/:shopId/products/:id
- * @desc    Update product
- * @access  Private (shop_admin, manager)
- * @permission canEditInventory
- */
+// PUT /api/v1/shops/:shopId/products/:id
 router.put(
   '/:id',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canEditInventory'),
+  rateLimiter({ max: 50, windowMs: 60000 }),
   updateProductValidation,
   productController.updateProduct
 );
 
-/**
- * @route   DELETE /api/v1/shops/:shopId/products/:id
- * @desc    Delete product (soft delete)
- * @access  Private (shop_admin, manager with canDeleteProducts)
- * @permission canDeleteProducts
- */
+// DELETE /api/v1/shops/:shopId/products/:id
 router.delete(
   '/:id',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
   checkPermission('canDeleteProducts'),
+  rateLimiter({ max: 10, windowMs: 60000 }),
   deleteProductValidation,
   productController.deleteProduct
 );
 
-// STOCK MANAGEMENT ROUTES
-
-/**
- * @route   PATCH /api/v1/shops/:shopId/products/:id/stock
- * @desc    Update product stock (add, subtract, set)
- * @access  Private (shop_admin, manager)
- * @permission canEditInventory
- */
+// PATCH /api/v1/shops/:shopId/products/:id/stock
 router.patch(
   '/:id/stock',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canEditInventory'),
+  rateLimiter({ max: 50, windowMs: 60000 }),
   updateStockValidation,
   productController.updateStock
 );
 
-/**
- * @route   GET /api/v1/shops/:shopId/products/:id/history
- * @desc    Get product inventory transaction history
- * @access  Private (shop_admin, manager)
- * @permission canViewInventory
- */
+// GET /api/v1/shops/:shopId/products/:id/history
 router.get(
   '/:id/history',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
   checkPermission('canViewInventory'),
+  rateLimiter({ max: 30, windowMs: 60000 }),
   productController.getProductHistory
 );
 
-// PRODUCT STATUS ROUTES
-
-/**
- * @route   PATCH /api/v1/shops/:shopId/products/:id/reserve
- * @desc    Reserve product for customer
- * @access  Private (shop_admin, manager, staff)
- * @permission canManageSales OR canCreateSales
- */
+// PATCH /api/v1/shops/:shopId/products/:id/reserve
 router.patch(
   '/:id/reserve',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
   checkAnyPermission(['canManageSales', 'canCreateSales']),
+  rateLimiter({ max: 50, windowMs: 60000 }),
   reserveProductValidation,
   productController.reserveProduct
 );
 
-/**
- * @route   PATCH /api/v1/shops/:shopId/products/:id/cancel-reservation
- * @desc    Cancel product reservation
- * @access  Private (shop_admin, manager, staff)
- * @permission canManageSales OR canCreateSales
- */
+// PATCH /api/v1/shops/:shopId/products/:id/cancel-reservation
 router.patch(
   '/:id/cancel-reservation',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
   checkAnyPermission(['canManageSales', 'canCreateSales']),
+  rateLimiter({ max: 30, windowMs: 60000 }),
   productController.cancelReservation
 );
 
-/**
- * @route   PATCH /api/v1/shops/:shopId/products/:id/sold
- * @desc    Mark product as sold
- * @access  Private (shop_admin, manager, staff)
- * @permission canManageSales OR canCreateSales
- */
+// PATCH /api/v1/shops/:shopId/products/:id/sold
 router.patch(
   '/:id/sold',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
   checkAnyPermission(['canManageSales', 'canCreateSales']),
+  rateLimiter({ max: 50, windowMs: 60000 }),
   markAsSoldValidation,
   productController.markAsSold
 );
 
-// PRICING ROUTES
-
-/**
- * @route   POST /api/v1/shops/:shopId/products/:id/calculate-price
- * @desc    Recalculate product price based on current/custom metal rates
- * @access  Private (shop_admin, manager)
- * @permission canEditInventory OR canManageMetalRates
- */
+// POST /api/v1/shops/:shopId/products/:id/calculate-price
 router.post(
   '/:id/calculate-price',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkAnyPermission(['canEditInventory', 'canManageMetalRates']),
+  rateLimiter({ max: 30, windowMs: 60000 }),
   calculatePriceValidation,
   productController.calculatePrice
 );
 
-// BULK OPERATIONS ROUTES
-
-/**
- * @route   POST /api/v1/shops/:shopId/products/bulk-delete
- * @desc    Bulk delete products
- * @access  Private (shop_admin only)
- * @permission canDeleteProducts
- */
+// POST /api/v1/shops/:shopId/products/bulk-delete
 router.post(
   '/bulk-delete',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
   checkPermission('canDeleteProducts'),
+  rateLimiter({ max: 5, windowMs: 60000 }),
   bulkDeleteValidation,
   productController.bulkDeleteProducts
 );
 
-/**
- * @route   POST /api/v1/shops/:shopId/products/bulk-update-status
- * @desc    Bulk update product status
- * @access  Private (shop_admin, manager)
- * @permission canEditInventory
- */
+// POST /api/v1/shops/:shopId/products/bulk-update-status
 router.post(
   '/bulk-update-status',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
   checkPermission('canEditInventory'),
+  rateLimiter({ max: 20, windowMs: 60000 }),
   bulkUpdateStatusValidation,
   productController.bulkUpdateStatus
 );
