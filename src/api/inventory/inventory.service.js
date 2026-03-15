@@ -5,9 +5,6 @@ import InventoryTransaction from '../../models/InventoryTransaction.js';
 import { NotFoundError, InsufficientStockError } from '../../utils/AppError.js';
 import { TRANSACTION_TYPES, REFERENCE_TYPES } from './inventory.constants.js';
 
-// ─────────────────────────────────────────
-// 1. DECREASE STOCK — Sale pe call karo
-// ─────────────────────────────────────────
 export const decreaseStock = async ({
   organizationId,
   shopId,
@@ -72,10 +69,6 @@ export const decreaseStock = async ({
   return product;
 };
 
-
-// ─────────────────────────────────────────
-// 2. INCREASE STOCK — Purchase pe call karo
-// ─────────────────────────────────────────
 export const increaseStock = async ({
   organizationId,
   shopId,
@@ -119,9 +112,6 @@ export const increaseStock = async ({
   return product;
 };
 
-// ─────────────────────────────────────────
-// 3. RETURN STOCK — Return pe call karo
-// ─────────────────────────────────────────
 export const returnStock = async ({
   organizationId,
   shopId,
@@ -137,6 +127,12 @@ export const returnStock = async ({
 
   const previousQty = product.stock.quantity;
   await product.updateStock(quantity, 'add');
+if (product.saleStatus === 'sold') {
+  product.saleStatus = 'available';
+  product.soldTo = null;
+  product.soldDate = null;
+  await product.save();
+}
 
   await InventoryTransaction.create(
     [
@@ -162,10 +158,6 @@ export const returnStock = async ({
 
   return product;
 };
-
-// ─────────────────────────────────────────
-// 4. ADJUST STOCK — Manual adjustment
-// ─────────────────────────────────────────
 export const adjustStock = async ({
   organizationId,
   shopId,
@@ -206,10 +198,6 @@ export const adjustStock = async ({
   return product;
 };
 
-// ─────────────────────────────────────────
-// 5. CREATE NEW PRODUCT WITH STOCK
-// Purchase me naya product create hota hai
-// ─────────────────────────────────────────
 export const createProductFromPurchase = async ({
   organizationId,
   shopId,
@@ -292,9 +280,6 @@ export const createProductFromPurchase = async ({
   return newProduct[0];
 };
 
-// ─────────────────────────────────────────
-// 6. GET STOCK MOVEMENT — History dekhna
-// ─────────────────────────────────────────
 export const getStockMovement = async ({
   shopId,
   productId,
