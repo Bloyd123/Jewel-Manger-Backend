@@ -213,15 +213,7 @@ const orderSchema = new mongoose.Schema(
         default: 0,
         min: 0,
       },
-      advancePaid: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      balanceAmount: {
-        type: Number,
-        default: 0,
-      },
+
       discount: {
         type: {
           type: String,
@@ -263,19 +255,16 @@ const orderSchema = new mongoose.Schema(
         default: 'pending',
         index: true,
       },
-      payments: [
-        {
-          amount: Number,
-          paymentMode: String,
-          paymentDate: Date,
-          transactionId: String,
-          notes: String,
-          receivedBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-          },
-        },
-      ],
+      paidAmount: {         // ← naya add karo
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    dueAmount: {          // ← naya add karo
+        type: Number,
+        default: 0,
+        min: 0,
+    },
     },
 
     // Assignment
@@ -551,20 +540,6 @@ orderSchema.pre('save', function (next) {
   // Calculate grand total
   this.financials.grandTotal = afterDiscount + this.financials.tax.gstAmount;
 
-  // Calculate balance
-  this.financials.balanceAmount = this.financials.grandTotal - this.financials.advancePaid;
-
-  // Update payment status
-  if (this.financials.advancePaid === 0) {
-    this.payment.paymentStatus = 'pending';
-  } else if (this.financials.advancePaid >= this.financials.grandTotal) {
-    this.payment.paymentStatus = 'paid';
-  } else if (this.financials.advancePaid > 0) {
-    this.payment.paymentStatus =
-      this.financials.advancePaid < this.financials.grandTotal / 2
-        ? 'advance_paid'
-        : 'partially_paid';
-  }
 
   // Calculate actual duration if completed
   if (this.timeline.actualCompletionDate && this.timeline.actualStartDate) {
@@ -591,12 +566,6 @@ orderSchema.methods.softDelete = function () {
 
 orderSchema.methods.restore = function () {
   this.deletedAt = null;
-  return this.save();
-};
-
-orderSchema.methods.addPayment = function (paymentData) {
-  this.payment.payments.push(paymentData);
-  this.financials.advancePaid += paymentData.amount;
   return this.save();
 };
 
@@ -758,4 +727,50 @@ orderSchema.statics.findByPriority = function (shopId, priority) {
   }).sort({ 'timeline.estimatedCompletionDate': 1 });
 };
 
+
+orderSchema.statics.applyPayment = async function (orderId, amount) {
+    const order = await this.findById(orderId);
+    if (!order) return;
+
+    const paidAmount = (order.payment.paidAmount || 0) + amount;
+    const dueAmount = order.financials.grandTotal - paidAmount;
+
+    let paymentStatus = 'advance_paid';
+    if (paidAmount >= order.financials.grandTotal) {
+        paymentStatus = 'paid';
+    } else if (paidAmount > order.financials.grandTotal / 2) {
+        paymentStatus = 'partially_paid';
+    }
+
+    await this.findByIdAndUpdate(orderId, {
+        $set: {
+            'payment.paidAmount': paidAmount,
+            'payment.dueAmount': Math.max(0, dueAmount),
+            'payment.paymentStatus': paymentStatus,
+        },
+    });
+};
+
+orderSchema.statics.reversePayment = async function (orderId, amount) {
+    const order = await this.findById(orderId);
+    if (!order) return;
+
+    const paidAmount = Math.max(0, (order.payment.paidAmount || 0) - amount);
+    const dueAmount = order.financials.grandTotal - paidAmount;
+
+    let paymentStatus = 'pending';
+    if (paidAmount > order.financials.grandTotal / 2) {
+        paymentStatus = 'partially_paid';
+    } else if (paidAmount > 0) {
+        paymentStatus = 'advance_paid';
+    }
+
+    await this.findByIdAndUpdate(orderId, {
+        $set: {
+            'payment.paidAmount': paidAmount,
+            'payment.dueAmount': dueAmount,
+            'payment.paymentStatus': paymentStatus,
+        },
+    });
+};
 export default mongoose.model('Order', orderSchema);

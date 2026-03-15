@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ledger Module — Visual Guide</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 24px; color: #1a1a1a; }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .subtitle { font-size: 13px; color: #666; margin-bottom: 20px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { padding: 7px 18px; border-radius: 20px; border: 1px solid #ddd; background: #fff; color: #555; font-size: 13px; cursor: pointer; transition: all .15s; }
+    .tab-btn:hover { background: #f0f0f0; }
+    .tab-btn.active { background: #e8f0fe; border-color: #4285f4; color: #1a56db; font-weight: 500; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Cards */
+    .card { background: #fff; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; margin-bottom: 16px; }
+    .card-header { padding: 12px 16px; background: #fafafa; border-bottom: 1px solid #e0e0e0; font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: .04em; }
+
+    /* Double Entry Flow */
+    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .tx-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid #ddd; background: #fff; color: #333; font-size: 12px; cursor: pointer; transition: all .15s; }
+    .tx-btn:hover { background: #f0f0f0; }
+    .tx-btn.active { background: #e8f0fe; border-color: #4285f4; color: #1a56db; font-weight: 500; }
+
+    .flow-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0; padding: 20px 24px; }
+    .flow-box { border-radius: 10px; padding: 14px 16px; text-align: center; }
+    .flow-box .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; opacity: .8; }
+    .flow-box .name { font-size: 16px; font-weight: 600; }
+    .flow-box .type { font-size: 12px; margin-top: 4px; opacity: .75; }
+    .flow-arrow-wrap { text-align: center; padding: 0 12px; }
+    .flow-arrow-wrap .amount { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 4px; }
+    .flow-arrow-wrap .arrow { font-size: 22px; color: #999; }
+
+    .box-debit  { background: #e8f0fe; color: #1a56db; }
+    .box-credit { background: #eaf3de; color: #27500a; }
+
+    .rule-box { background: #fafafa; border-top: 1px solid #f0f0f0; padding: 12px 20px; font-size: 13px; color: #555; text-align: center; }
+    .rule-box span { font-weight: 600; color: #1a1a1a; }
+
+    /* Ledger entries */
+    .entry-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+    .entry-row:last-child { border-bottom: none; }
+    .badge { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; min-width: 56px; text-align: center; }
+    .badge.d { background: #e8f0fe; color: #1a56db; }
+    .badge.c { background: #eaf3de; color: #27500a; }
+    .entry-desc { flex: 1; }
+    .entry-party { font-size: 11px; color: #888; }
+    .entry-amt { font-weight: 600; min-width: 80px; text-align: right; }
+    .entry-amt.d { color: #1a56db; }
+    .entry-amt.c { color: #27500a; }
+    .rev-btn { font-size: 11px; padding: 2px 8px; border-radius: 20px; cursor: pointer; border: 1px solid #e0e0e0; background: transparent; color: #888; }
+    .rev-btn:hover { background: #fce8e8; color: #c0392b; border-color: #f5c6c6; }
+    .reversed-tag { font-size: 11px; color: #bbb; text-decoration: line-through; padding: 2px 8px; }
+
+    /* Metrics */
+    .metrics-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 16px; }
+    .metric { background: #fafafa; border-radius: 8px; padding: 12px 14px; }
+    .metric-label { font-size: 11px; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+    .metric-value { font-size: 20px; font-weight: 600; }
+    .metric-value.d { color: #1a56db; }
+    .metric-value.c { color: #27500a; }
+    .metric-value.b { color: #e67e22; }
+
+    /* Balance tab */
+    .balance-section { margin-bottom: 16px; }
+    .balance-section .card-header { display: flex; align-items: center; gap: 8px; }
+    .agg-code { font-family: 'Courier New', monospace; font-size: 13px; color: #555; padding: 12px 16px; background: #fafafa; border-top: 1px solid #f0f0f0; white-space: pre; }
+
+    /* Pay mode toggle */
+    .pay-mode { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; font-size: 13px; color: #666; }
+    .mode-pill { padding: 4px 14px; border-radius: 20px; border: 1px solid #ddd; background: #fff; font-size: 12px; cursor: pointer; color: #555; }
+    .mode-pill.active { background: #e8f0fe; border-color: #4285f4; color: #1a56db; font-weight: 500; }
+
+    /* Controls */
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .ctrl-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid #ddd; background: #fff; color: #333; font-size: 13px; cursor: pointer; transition: background .15s; }
+    .ctrl-btn:hover { background: #f0f0f0; }
+    .ctrl-btn.danger { color: #c0392b; }
+
+    .empty-msg { text-align: center; padding: 24px; color: #bbb; font-size: 13px; }
+
+    /* Legend */
+    .legend { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+    /* Concepts tab */
+    .concept-card { background: #fff; border-radius: 10px; border: 1px solid #e0e0e0; padding: 16px 20px; margin-bottom: 12px; }
+    .concept-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+    .concept-body { font-size: 13px; color: #555; line-height: 1.7; }
+    .concept-body code { background: #f0f0f0; padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #c0392b; }
+    table.concept-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    table.concept-table th { background: #fafafa; padding: 7px 10px; text-align: left; font-weight: 600; font-size: 12px; color: #555; border-bottom: 1px solid #e0e0e0; }
+    table.concept-table td { padding: 7px 10px; border-bottom: 1px solid #f5f5f5; color: #333; }
+    table.concept-table tr:last-child td { border-bottom: none; }
+    .tag-debit  { background: #e8f0fe; color: #1a56db; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .tag-credit { background: #eaf3de; color: #27500a; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<h1>Ledger Module — Visual Guide</h1>
+<p class="subtitle">Double Entry, Transactions, aur Balance — sab ek jagah</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('double-entry')">Double Entry</button>
+  <button class="tab-btn" onclick="showTab('ledger')">Live Ledger</button>
+  <button class="tab-btn" onclick="showTab('balance')">Shop Balance</button>
+  <button class="tab-btn" onclick="showTab('concepts')">Concepts</button>
+</div>
+
+<!-- ===================== DOUBLE ENTRY TAB ===================== -->
+<div id="tab-double-entry" class="panel active">
+  <p style="font-size:13px;color:#666;margin-bottom:16px">Transaction chunno — dekho kaun DEBIT hoga kaun CREDIT</p>
+
+  <div class="btn-group">
+    <button class="tx-btn active" onclick="showDE('sale', this)">Sale ₹15,000</button>
+    <button class="tx-btn" onclick="showDE('payment', this)">Payment ₹5,000</button>
+    <button class="tx-btn" onclick="showDE('purchase', this)">Purchase ₹8,000</button>
+    <button class="tx-btn" onclick="showDE('advance', this)">Advance ₹2,000</button>
+    <button class="tx-btn" onclick="showDE('upi', this)">UPI Sale ₹10,000</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header" id="de-title">Sale — Customer ne necklace kharidi (cash)</div>
+    <div class="flow-grid">
+      <div class="flow-box box-debit">
+        <div class="label">DEBIT — jo lega</div>
+        <div class="name" id="de-debit-name">Customer</div>
+        <div class="type" id="de-debit-why">Usne cheez li</div>
+      </div>
+      <div class="flow-arrow-wrap">
+        <div class="amount" id="de-amount">₹15,000</div>
+        <div class="arrow">⟷</div>
+      </div>
+      <div class="flow-box box-credit">
+        <div class="label">CREDIT — jo dega</div>
+        <div class="name" id="de-credit-name">CASH</div>
+        <div class="type" id="de-credit-why">Shop mein paisa aaya</div>
+      </div>
+    </div>
+    <div class="rule-box" id="de-rule">
+      Rule: Customer ne cheez <span>li</span> → DEBIT &nbsp;|&nbsp; Shop ko paisa <span>mila</span> → CREDIT
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#90bfff"></div> DEBIT — jo lega</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#97c459"></div> CREDIT — jo dega</div>
+  </div>
+</div>
+
+<!-- ===================== LEDGER TAB ===================== -->
+<div id="tab-ledger" class="panel">
+  <div class="pay-mode">
+    Payment mode:
+    <button class="mode-pill active" id="pill-cash" onclick="setMode('cash')">Cash</button>
+    <button class="mode-pill" id="pill-bank" onclick="setMode('bank')">Bank / UPI</button>
+  </div>
+  <div class="controls">
+    <button class="ctrl-btn" onclick="addEntry('sale')">+ Sale ₹15,000</button>
+    <button class="ctrl-btn" onclick="addEntry('payment')">+ Payment ₹5,000</button>
+    <button class="ctrl-btn" onclick="addEntry('purchase')">+ Purchase ₹8,000</button>
+    <button class="ctrl-btn" onclick="addEntry('advance')">+ Advance ₹2,000</button>
+    <button class="ctrl-btn danger" onclick="resetLedger()">Reset</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Customer Ledger</div>
+    <div id="entries-list"><div class="empty-msg">Koi entry nahi — upar se transaction add karo!</div></div>
+    <div class="metrics-row">
+      <div class="metric"><div class="metric-label">Total Debit</div><div class="metric-value d" id="m-debit">₹0</div></div>
+      <div class="metric"><div class="metric-label">Total Credit</div><div class="metric-value c" id="m-credit">₹0</div></div>
+      <div class="metric"><div class="metric-label">Balance (baaki)</div><div class="metric-value b" id="m-balance">₹0</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== BALANCE TAB ===================== -->
+<div id="tab-balance" class="panel">
+  <div class="balance-section">
+    <div class="card">
+      <div class="card-header">💵 getCashBalance — Shop ki cash drawer</div>
+      <div class="metrics-row">
+        <div class="metric"><div class="metric-label">Cash In (Debit)</div><div class="metric-value d" id="cash-d">₹0</div></div>
+        <div class="metric"><div class="metric-label">Cash Out (Credit)</div><div class="metric-value c" id="cash-c">₹0</div></div>
+        <div class="metric"><div class="metric-label">Cash Balance</div><div class="metric-value b" id="cash-b">₹0</div></div>
+      </div>
+      <div class="agg-code" id="cash-agg">{ totalDebit: 0, totalCredit: 0, balance: 0 }</div>
+    </div>
+  </div>
+  <div class="balance-section">
+    <div class="card">
+      <div class="card-header">🏦 getBankBalance — Shop ka bank / UPI account</div>
+      <div class="metrics-row">
+        <div class="metric"><div class="metric-label">Bank In (Debit)</div><div class="metric-value d" id="bank-d">₹0</div></div>
+        <div class="metric"><div class="metric-label">Bank Out (Credit)</div><div class="metric-value c" id="bank-c">₹0</div></div>
+        <div class="metric"><div class="metric-label">Bank Balance</div><div class="metric-value b" id="bank-b">₹0</div></div>
+      </div>
+      <div class="agg-code" id="bank-agg">{ totalDebit: 0, totalCredit: 0, balance: 0 }</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">Shop Total</div>
+    <div class="metrics-row">
+      <div class="metric"><div class="metric-label">Cash + Bank</div><div class="metric-value b" id="shop-total">₹0</div></div>
+      <div class="metric"><div class="metric-label">Customer baaki</div><div class="metric-value d" id="cust-bal">₹0</div></div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#aaa;margin-top:8px">Ledger tab mein transactions add karo — yahan live update hoga.</p>
+</div>
+
+<!-- ===================== CONCEPTS TAB ===================== -->
+<div id="tab-concepts" class="panel">
+
+  <div class="concept-card">
+    <div class="concept-title">Ledger kya hota hai?</div>
+    <div class="concept-body">
+      Ek register jisme shop ka har lena-dena record hota hai — customer ne kitna kharida, supplier ko kitna dena hai, cash/bank mein kitna balance hai. Yeh sab ek jagah = <code>LedgerEntry</code> collection.
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Double Entry System</div>
+    <div class="concept-body">
+      Har transaction mein <strong>2 entries</strong> banti hain — ek DEBIT, ek CREDIT.<br><br>
+      <strong>Rule:</strong> Jo lega → DEBIT &nbsp;|&nbsp; Jo dega → CREDIT
+      <table class="concept-table">
+        <tr><th>Transaction</th><th>DEBIT</th><th>CREDIT</th></tr>
+        <tr><td>Customer ne necklace kharidi</td><td><span class="tag-debit">Customer</span></td><td><span class="tag-credit">CASH</span></td></tr>
+        <tr><td>Customer ne UPI se kharida</td><td><span class="tag-debit">Customer</span></td><td><span class="tag-credit">BANK</span></td></tr>
+        <tr><td>Customer ne payment diya</td><td><span class="tag-debit">CASH</span></td><td><span class="tag-credit">Customer</span></td></tr>
+        <tr><td>Supplier se sona kharida</td><td><span class="tag-debit">Inventory</span></td><td><span class="tag-credit">Supplier</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Constants kyun?</div>
+    <div class="concept-body">
+      Hardcoded strings likhne se typo ho sakti hai. Constants use karo taaki code safe rahe.<br><br>
+      <code>'debit'</code> likhne ki jagah → <code>LEDGER_ENTRY_TYPES.DEBIT</code>
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">Model — enum, refPath, index</div>
+    <div class="concept-body">
+      <table class="concept-table">
+        <tr><th>Field</th><th>Kya karta hai</th></tr>
+        <tr><td><code>enum</code></td><td>Sirf allowed values accept karta hai — invalid values reject hoti hain</td></tr>
+        <tr><td><code>refPath</code></td><td>Dynamic collection — partyModel ki value dekhke Customer ya Supplier collection mein jaata hai</td></tr>
+        <tr><td><code>index</code></td><td>MongoDB queries fast karta hai — ek hi baar mein shopId + partyId + date filter</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">session parameter kyun?</div>
+    <div class="concept-body">
+      Ek sale mein 2 entries ek saath banani hoti hain. Agar beech mein error aaye toh incomplete state na bane — isliye MongoDB Transaction use karte hain.<br><br>
+      <code>session hai</code> → ya dono entries banegi ya koi nahi (Atomicity) ✅
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">getPartyBalance — Aggregation Pipeline</div>
+    <div class="concept-body">
+      <table class="concept-table">
+        <tr><th>Step</th><th>Kya karta hai</th></tr>
+        <tr><td><code>$match</code></td><td>Sirf us party ki active entries filter karo</td></tr>
+        <tr><td><code>$group</code></td><td>totalDebit aur totalCredit sum karo — debit hai toh amount lo warna 0</td></tr>
+        <tr><td><code>$project</code></td><td>balance = totalDebit - totalCredit calculate karo</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="concept-card">
+    <div class="concept-title">reverseEntry — Kabhi Delete nahi</div>
+    <div class="concept-body">
+      Ledger ka golden rule: entries delete nahi hoti — sirf reverse hoti hain. Isse <strong>audit trail</strong> bana rehta hai.<br><br>
+      Galat DEBIT entry → CREDIT reverse entry banao → original ko <code>REVERSED</code> mark karo.
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ---- Double Entry Data ----
+const deFlows = {
+  sale:     { title: 'Sale — Customer ne necklace kharidi (cash)', debit: 'Customer', debitWhy: 'Usne cheez li', credit: 'CASH', creditWhy: 'Shop mein cash aaya', amount: '₹15,000', rule: 'Customer ne cheez <b>li</b> → DEBIT &nbsp;|&nbsp; Shop ko paisa <b>mila</b> → CREDIT' },
+  payment:  { title: 'Payment — Customer ne cash diya', debit: 'CASH', debitWhy: 'Shop mein cash aaya', credit: 'Customer', creditWhy: 'Uski debt kam hui', amount: '₹5,000', rule: 'CASH ne paisa <b>liya</b> → DEBIT &nbsp;|&nbsp; Customer ki debt <b>credit</b> hui → CREDIT' },
+  purchase: { title: 'Purchase — Supplier se sona kharida', debit: 'Inventory', debitWhy: 'Shop ne sona liya', credit: 'Supplier', creditWhy: 'Supplier ne sona diya', amount: '₹8,000', rule: 'Shop ne sona <b>liya</b> → DEBIT &nbsp;|&nbsp; Supplier ne sona <b>diya</b> → CREDIT' },
+  advance:  { title: 'Advance — Customer ne pehle paisa diya', debit: 'CASH', debitWhy: 'Shop mein cash aaya', credit: 'Customer', creditWhy: 'Advance mile — uska credit', amount: '₹2,000', rule: 'CASH ne advance <b>liya</b> → DEBIT &nbsp;|&nbsp; Customer ka advance <b>credit</b> hua → CREDIT' },
+  upi:      { title: 'UPI Sale — Customer ne online pay kiya', debit: 'Customer', debitWhy: 'Usne cheez li', credit: 'BANK', creditWhy: 'Shop ke bank mein paisa aaya', amount: '₹10,000', rule: 'Customer ne cheez <b>li</b> → DEBIT &nbsp;|&nbsp; Bank mein paisa <b>aaya</b> → CREDIT' },
+};
+
+function showDE(key, btn) {
+  const f = deFlows[key];
+  document.querySelectorAll('.tx-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('de-title').textContent = f.title;
+  document.getElementById('de-debit-name').textContent = f.debit;
+  document.getElementById('de-debit-why').textContent = f.debitWhy;
+  document.getElementById('de-credit-name').textContent = f.credit;
+  document.getElementById('de-credit-why').textContent = f.creditWhy;
+  document.getElementById('de-amount').textContent = f.amount;
+  document.getElementById('de-rule').innerHTML = 'Rule: ' + f.rule;
+}
+
+// ---- Ledger State ----
+let entries = [], entryId = 1, payMode = 'cash';
+
+const txDefs = {
+  sale:     { desc: 'Necklace sale',    debitParty: 'Customer',   creditParty: '__SHOP__', amount: 15000, refType: 'sale' },
+  payment:  { desc: 'Customer payment', debitParty: '__SHOP__',   creditParty: 'Customer', amount: 5000,  refType: 'payment' },
+  purchase: { desc: 'Gold purchase',    debitParty: 'Inventory',  creditParty: '__SHOP__', amount: 8000,  refType: 'purchase' },
+  advance:  { desc: 'Advance received', debitParty: '__SHOP__',   creditParty: 'Customer', amount: 2000,  refType: 'advance' },
+};
+
+function shopLabel() { return payMode === 'cash' ? 'CASH' : 'BANK'; }
+function fmt(n) { return '₹' + n.toLocaleString('en-IN'); }
+
+function setMode(m) {
+  payMode = m;
+  document.getElementById('pill-cash').classList.toggle('active', m === 'cash');
+  document.getElementById('pill-bank').classList.toggle('active', m === 'bank');
+}
+
+function addEntry(type) {
+  const d = txDefs[type];
+  entries.push({
+    id: entryId++, type, mode: payMode,
+    desc: d.desc,
+    debitParty:  d.debitParty  === '__SHOP__' ? shopLabel() : d.debitParty,
+    creditParty: d.creditParty === '__SHOP__' ? shopLabel() : d.creditParty,
+    amount: d.amount, refType: d.refType, reversed: false
+  });
+  renderLedger();
+}
+
+function reverseEntry(id) {
+  const e = entries.find(x => x.id === id);
+  if (e) { e.reversed = true; renderLedger(); }
+}
+
+function resetLedger() { entries = []; entryId = 1; renderLedger(); }
+
+function sum(arr, fn) { return arr.reduce((s, e) => s + fn(e), 0); }
+
+function renderLedger() {
+  const active = entries.filter(e => !e.reversed);
+  const custD = sum(active, e => e.debitParty  === 'Customer' ? e.amount : 0);
+  const custC = sum(active, e => e.creditParty === 'Customer' ? e.amount : 0);
+  const cashD = sum(active, e => e.debitParty  === 'CASH'     ? e.amount : 0);
+  const cashC = sum(active, e => e.creditParty === 'CASH'     ? e.amount : 0);
+  const bankD = sum(active, e => e.debitParty  === 'BANK'     ? e.amount : 0);
+  const bankC = sum(active, e => e.creditParty === 'BANK'     ? e.amount : 0);
+
+  document.getElementById('m-debit').textContent   = fmt(custD);
+  document.getElementById('m-credit').textContent  = fmt(custC);
+  document.getElementById('m-balance').textContent = fmt(custD - custC);
+  document.getElementById('cash-d').textContent    = fmt(cashD);
+  document.getElementById('cash-c').textContent    = fmt(cashC);
+  document.getElementById('cash-b').textContent    = fmt(cashD - cashC);
+  document.getElementById('bank-d').textContent    = fmt(bankD);
+  document.getElementById('bank-c').textContent    = fmt(bankC);
+  document.getElementById('bank-b').textContent    = fmt(bankD - bankC);
+  document.getElementById('shop-total').textContent = fmt((cashD - cashC) + (bankD - bankC));
+  document.getElementById('cust-bal').textContent   = fmt(custD - custC);
+  document.getElementById('cash-agg').textContent   = `{ totalDebit: ${cashD}, totalCredit: ${cashC}, balance: ${cashD - cashC} }`;
+  document.getElementById('bank-agg').textContent   = `{ totalDebit: ${bankD}, totalCredit: ${bankC}, balance: ${bankD - bankC} }`;
+
+  const el = document.getElementById('entries-list');
+  if (!entries.length) { el.innerHTML = '<div class="empty-msg">Koi entry nahi — upar se transaction add karo!</div>'; return; }
+
+  el.innerHTML = entries.map(e => `
+    <div class="entry-row" style="${e.reversed ? 'opacity:.4' : ''}">
+      <span class="badge d">DEBIT</span>
+      <div class="entry-desc">${e.desc} <span class="entry-party">(${e.debitParty})</span></div>
+      <span class="entry-amt d">${fmt(e.amount)}</span>
+      ${e.reversed
+        ? '<span class="reversed-tag">reversed</span>'
+        : `<button class="rev-btn" onclick="reverseEntry(${e.id})">↩ reverse</button>`}
+    </div>
+    <div class="entry-row" style="${e.reversed ? 'opacity:.4' : ''}">
+      <span class="badge c">CREDIT</span>
+      <div class="entry-desc">${e.desc} <span class="entry-party">(${e.creditParty})</span></div>
+      <span class="entry-amt c">${fmt(e.amount)}</span>
+    </div>`).join('');
+}
+
+// ---- Tabs ----
+function showTab(name) {
+  const names = ['double-entry','ledger','balance','concepts'];
+  names.forEach((t, i) => {
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active', t === name);
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+  });
+}
+</script>
+</body>
+</html>

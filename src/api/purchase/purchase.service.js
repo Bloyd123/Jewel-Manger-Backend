@@ -1,19 +1,19 @@
 // FILE: src/api/services/purchase.service.js
-// Purchase Module Service - Business Logic Layer
+// Purchase Service - UPDATED (Payment module se integrate kiya)
 
 import Purchase from '../../models/Purchase.js';
+import Payment from '../../models/Payment.js';
 import eventLogger from '../../utils/eventLogger.js';
 import { businessLogger } from '../../utils/logger.js';
-import APIFeatures from '../../utils/apiFeatures.js';
-import { getPaginationData } from '../../utils/pagination.js';
 import {
   increaseStock,
   createProductFromPurchase,
 } from '../inventory/inventory.service.js';
 import Supplier from '../../models/Supplier.js';
+import LedgerEntry from '../ledger/ledger.model.js'; 
 import {
   createDebitEntry,
-  createCreditEntry,
+  reverseEntry,
 } from '../ledger/ledger.service.js';
 import { NotFoundError, BadRequestError, ValidationError } from '../../utils/AppError.js';
 
@@ -91,21 +91,18 @@ export const getAllPurchases = async (shopId, filters) => {
     search,
   } = filters;
 
-  // Build query
   const query = { shopId, deletedAt: null };
 
   if (supplierId) query.supplierId = supplierId;
   if (status) query.status = status;
   if (paymentStatus) query['payment.paymentStatus'] = paymentStatus;
 
-  // Date range filter
   if (startDate || endDate) {
     query.purchaseDate = {};
     if (startDate) query.purchaseDate.$gte = new Date(startDate);
     if (endDate) query.purchaseDate.$lte = new Date(endDate);
   }
 
-  // Search
   if (search) {
     query.$or = [
       { purchaseNumber: new RegExp(search, 'i') },
@@ -113,10 +110,8 @@ export const getAllPurchases = async (shopId, filters) => {
     ];
   }
 
-  // Get total count
   const total = await Purchase.countDocuments(query);
 
-  // Execute query with pagination
   const purchases = await Purchase.find(query)
     .sort(sort)
     .skip((page - 1) * limit)
@@ -161,18 +156,15 @@ export const updatePurchase = async (purchaseId, data, userId) => {
     throw new NotFoundError('Purchase not found');
   }
 
-  // Check if purchase can be edited
   if (!['draft', 'pending'].includes(purchase.status)) {
     throw new BadRequestError('Cannot edit completed or cancelled purchases');
   }
 
-  // Update fields
   Object.assign(purchase, data);
   purchase.updatedBy = userId;
 
   await purchase.save();
 
-  // Log activity
   await eventLogger.logPurchase(
     userId,
     purchase.organizationId,
@@ -202,7 +194,6 @@ export const deletePurchase = async purchaseId => {
 
   await purchase.softDelete();
 
-  // Log activity
   await eventLogger.logPurchase(
     purchase.createdBy,
     purchase.organizationId,
@@ -215,12 +206,6 @@ export const deletePurchase = async purchaseId => {
 
   return { message: 'Purchase deleted successfully' };
 };
-
-// 2. PURCHASE STATUS MANAGEMENT
-
-/**
- * Update purchase status
- */
 export const updatePurchaseStatus = async (purchaseId, status, userId) => {
   const purchase = await Purchase.findById(purchaseId);
 
@@ -234,7 +219,6 @@ export const updatePurchaseStatus = async (purchaseId, status, userId) => {
 
   await purchase.save();
 
-  // Log activity
   await eventLogger.logPurchase(
     userId,
     purchase.organizationId,
@@ -250,6 +234,7 @@ export const updatePurchaseStatus = async (purchaseId, status, userId) => {
 
 /**
  * Mark purchase as received (update inventory)
+ * NOTE: Ledger mein sirf due amount ki debit entry — Payment module credit entry karega
  */
 export const receivePurchase = async (purchaseId, receiveData, userId) => {
   const purchase = await Purchase.findById(purchaseId);
@@ -262,7 +247,6 @@ export const receivePurchase = async (purchaseId, receiveData, userId) => {
     throw new BadRequestError('Purchase already marked as received');
   }
 
-  // Update purchase status
   purchase.status = 'completed';
   purchase.delivery.receivedDate = receiveData.receivedDate || new Date();
   purchase.delivery.receivedBy = receiveData.receivedBy || userId;
@@ -270,53 +254,51 @@ export const receivePurchase = async (purchaseId, receiveData, userId) => {
 
   await purchase.save();
 
-  // Update inventory for each item
   for (const item of purchase.items) {
     if (item.productId) {
-await increaseStock({
-  organizationId: purchase.organizationId,
-  shopId: purchase.shopId,
-  productId: item.productId,
-  quantity: item.quantity,
-  referenceId: purchase._id,
-  referenceNumber: purchase.purchaseNumber,
-  value: item.itemTotal,
-  performedBy: userId,
-});
-      
+      await increaseStock({
+        organizationId: purchase.organizationId,
+        shopId: purchase.shopId,
+        productId: item.productId,
+        quantity: item.quantity,
+        referenceId: purchase._id,
+        referenceNumber: purchase.purchaseNumber,
+        value: item.itemTotal,
+        performedBy: userId,
+      });
     } else {
-await createProductFromPurchase({
-  organizationId: purchase.organizationId,
-  shopId: purchase.shopId,
-  item,
-  purchaseId: purchase._id,
-  purchaseNumber: purchase.purchaseNumber,
-  supplierId: purchase.supplierId,
-  supplierDetails: purchase.supplierDetails,
-  userId,
-});
+      await createProductFromPurchase({
+        organizationId: purchase.organizationId,
+        shopId: purchase.shopId,
+        item,
+        purchaseId: purchase._id,
+        purchaseNumber: purchase.purchaseNumber,
+        supplierId: purchase.supplierId,
+        supplierDetails: purchase.supplierDetails,
+        userId,
+      });
     }
   }
 
-  // Update supplier balance
-if (purchase.payment.dueAmount > 0) {
-  await createDebitEntry({
-    organizationId: purchase.organizationId,
-    shopId: purchase.shopId,
-    partyType: 'supplier',
-    partyId: purchase.supplierId,
-    partyModel: 'Supplier',
-    partyName: purchase.supplierDetails.supplierName,
-    amount: purchase.payment.dueAmount,
-    referenceType: 'purchase',
-    referenceId: purchase._id,
-    referenceNumber: purchase.purchaseNumber,
-    description: `Purchase received - ${purchase.purchaseNumber}`,
-    createdBy: userId,
-  });
-}
+  // Ledger mein supplier ka due amount debit karo
+  // Matlab humpar supplier ka itna paisa baaki hai
+  if (purchase.payment.dueAmount > 0) {
+    await createDebitEntry({
+      organizationId: purchase.organizationId,
+      shopId: purchase.shopId,
+      partyType: 'supplier',
+      partyId: purchase.supplierId,
+      partyModel: 'Supplier',
+      partyName: purchase.supplierDetails.supplierName,
+      amount: purchase.payment.dueAmount,
+      referenceType: 'purchase',
+      referenceId: purchase._id,
+      referenceNumber: purchase.purchaseNumber,
+      description: `Purchase received - ${purchase.purchaseNumber}`,
+      createdBy: userId,
+    });
+  }
 
-  // Log activity
   await eventLogger.logPurchase(
     userId,
     purchase.organizationId,
@@ -330,10 +312,8 @@ if (purchase.payment.dueAmount > 0) {
   return purchase;
 };
 
-/**
- * Cancel purchase
- */
-export const cancelPurchase = async (purchaseId, reason) => {
+
+export const cancelPurchase = async (purchaseId, reason, userId) => {
   const purchase = await Purchase.findById(purchaseId);
 
   if (!purchase) {
@@ -344,9 +324,22 @@ export const cancelPurchase = async (purchaseId, reason) => {
     throw new BadRequestError('Cannot cancel completed purchase');
   }
 
+  const ledgerEntry = await LedgerEntry.findOne({
+    referenceId: purchase._id,
+    referenceType: 'purchase',
+    status: 'active',
+  });
+
+  if (ledgerEntry) {
+    await reverseEntry({
+      entryId: ledgerEntry._id,
+      createdBy: userId,
+      description: `Purchase cancelled - ${purchase.purchaseNumber}`,
+    });
+  }
+
   await purchase.cancel();
 
-  // Log activity
   await eventLogger.logPurchase(
     purchase.createdBy,
     purchase.organizationId,
@@ -360,11 +353,6 @@ export const cancelPurchase = async (purchaseId, reason) => {
   return purchase;
 };
 
-// 3. PURCHASE APPROVAL
-
-/**
- * Approve purchase
- */
 export const approvePurchase = async (purchaseId, userId, notes) => {
   const purchase = await Purchase.findById(purchaseId);
 
@@ -378,7 +366,6 @@ export const approvePurchase = async (purchaseId, userId, notes) => {
 
   await purchase.approve(userId);
 
-  // Log activity
   await eventLogger.logPurchase(
     userId,
     purchase.organizationId,
@@ -392,9 +379,6 @@ export const approvePurchase = async (purchaseId, userId, notes) => {
   return purchase;
 };
 
-/**
- * Reject purchase
- */
 export const rejectPurchase = async (purchaseId, userId, reason) => {
   const purchase = await Purchase.findById(purchaseId);
 
@@ -408,7 +392,6 @@ export const rejectPurchase = async (purchaseId, userId, reason) => {
 
   await purchase.reject(userId, reason);
 
-  // Log activity
   await eventLogger.logPurchase(
     userId,
     purchase.organizationId,
@@ -422,79 +405,24 @@ export const rejectPurchase = async (purchaseId, userId, reason) => {
   return purchase;
 };
 
-// 4. PAYMENT MANAGEMENT
 
-/**
- * Add payment to purchase
- */
-export const addPayment = async (purchaseId, paymentData, userId) => {
+export const getPurchasePayments = async (shopId, purchaseId) => {
   const purchase = await Purchase.findById(purchaseId);
+  if (!purchase) throw new NotFoundError('Purchase not found');
 
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
-  }
+  const payments = await Payment.find({
+    'reference.referenceId': purchaseId,
+    'reference.referenceType': 'purchase',
+    shopId,
+    deletedAt: null,
+  })
+    .sort({ paymentDate: -1 })
+    .populate('processedBy', 'firstName lastName')
+    .lean();
 
-  // Add received by
-  paymentData.receivedBy = userId;
-
-  await purchase.addPayment(paymentData);
-
-  // Update supplier balance
-await createCreditEntry({
-  organizationId: purchase.organizationId,
-  shopId: purchase.shopId,
-  partyType: 'supplier',
-  partyId: purchase.supplierId,
-  partyModel: 'Supplier',
-  partyName: purchase.supplierDetails.supplierName,
-  amount: paymentData.amount,
-  referenceType: 'payment',
-  referenceId: purchase._id,
-  referenceNumber: purchase.purchaseNumber,
-  description: `Payment made to supplier - ${purchase.purchaseNumber}`,
-  createdBy: userId,
-});
-
-  // Log activity
-  await eventLogger.logPurchase(
-    userId,
-    purchase.organizationId,
-    purchase.shopId,
-    'payment',
-    purchase._id,
-    `Added payment of ${paymentData.amount} to purchase ${purchase.purchaseNumber}`,
-    { purchaseNumber: purchase.purchaseNumber, amount: paymentData.amount }
-  );
-
-  businessLogger.logPayment({
-    userId,
-    shopId: purchase.shopId,
-    paymentType: 'purchase',
-    amount: paymentData.amount,
-    partyId: purchase.supplierId,
-  });
-
-  return purchase;
+  return payments;
 };
 
-/**
- * Get all payments for a purchase
- */
-export const getPayments = async purchaseId => {
-  const purchase = await Purchase.findById(purchaseId).select('payment');
-
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
-  }
-
-  return purchase.payment.payments;
-};
-
-// 5. SUPPLIER-SPECIFIC PURCHASES
-
-/**
- * Get all purchases from a specific supplier
- */
 export const getPurchasesBySupplier = async (shopId, supplierId, filters) => {
   const { page = 1, limit = 20, status, paymentStatus } = filters;
 
@@ -519,11 +447,6 @@ export const getPurchasesBySupplier = async (shopId, supplierId, filters) => {
   };
 };
 
-// 6. PURCHASE ANALYTICS & REPORTS
-
-/**
- * Get purchase analytics & summary
- */
 export const getPurchaseAnalytics = async (shopId, filters) => {
   const { startDate, endDate } = filters;
 
@@ -535,28 +458,23 @@ export const getPurchaseAnalytics = async (shopId, filters) => {
     if (endDate) query.purchaseDate.$lte = new Date(endDate);
   }
 
-  // Total purchases
   const totalPurchases = await Purchase.countDocuments(query);
 
-  // Total purchase value
   const totalValue = await Purchase.aggregate([
     { $match: query },
     { $group: { _id: null, total: { $sum: '$financials.grandTotal' } } },
   ]);
 
-  // Pending purchases
   const pendingPurchases = await Purchase.countDocuments({
     ...query,
     status: { $in: ['draft', 'pending', 'ordered'] },
   });
 
-  // Payment status breakdown
   const paymentBreakdown = await Purchase.aggregate([
     { $match: query },
     { $group: { _id: '$payment.paymentStatus', count: { $sum: 1 } } },
   ]);
 
-  // Top suppliers
   const topSuppliers = await Purchase.aggregate([
     { $match: query },
     {
@@ -579,7 +497,6 @@ export const getPurchaseAnalytics = async (shopId, filters) => {
     { $unwind: '$supplier' },
   ]);
 
-  // Monthly trend
   const monthlyTrend = await Purchase.aggregate([
     { $match: query },
     {
@@ -606,27 +523,18 @@ export const getPurchaseAnalytics = async (shopId, filters) => {
   };
 };
 
-/**
- * Get all pending/incomplete purchases
- */
+
 export const getPendingPurchases = async shopId => {
   return Purchase.findPending(shopId).populate('supplierId', 'businessName supplierCode');
 };
 
-/**
- * Get all unpaid/partially paid purchases
- */
+
 export const getUnpaidPurchases = async shopId => {
   return Purchase.findUnpaid(shopId).populate('supplierId', 'businessName supplierCode');
 };
 
-// 7. BULK OPERATIONS
 
-/**
- * Bulk delete multiple purchases (draft only)
- */
 export const bulkDeletePurchases = async purchaseIds => {
-  // Validate all are draft
   const purchases = await Purchase.find({
     _id: { $in: purchaseIds },
     status: 'draft',
@@ -636,15 +544,12 @@ export const bulkDeletePurchases = async purchaseIds => {
     throw new BadRequestError('Only draft purchases can be deleted');
   }
 
-  // Soft delete all
   await Purchase.updateMany({ _id: { $in: purchaseIds } }, { $set: { deletedAt: new Date() } });
 
   return { deletedCount: purchases.length };
 };
 
-/**
- * Bulk approve multiple purchases
- */
+
 export const bulkApprovePurchases = async (purchaseIds, userId) => {
   const purchases = await Purchase.find({
     _id: { $in: purchaseIds },
@@ -661,11 +566,6 @@ export const bulkApprovePurchases = async (purchaseIds, userId) => {
   return { approvedCount };
 };
 
-// 8. PURCHASE DOCUMENTS
-
-/**
- * Upload purchase-related documents
- */
 export const uploadDocument = async (purchaseId, documentData) => {
   const purchase = await Purchase.findById(purchaseId);
 
@@ -679,9 +579,7 @@ export const uploadDocument = async (purchaseId, documentData) => {
   return purchase;
 };
 
-/**
- * Get all documents for a purchase
- */
+
 export const getDocuments = async purchaseId => {
   const purchase = await Purchase.findById(purchaseId).select('documents');
 
@@ -692,11 +590,6 @@ export const getDocuments = async purchaseId => {
   return purchase.documents;
 };
 
-// 9. PURCHASE FILTERS & SEARCH
-
-/**
- * Quick search purchases
- */
 export const searchPurchases = async (shopId, searchQuery, limit = 20) => {
   const query = {
     shopId,
@@ -714,9 +607,6 @@ export const searchPurchases = async (shopId, searchQuery, limit = 20) => {
     .lean();
 };
 
-/**
- * Get purchases within date range
- */
 export const getPurchasesByDateRange = async (shopId, startDate, endDate, page, limit) => {
   const query = {
     shopId,

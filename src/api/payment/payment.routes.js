@@ -2,7 +2,51 @@
 // Payment Routes - Complete Payment Module (43 Routes)
 
 import express from 'express';
-import paymentController from './payment.controller.js';
+import {
+  createPaymentHandler,
+  getAllPaymentsHandler,
+  getPaymentByIdHandler,
+  updatePaymentHandler,
+  deletePaymentHandler,
+  updatePaymentStatusHandler,
+  markAsCompletedHandler,
+  cancelPaymentHandler,
+  getPendingChequesHandler,
+  clearChequeHandler,
+  bounceChequeHandler,
+  getBouncedChequesHandler,
+  getClearedChequesHandler,
+  getUnreconciledPaymentsHandler,
+  reconcilePaymentHandler,
+  getReconciliationSummaryHandler,
+  getReceiptHandler,
+  sendReceiptHandler,
+  regenerateReceiptHandler,
+  getPartyPaymentsHandler,
+  getPartyPaymentSummaryHandler,
+  getCustomerPaymentsHandler,
+  getSupplierPaymentsHandler,
+  getPaymentsByModeHandler,
+  getCashCollectionHandler,
+  getDigitalCollectionHandler,
+  getPaymentAnalyticsHandler,
+  getPaymentDashboardHandler,
+  getTodayPaymentsHandler,
+  getPendingPaymentsHandler,
+  getFailedPaymentsHandler,
+  getSalePaymentsHandler,
+  getPurchasePaymentsHandler,
+  searchPaymentsHandler,
+  getPaymentsByDateRangeHandler,
+  getPaymentsByAmountRangeHandler,
+  bulkReconcilePaymentsHandler,
+  bulkExportPaymentsHandler,
+  bulkPrintReceiptsHandler,
+  approvePaymentHandler,
+  rejectPaymentHandler,
+  processRefundHandler,
+  getRefundsHandler,
+} from './payment.controller.js';
 import { authenticate } from '../middlewares/auth.js';
 import { restrictTo } from '../middlewares/restrictTo.js';
 import { checkShopAccess, checkPermission } from '../middlewares/checkShopAccess.js';
@@ -29,16 +73,17 @@ import {
 const router = express.Router();
 
 // APPLY AUTHENTICATION TO ALL ROUTES
-
 router.use(authenticate);
 
+// ============================================================
 // 1. PAYMENT CRUD OPERATIONS (5 routes)
+// ============================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments
  * @desc    Create new payment/receipt
- * @access  Private (super_admin, org_admin, shop_admin, manager, staff, accountant)
- * @permission canReceivePayments OR canMakePayments
+ * @access  Private
+ * @permission canReceivePayments
  */
 router.post(
   '/:shopId/payments',
@@ -46,13 +91,13 @@ router.post(
   createPaymentValidation,
   checkShopAccess,
   checkPermission('canReceivePayments'),
-  paymentController.createPayment
+  createPaymentHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments
  * @desc    Get all payments with filters
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -61,13 +106,13 @@ router.get(
   getPaymentsValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getAllPayments
+  getAllPaymentsHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/:paymentId
  * @desc    Get single payment details
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -75,13 +120,13 @@ router.get(
   paymentIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getPaymentById
+  getPaymentByIdHandler
 );
 
 /**
  * @route   PUT /api/v1/shops/:shopId/payments/:paymentId
  * @desc    Update payment (only pending status)
- * @access  Private (super_admin, org_admin, shop_admin, manager, accountant)
+ * @access  Private
  * @permission canMakePayments
  */
 router.put(
@@ -89,7 +134,7 @@ router.put(
   updatePaymentValidation,
   checkShopAccess,
   checkPermission('canMakePayments'),
-  paymentController.updatePayment
+  updatePaymentHandler
 );
 
 /**
@@ -104,15 +149,17 @@ router.delete(
   checkShopAccess,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkPermission('canDeleteRecords'),
-  paymentController.deletePayment
+  deletePaymentHandler
 );
 
+// ============================================================
 // 2. PAYMENT STATUS MANAGEMENT (3 routes)
+// ============================================================
 
 /**
  * @route   PATCH /api/v1/shops/:shopId/payments/:paymentId/status
  * @desc    Update payment status
- * @access  Private (super_admin, org_admin, shop_admin, accountant)
+ * @access  Private
  * @permission canMakePayments
  */
 router.patch(
@@ -120,13 +167,13 @@ router.patch(
   updatePaymentStatusValidation,
   checkShopAccess,
   checkPermission('canMakePayments'),
-  paymentController.updatePaymentStatus
+  updatePaymentStatusHandler
 );
 
 /**
  * @route   PATCH /api/v1/shops/:shopId/payments/:paymentId/complete
  * @desc    Mark payment as completed
- * @access  Private (super_admin, org_admin, shop_admin, manager, accountant)
+ * @access  Private
  * @permission canMakePayments
  */
 router.patch(
@@ -134,7 +181,7 @@ router.patch(
   paymentIdValidation,
   checkShopAccess,
   checkPermission('canMakePayments'),
-  paymentController.markAsCompleted
+  markAsCompletedHandler
 );
 
 /**
@@ -149,15 +196,17 @@ router.patch(
   checkShopAccess,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkPermission('canDeleteRecords'),
-  paymentController.cancelPayment
+  cancelPaymentHandler
 );
 
+// ============================================================
 // 3. CHEQUE MANAGEMENT (5 routes)
+// ============================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/cheques/pending
  * @desc    Get all pending cheques
- * @access  Private (super_admin, org_admin, shop_admin, manager, accountant)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -165,13 +214,13 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getPendingCheques
+  getPendingChequesHandler
 );
 
 /**
  * @route   PATCH /api/v1/shops/:shopId/payments/:paymentId/cheque/clear
  * @desc    Mark cheque as cleared
- * @access  Private (super_admin, org_admin, shop_admin, accountant)
+ * @access  Private
  * @permission canMakePayments
  */
 router.patch(
@@ -179,13 +228,13 @@ router.patch(
   chequeClearanceValidation,
   checkShopAccess,
   checkPermission('canMakePayments'),
-  paymentController.clearCheque
+  clearChequeHandler
 );
 
 /**
  * @route   PATCH /api/v1/shops/:shopId/payments/:paymentId/cheque/bounce
  * @desc    Mark cheque as bounced
- * @access  Private (super_admin, org_admin, shop_admin, accountant)
+ * @access  Private
  * @permission canMakePayments
  */
 router.patch(
@@ -193,13 +242,13 @@ router.patch(
   chequeBounceValidation,
   checkShopAccess,
   checkPermission('canMakePayments'),
-  paymentController.bounceCheque
+  bounceChequeHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/cheques/bounced
  * @desc    Get all bounced cheques
- * @access  Private (super_admin, org_admin, shop_admin, manager, accountant)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -207,13 +256,13 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getBouncedCheques
+  getBouncedChequesHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/cheques/cleared
  * @desc    Get all cleared cheques (within date range)
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -221,15 +270,17 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getClearedCheques
+  getClearedChequesHandler
 );
 
+// ============================================================
 // 4. RECONCILIATION (3 routes)
+// ============================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/reconciliation/pending
  * @desc    Get unreconciled payments
- * @access  Private (super_admin, org_admin, shop_admin, accountant)
+ * @access  Private
  * @permission canViewFinancials
  */
 router.get(
@@ -237,13 +288,13 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewFinancials'),
-  paymentController.getUnreconciledPayments
+  getUnreconciledPaymentsHandler
 );
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/:paymentId/reconcile
  * @desc    Reconcile payment with bank statement
- * @access  Private (super_admin, org_admin, shop_admin, accountant)
+ * @access  Private
  * @permission canManageFinancials
  */
 router.post(
@@ -251,13 +302,13 @@ router.post(
   reconcilePaymentValidation,
   checkShopAccess,
   checkPermission('canManageFinancials'),
-  paymentController.reconcilePayment
+  reconcilePaymentHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/reconciliation/summary
  * @desc    Reconciliation summary report
- * @access  Private (super_admin, org_admin, shop_admin, accountant)
+ * @access  Private
  * @permission canViewFinancials
  */
 router.get(
@@ -265,15 +316,17 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewFinancials'),
-  paymentController.getReconciliationSummary
+  getReconciliationSummaryHandler
 );
 
+// ============================================================
 // 5. RECEIPT GENERATION (3 routes)
+// ============================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/:paymentId/receipt
  * @desc    Generate/Download payment receipt
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -281,13 +334,13 @@ router.get(
   paymentIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getReceipt
+  getReceiptHandler
 );
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/:paymentId/receipt/send
  * @desc    Send receipt via Email/SMS/WhatsApp
- * @access  Private (super_admin, org_admin, shop_admin, manager, staff, accountant)
+ * @access  Private
  * @permission canMakePayments
  */
 router.post(
@@ -295,13 +348,13 @@ router.post(
   sendReceiptValidation,
   checkShopAccess,
   checkPermission('canMakePayments'),
-  paymentController.sendReceipt
+  sendReceiptHandler
 );
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/:paymentId/receipt/regenerate
  * @desc    Regenerate receipt (if lost)
- * @access  Private (super_admin, org_admin, shop_admin, accountant)
+ * @access  Private
  * @permission canMakePayments
  */
 router.post(
@@ -309,15 +362,17 @@ router.post(
   paymentIdValidation,
   checkShopAccess,
   checkPermission('canMakePayments'),
-  paymentController.regenerateReceipt
+  regenerateReceiptHandler
 );
 
+// ============================================================
 // 6. PARTY-SPECIFIC PAYMENTS (4 routes)
+// ============================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/party/:partyId
  * @desc    Get all payments for a party (customer/supplier)
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -325,54 +380,56 @@ router.get(
   partyPaymentsValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getPartyPayments
+  getPartyPaymentsHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/party/:partyId/summary
  * @desc    Party payment summary
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
   '/:shopId/payments/party/:partyId/summary',
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getPartyPaymentSummary
+  getPartyPaymentSummaryHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/customers/:customerId
  * @desc    Get customer payments only
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
   '/:shopId/payments/customers/:customerId',
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getCustomerPayments
+  getCustomerPaymentsHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/suppliers/:supplierId
  * @desc    Get supplier payments only
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
   '/:shopId/payments/suppliers/:supplierId',
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getSupplierPayments
+  getSupplierPaymentsHandler
 );
 
+// ============================================================
 // 7. PAYMENT MODE ANALYTICS (3 routes)
+// ============================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/by-mode
  * @desc    Payment breakdown by mode
- * @access  Private (super_admin, org_admin, shop_admin, manager, accountant)
+ * @access  Private
  * @permission canViewAnalytics
  */
 router.get(
@@ -380,13 +437,13 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewAnalytics'),
-  paymentController.getPaymentsByMode
+  getPaymentsByModeHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/cash-collection
  * @desc    Daily cash collection summary
- * @access  Private (super_admin, org_admin, shop_admin, manager, accountant)
+ * @access  Private
  * @permission canViewFinancials
  */
 router.get(
@@ -394,13 +451,13 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewFinancials'),
-  paymentController.getCashCollection
+  getCashCollectionHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/digital-collection
  * @desc    Digital payment summary (UPI/Card/Wallet)
- * @access  Private (super_admin, org_admin, shop_admin, manager, accountant)
+ * @access  Private
  * @permission canViewFinancials
  */
 router.get(
@@ -408,15 +465,17 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewFinancials'),
-  paymentController.getDigitalCollection
+  getDigitalCollectionHandler
 );
 
+// ============================================================
 // 8. PAYMENT ANALYTICS & REPORTS (5 routes)
+// ============================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/analytics
  * @desc    Comprehensive payment analytics
- * @access  Private (super_admin, org_admin, shop_admin, manager, accountant)
+ * @access  Private
  * @permission canViewAnalytics
  */
 router.get(
@@ -424,13 +483,13 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewAnalytics'),
-  paymentController.getPaymentAnalytics
+  getPaymentAnalyticsHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/dashboard
  * @desc    Payment dashboard (quick overview)
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewDashboard
  */
 router.get(
@@ -438,13 +497,13 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewDashboard'),
-  paymentController.getPaymentDashboard
+  getPaymentDashboardHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/today
  * @desc    Today's payment summary
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -452,13 +511,13 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getTodayPayments
+  getTodayPaymentsHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/pending
  * @desc    All pending payments
- * @access  Private (super_admin, org_admin, shop_admin, manager, accountant)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -466,13 +525,13 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getPendingPayments
+  getPendingPaymentsHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/failed
  * @desc    All failed payments
- * @access  Private (super_admin, org_admin, shop_admin, manager, accountant)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -480,43 +539,47 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getFailedPayments
+  getFailedPaymentsHandler
 );
 
+// ============================================================
 // 9. PAYMENT REFERENCES (2 routes)
+// ============================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/reference/sale/:saleId
  * @desc    Get all payments for a specific sale
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
   '/:shopId/payments/reference/sale/:saleId',
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getSalePayments
+  getSalePaymentsHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/reference/purchase/:purchaseId
  * @desc    Get all payments for a specific purchase
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
   '/:shopId/payments/reference/purchase/:purchaseId',
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getPurchasePayments
+  getPurchasePaymentsHandler
 );
 
+// ============================================================
 // 10. ADVANCED SEARCH & FILTERS (3 routes)
+// ============================================================
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/search
  * @desc    Quick search payments
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -524,13 +587,13 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.searchPayments
+  searchPaymentsHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/by-date-range
  * @desc    Get payments within date range
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -538,13 +601,13 @@ router.get(
   dateRangeValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getPaymentsByDateRange
+  getPaymentsByDateRangeHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/by-amount-range
  * @desc    Filter payments by amount range
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -552,15 +615,17 @@ router.get(
   amountRangeValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getPaymentsByAmountRange
+  getPaymentsByAmountRangeHandler
 );
 
+// ============================================================
 // 11. BULK OPERATIONS (3 routes)
+// ============================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/bulk-reconcile
  * @desc    Bulk reconcile multiple payments
- * @access  Private (super_admin, org_admin, shop_admin, accountant)
+ * @access  Private
  * @permission canManageFinancials
  */
 router.post(
@@ -568,13 +633,13 @@ router.post(
   bulkReconcileValidation,
   checkShopAccess,
   checkPermission('canManageFinancials'),
-  paymentController.bulkReconcilePayments
+  bulkReconcilePaymentsHandler
 );
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/bulk-export
  * @desc    Export payments to Excel/CSV
- * @access  Private (super_admin, org_admin, shop_admin, accountant)
+ * @access  Private
  * @permission canExportData
  */
 router.post(
@@ -582,13 +647,13 @@ router.post(
   bulkExportValidation,
   checkShopAccess,
   checkPermission('canExportData'),
-  paymentController.bulkExportPayments
+  bulkExportPaymentsHandler
 );
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/bulk-print-receipts
  * @desc    Bulk print receipts
- * @access  Private (All authenticated users)
+ * @access  Private
  * @permission canViewPayments
  */
 router.post(
@@ -596,10 +661,12 @@ router.post(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.bulkPrintReceipts
+  bulkPrintReceiptsHandler
 );
 
+// ============================================================
 // 12. PAYMENT APPROVAL (2 routes)
+// ============================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/:paymentId/approve
@@ -613,7 +680,7 @@ router.post(
   checkShopAccess,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkPermission('canApproveTransactions'),
-  paymentController.approvePayment
+  approvePaymentHandler
 );
 
 /**
@@ -628,10 +695,12 @@ router.post(
   checkShopAccess,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkPermission('canApproveTransactions'),
-  paymentController.rejectPayment
+  rejectPaymentHandler
 );
 
+// ============================================================
 // 13. REFUND MANAGEMENT (2 routes)
+// ============================================================
 
 /**
  * @route   POST /api/v1/shops/:shopId/payments/:paymentId/refund
@@ -645,13 +714,13 @@ router.post(
   checkShopAccess,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkPermission('canMakePayments'),
-  paymentController.processRefund
+  processRefundHandler
 );
 
 /**
  * @route   GET /api/v1/shops/:shopId/payments/refunds
  * @desc    Get all refunds
- * @access  Private (super_admin, org_admin, shop_admin, accountant)
+ * @access  Private
  * @permission canViewPayments
  */
 router.get(
@@ -659,9 +728,7 @@ router.get(
   shopIdValidation,
   checkShopAccess,
   checkPermission('canViewPayments'),
-  paymentController.getRefunds
+  getRefundsHandler
 );
-
-// EXPORT ROUTER
 
 export default router;

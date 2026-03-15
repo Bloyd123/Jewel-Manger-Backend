@@ -1,5 +1,6 @@
 // src/api/ledger/ledger.service.js
 
+import mongoose from 'mongoose';
 import LedgerEntry from './ledger.model.js';
 import {
   LEDGER_ENTRY_TYPES,
@@ -90,10 +91,7 @@ export const createCreditEntry = async ({
   return entry[0];
 };
 
-export const getPartyBalance = async ({
-  partyId,
-  shopId,
-}) => {
+export const getPartyBalance = async ({ partyId, shopId }) => {
   const result = await LedgerEntry.aggregate([
     {
       $match: {
@@ -142,6 +140,103 @@ export const getPartyBalance = async ({
   return result[0];
 };
 
+export const getCashBalance = async (shopId) => {
+  const result = await LedgerEntry.aggregate([
+    {
+      $match: {
+        shopId: new mongoose.Types.ObjectId(shopId),
+        partyType: LEDGER_PARTY_TYPES.CASH,
+        status: LEDGER_STATUS.ACTIVE,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalDebit: {
+          $sum: {
+            $cond: [
+              { $eq: ['$entryType', LEDGER_ENTRY_TYPES.DEBIT] },
+              '$amount',
+              0,
+            ],
+          },
+        },
+        totalCredit: {
+          $sum: {
+            $cond: [
+              { $eq: ['$entryType', LEDGER_ENTRY_TYPES.CREDIT] },
+              '$amount',
+              0,
+            ],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        totalDebit: 1,
+        totalCredit: 1,
+        balance: { $subtract: ['$totalDebit', '$totalCredit'] },
+      },
+    },
+  ]);
+
+  if (!result.length) {
+    return { totalDebit: 0, totalCredit: 0, balance: 0 };
+  }
+
+  return result[0];
+};
+
+export const getBankBalance = async (shopId) => {
+  const result = await LedgerEntry.aggregate([
+    {
+      $match: {
+        shopId: new mongoose.Types.ObjectId(shopId),
+        partyType: LEDGER_PARTY_TYPES.BANK,
+        status: LEDGER_STATUS.ACTIVE,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalDebit: {
+          $sum: {
+            $cond: [
+              { $eq: ['$entryType', LEDGER_ENTRY_TYPES.DEBIT] },
+              '$amount',
+              0,
+            ],
+          },
+        },
+        totalCredit: {
+          $sum: {
+            $cond: [
+              { $eq: ['$entryType', LEDGER_ENTRY_TYPES.CREDIT] },
+              '$amount',
+              0,
+            ],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        totalDebit: 1,
+        totalCredit: 1,
+        balance: { $subtract: ['$totalDebit', '$totalCredit'] },
+      },
+    },
+  ]);
+
+  if (!result.length) {
+    return { totalDebit: 0, totalCredit: 0, balance: 0 };
+  }
+
+  return result[0];
+};
 
 export const getPartyLedger = async ({
   partyId,
@@ -177,7 +272,6 @@ export const getPartyLedger = async ({
   };
 };
 
-
 export const reverseEntry = async ({
   entryId,
   createdBy,
@@ -199,7 +293,7 @@ export const reverseEntry = async ({
       ? LEDGER_ENTRY_TYPES.CREDIT
       : LEDGER_ENTRY_TYPES.DEBIT;
 
-  const reverseEntry = await LedgerEntry.create(
+  const reversedEntry = await LedgerEntry.create(
     [
       {
         organizationId: originalEntry.organizationId,
@@ -226,10 +320,10 @@ export const reverseEntry = async ({
     entryId,
     {
       status: LEDGER_STATUS.REVERSED,
-      reversedBy: reverseEntry[0]._id,
+      reversedBy: reversedEntry[0]._id,
     },
     session ? { session } : {}
   );
 
-  return reverseEntry[0];
+  return reversedEntry[0];
 };

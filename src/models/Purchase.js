@@ -277,36 +277,6 @@ const purchaseSchema = new mongoose.Schema(
       },
       dueDate: Date,
       paymentTerms: String,
-
-      // Payment History
-      payments: [
-        {
-          amount: {
-            type: Number,
-            required: true,
-            min: 0,
-          },
-          paymentMode: {
-            type: String,
-            enum: ['cash', 'card', 'upi', 'cheque', 'bank_transfer'],
-            required: true,
-          },
-          paymentDate: {
-            type: Date,
-            default: Date.now,
-          },
-          transactionId: String,
-          referenceNumber: String,
-          bankName: String,
-          chequeNumber: String,
-          chequeDate: Date,
-          notes: String,
-          receivedBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-          },
-        },
-      ],
     },
 
     // Supplier Invoice Details
@@ -527,12 +497,6 @@ purchaseSchema.methods.softDelete = function () {
 
 purchaseSchema.methods.restore = function () {
   this.deletedAt = null;
-  return this.save();
-};
-
-purchaseSchema.methods.addPayment = function (paymentData) {
-  this.payment.payments.push(paymentData);
-  this.payment.paidAmount += paymentData.amount;
   return this.save();
 };
 

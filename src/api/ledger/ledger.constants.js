@@ -2,7 +2,7 @@
 
 export const LEDGER_ENTRY_TYPES = {
   DEBIT: 'debit',
-  CREDIT: 'credit', 
+  CREDIT: 'credit',
 };
 
 export const LEDGER_REFERENCE_TYPES = {
@@ -17,8 +17,14 @@ export const LEDGER_REFERENCE_TYPES = {
 };
 
 export const LEDGER_PARTY_TYPES = {
+  // Actual parties
   CUSTOMER: 'customer',
   SUPPLIER: 'supplier',
+
+  // Internal accounts (double entry ke liye)
+  CASH: 'cash',                         // Cash payments ke liye
+  BANK: 'bank',                         // UPI, card, bank transfer ke liye
+  CHEQUE_CLEARING: 'cheque_clearing',   // Cheque pending phase ke liye
 };
 
 export const LEDGER_STATUS = {

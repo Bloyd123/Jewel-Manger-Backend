@@ -23,23 +23,31 @@ const ledgerSchema = new mongoose.Schema(
       index: true,
     },
 
+    // Party type — customer, supplier, ya internal account (cash/bank)
     partyType: {
       type: String,
       enum: Object.values(LEDGER_PARTY_TYPES),
       required: true,
       index: true,
     },
+
+    // partyId — customer/supplier ka _id, ya internal account ke liye shopId
     partyId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       refPath: 'partyModel',
       index: true,
     },
+
+    // partyModel — mongoose populate ke liye
+    // Customer, Supplier → actual party
+    // JewelryShop → cash/bank/cheque_clearing internal account
     partyModel: {
       type: String,
       required: true,
-      enum: ['Customer', 'Supplier'],
+      enum: ['Customer', 'Supplier', 'JewelryShop'],
     },
+
     partyName: {
       type: String,
       required: true,
@@ -64,13 +72,15 @@ const ledgerSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+
     referenceId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       index: true,
     },
+
     referenceNumber: {
-      type: String, 
+      type: String,
     },
 
     description: {
@@ -85,6 +95,7 @@ const ledgerSchema = new mongoose.Schema(
       index: true,
     },
 
+    // Reversal tracking
     reversedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'LedgerEntry',
@@ -107,6 +118,7 @@ const ledgerSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+
     notes: {
       type: String,
       maxlength: 500,
@@ -119,10 +131,14 @@ const ledgerSchema = new mongoose.Schema(
   }
 );
 
+// Indexes
 ledgerSchema.index({ shopId: 1, partyId: 1, entryDate: -1 });
 ledgerSchema.index({ organizationId: 1, entryDate: -1 });
 ledgerSchema.index({ partyId: 1, status: 1 });
 ledgerSchema.index({ referenceType: 1, referenceId: 1 });
+
+// Cash/Bank balance quickly dekhne ke liye
+ledgerSchema.index({ shopId: 1, partyType: 1, status: 1 });
 
 const LedgerEntry = mongoose.model('LedgerEntry', ledgerSchema);
 

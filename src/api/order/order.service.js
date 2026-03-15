@@ -1,9 +1,10 @@
 // FILE: src/api/services/order.service.js
-// Order Service - Business Logic Layer
+// Order Service - UPDATED (Payment module se integrate kiya)
 
 import Order from '../../models/Order.js';
 import Customer from '../../models/Customer.js';
 import User from '../../models/User.js';
+import Payment from '../../models/Payment.js';
 import {
   NotFoundError,
   ValidationError,
@@ -12,26 +13,23 @@ import {
 import logger from '../../utils/logger.js';
 import eventLogger from '../../utils/eventLogger.js';
 
-/**
- * Create a new order
- */
+// ============================================================
+// 1. CREATE ORDER
+// ============================================================
+
 export const createOrder = async (orderData, userId, shopId, organizationId) => {
   try {
-    // Verify customer exists
     const customer = await Customer.findById(orderData.customerId);
     if (!customer) {
       throw new NotFoundError('Customer not found');
     }
 
-    // Verify customer belongs to the same shop
     if (customer.shopId.toString() !== shopId.toString()) {
       throw new ValidationError('Customer does not belong to this shop');
     }
 
-    // Generate order number
     const orderNumber = await Order.generateOrderNumber(shopId, orderData.orderType);
 
-    // Prepare customer details
     const customerDetails = {
       customerName: customer.fullName,
       customerCode: customer.customerCode,
@@ -40,7 +38,6 @@ export const createOrder = async (orderData, userId, shopId, organizationId) => 
       address: customer.address?.street || '',
     };
 
-    // Create order
     const order = await Order.create({
       ...orderData,
       orderNumber,
@@ -51,7 +48,6 @@ export const createOrder = async (orderData, userId, shopId, organizationId) => 
       status: 'draft',
     });
 
-    // Log activity
     await eventLogger.logActivity({
       userId,
       organizationId,
@@ -72,9 +68,10 @@ export const createOrder = async (orderData, userId, shopId, organizationId) => 
   }
 };
 
-/**
- * Get all orders with filters and pagination
- */
+// ============================================================
+// 2. GET ALL ORDERS WITH FILTERS
+// ============================================================
+
 export const getOrders = async (filters, shopId, organizationId) => {
   try {
     const {
@@ -94,14 +91,12 @@ export const getOrders = async (filters, shopId, organizationId) => {
       dueSoon,
     } = filters;
 
-    // Build query
     const query = {
       shopId,
       organizationId,
       deletedAt: null,
     };
 
-    // Apply filters
     if (status) query.status = status;
     if (orderType) query.orderType = orderType;
     if (priority) query.priority = priority;
@@ -109,20 +104,17 @@ export const getOrders = async (filters, shopId, organizationId) => {
     if (assignedTo) query['assignment.assignedTo'] = assignedTo;
     if (paymentStatus) query['payment.paymentStatus'] = paymentStatus;
 
-    // Date range filter
     if (startDate || endDate) {
       query.orderDate = {};
       if (startDate) query.orderDate.$gte = new Date(startDate);
       if (endDate) query.orderDate.$lte = new Date(endDate);
     }
 
-    // Overdue orders
     if (overdue === 'true') {
       query['timeline.estimatedCompletionDate'] = { $lt: new Date() };
       query.status = { $in: ['confirmed', 'in_progress', 'on_hold'] };
     }
 
-    // Due soon orders
     if (dueSoon) {
       const days = parseInt(dueSoon);
       const futureDate = new Date();
@@ -134,7 +126,6 @@ export const getOrders = async (filters, shopId, organizationId) => {
       query.status = { $in: ['confirmed', 'in_progress'] };
     }
 
-    // Search
     if (search) {
       query.$or = [
         { orderNumber: new RegExp(search, 'i') },
@@ -143,10 +134,8 @@ export const getOrders = async (filters, shopId, organizationId) => {
       ];
     }
 
-    // Count total documents
     const total = await Order.countDocuments(query);
 
-    // Execute query with pagination
     const orders = await Order.find(query)
       .sort(sort)
       .skip((page - 1) * limit)
@@ -170,9 +159,10 @@ export const getOrders = async (filters, shopId, organizationId) => {
   }
 };
 
-/**
- * Get single order by ID
- */
+// ============================================================
+// 3. GET SINGLE ORDER
+// ============================================================
+
 export const getOrderById = async (orderId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
@@ -198,9 +188,10 @@ export const getOrderById = async (orderId, shopId, organizationId) => {
   }
 };
 
-/**
- * Update order (only draft/confirmed status)
- */
+// ============================================================
+// 4. UPDATE ORDER (sirf draft/confirmed)
+// ============================================================
+
 export const updateOrder = async (orderId, updateData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
@@ -214,12 +205,10 @@ export const updateOrder = async (orderId, updateData, userId, shopId, organizat
       throw new NotFoundError('Order not found');
     }
 
-    // Check if order can be edited
     if (!['draft', 'confirmed'].includes(order.status)) {
       throw new ValidationError('Cannot edit order in current status');
     }
 
-    // Update allowed fields
     const allowedFields = [
       'priority',
       'timeline',
@@ -238,7 +227,6 @@ export const updateOrder = async (orderId, updateData, userId, shopId, organizat
     order.updatedBy = userId;
     await order.save();
 
-    // Log activity
     await eventLogger.logActivity({
       userId,
       organizationId,
@@ -257,9 +245,10 @@ export const updateOrder = async (orderId, updateData, userId, shopId, organizat
   }
 };
 
-/**
- * Update order status
- */
+// ============================================================
+// 5. UPDATE ORDER STATUS
+// ============================================================
+
 export const updateOrderStatus = async (orderId, status, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
@@ -273,7 +262,6 @@ export const updateOrderStatus = async (orderId, status, userId, shopId, organiz
       throw new NotFoundError('Order not found');
     }
 
-    // Validate status transition
     const validTransitions = {
       draft: ['confirmed', 'cancelled'],
       confirmed: ['in_progress', 'cancelled'],
@@ -293,7 +281,6 @@ export const updateOrderStatus = async (orderId, status, userId, shopId, organiz
     order.status = status;
     order.updatedBy = userId;
 
-    // Set timestamps based on status
     if (status === 'in_progress' && !order.timeline.actualStartDate) {
       order.timeline.actualStartDate = new Date();
     }
@@ -303,7 +290,6 @@ export const updateOrderStatus = async (orderId, status, userId, shopId, organiz
 
     await order.save();
 
-    // Log activity
     await eventLogger.logActivity({
       userId,
       organizationId,
@@ -322,9 +308,10 @@ export const updateOrderStatus = async (orderId, status, userId, shopId, organiz
   }
 };
 
-/**
- * Confirm order
- */
+// ============================================================
+// 6. CONFIRM ORDER
+// ============================================================
+
 export const confirmOrder = async (orderId, confirmedBy, notes, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
@@ -350,7 +337,6 @@ export const confirmOrder = async (orderId, confirmedBy, notes, shopId, organiza
 
     await order.save();
 
-    // Log activity
     await eventLogger.logActivity({
       userId: confirmedBy,
       organizationId,
@@ -369,9 +355,10 @@ export const confirmOrder = async (orderId, confirmedBy, notes, shopId, organiza
   }
 };
 
-/**
- * Assign order to user
- */
+// ============================================================
+// 7. ASSIGN ORDER
+// ============================================================
+
 export const assignOrder = async (orderId, assignmentData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
@@ -385,7 +372,6 @@ export const assignOrder = async (orderId, assignmentData, userId, shopId, organ
       throw new NotFoundError('Order not found');
     }
 
-    // Verify assignee exists
     const assignee = await User.findById(assignmentData.assignedTo);
     if (!assignee) {
       throw new NotFoundError('User not found');
@@ -402,7 +388,6 @@ export const assignOrder = async (orderId, assignmentData, userId, shopId, organ
     order.updatedBy = userId;
     await order.save();
 
-    // Log activity
     await eventLogger.logActivity({
       userId,
       organizationId,
@@ -421,9 +406,10 @@ export const assignOrder = async (orderId, assignmentData, userId, shopId, organ
   }
 };
 
-/**
- * Add progress update
- */
+// ============================================================
+// 8. ADD PROGRESS UPDATE
+// ============================================================
+
 export const addProgressUpdate = async (orderId, progressData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
@@ -452,7 +438,6 @@ export const addProgressUpdate = async (orderId, progressData, userId, shopId, o
     order.updatedBy = userId;
     await order.save();
 
-    // Log activity
     await eventLogger.logActivity({
       userId,
       organizationId,
@@ -471,9 +456,10 @@ export const addProgressUpdate = async (orderId, progressData, userId, shopId, o
   }
 };
 
-/**
- * Perform quality check
- */
+// ============================================================
+// 9. PERFORM QUALITY CHECK
+// ============================================================
+
 export const performQualityCheck = async (orderId, checkData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
@@ -496,7 +482,6 @@ export const performQualityCheck = async (orderId, checkData, userId, shopId, or
       photos: checkData.photos || [],
     };
 
-    // Update order status based on quality check
     if (checkData.status === 'passed') {
       order.status = 'ready';
     } else if (checkData.status === 'failed') {
@@ -506,7 +491,6 @@ export const performQualityCheck = async (orderId, checkData, userId, shopId, or
     order.updatedBy = userId;
     await order.save();
 
-    // Log activity
     await eventLogger.logActivity({
       userId,
       organizationId,
@@ -525,57 +509,40 @@ export const performQualityCheck = async (orderId, checkData, userId, shopId, or
   }
 };
 
-/**
- * Add payment to order
- */
-export const addOrderPayment = async (orderId, paymentData, userId, shopId, organizationId) => {
+// ============================================================
+// 10. GET ORDER PAYMENTS — Payment module se
+// NOTE: addOrderPayment hataya — Payment module handle karega
+// Order service ka kaam sirf order dhundhna hai
+// ============================================================
+
+export const getOrderPayments = async (orderId, shopId) => {
   try {
-    const order = await Order.findOne({
-      _id: orderId,
+    // Pehle order exist karta hai check karo
+    const order = await Order.findOne({ _id: orderId, shopId, deletedAt: null });
+    if (!order) throw new NotFoundError('Order not found');
+
+    // Payment module se payments fetch karo
+    const payments = await Payment.find({
+      'reference.referenceId': orderId,
+      'reference.referenceType': 'order',
       shopId,
-      organizationId,
       deletedAt: null,
-    });
+    })
+      .sort({ paymentDate: -1 })
+      .populate('processedBy', 'firstName lastName')
+      .lean();
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
-
-    order.payment.payments.push({
-      amount: paymentData.amount,
-      paymentMode: paymentData.paymentMode,
-      paymentDate: paymentData.paymentDate || new Date(),
-      transactionId: paymentData.transactionId || '',
-      notes: paymentData.notes || '',
-      receivedBy: userId,
-    });
-
-    order.financials.advancePaid += paymentData.amount;
-    order.updatedBy = userId;
-    await order.save();
-
-    // Log activity
-    await eventLogger.logActivity({
-      userId,
-      organizationId,
-      shopId,
-      action: 'add_payment',
-      module: 'order',
-      description: `Added payment of ₹${paymentData.amount} to order ${order.orderNumber}`,
-      metadata: { orderId: order._id, amount: paymentData.amount },
-      level: 'success',
-    });
-
-    return order;
+    return payments;
   } catch (error) {
-    logger.error('Error adding payment:', error);
+    logger.error('Error fetching order payments:', error);
     throw error;
   }
 };
 
-/**
- * Mark order as delivered
- */
+// ============================================================
+// 11. MARK AS DELIVERED
+// ============================================================
+
 export const markAsDelivered = async (orderId, deliveryData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
@@ -603,7 +570,6 @@ export const markAsDelivered = async (orderId, deliveryData, userId, shopId, org
     order.updatedBy = userId;
     await order.save();
 
-    // Log activity
     await eventLogger.logActivity({
       userId,
       organizationId,
@@ -622,9 +588,10 @@ export const markAsDelivered = async (orderId, deliveryData, userId, shopId, org
   }
 };
 
-/**
- * Complete order
- */
+// ============================================================
+// 12. COMPLETE ORDER
+// ============================================================
+
 export const completeOrder = async (orderId, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
@@ -647,7 +614,6 @@ export const completeOrder = async (orderId, userId, shopId, organizationId) => 
     order.updatedBy = userId;
     await order.save();
 
-    // Log activity
     await eventLogger.logActivity({
       userId,
       organizationId,
@@ -666,9 +632,10 @@ export const completeOrder = async (orderId, userId, shopId, organizationId) => 
   }
 };
 
-/**
- * Cancel order
- */
+// ============================================================
+// 13. CANCEL ORDER
+// ============================================================
+
 export const cancelOrder = async (orderId, cancellationData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
@@ -699,7 +666,9 @@ export const cancelOrder = async (orderId, cancellationData, userId, shopId, org
     order.updatedBy = userId;
     await order.save();
 
-    // Log activity
+    // NOTE: Refund ab Payment module handle karega
+    // payment.service.js ka processRefund() call hoga controller se
+
     await eventLogger.logActivity({
       userId,
       organizationId,
@@ -718,9 +687,10 @@ export const cancelOrder = async (orderId, cancellationData, userId, shopId, org
   }
 };
 
-/**
- * Get order analytics
- */
+// ============================================================
+// 14. GET ORDER ANALYTICS
+// ============================================================
+
 export const getOrderAnalytics = async (filters, shopId, organizationId) => {
   try {
     const { startDate, endDate } = filters;
@@ -771,7 +741,7 @@ export const getOrderAnalytics = async (filters, shopId, organizationId) => {
             duration: {
               $divide: [
                 { $subtract: ['$timeline.actualCompletionDate', '$timeline.actualStartDate'] },
-                86400000, // Convert to days
+                86400000,
               ],
             },
           },
@@ -796,21 +766,4 @@ export const getOrderAnalytics = async (filters, shopId, organizationId) => {
     logger.error('Error fetching order analytics:', error);
     throw error;
   }
-};
-
-export default {
-  createOrder,
-  getOrders,
-  getOrderById,
-  updateOrder,
-  updateOrderStatus,
-  confirmOrder,
-  assignOrder,
-  addProgressUpdate,
-  performQualityCheck,
-  addOrderPayment,
-  markAsDelivered,
-  completeOrder,
-  cancelOrder,
-  getOrderAnalytics,
 };

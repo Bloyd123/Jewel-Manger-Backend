@@ -1,22 +1,21 @@
 // FILE: services/sales.service.js
-// Sales Service - 100% COMPLETE Business Logic Layer
+// Sales Service - UPDATED (Payment module se integrate kiya)
 
 import mongoose from 'mongoose';
 import Sale from '../../models/Sale.js';
-// import Product from '../../models/Product.js';
 import Customer from '../../models/Customer.js';
-// import InventoryTransaction from '../../models/InventoryTransaction.js';
+import Payment from '../../models/Payment.js';
 
 import {
   decreaseStock,
   returnStock,
-  LedgerEntry
 } from '../inventory/inventory.service.js';
 import JewelryShop from '../../models/Shop.js';
 import {
   createDebitEntry,
-  createCreditEntry,
+  reverseEntry,
 } from '../ledger/ledger.service.js';
+import LedgerEntry from '../ledger/ledger.model.js'; 
 import {
   NotFoundError,
   ValidationError,
@@ -42,7 +41,6 @@ export const createSale = async (shopId, saleData, userId, organizationId, ipAdd
 
     const invoiceNumber = await Sale.generateInvoiceNumber(shopId, shop.settings.invoicePrefix);
 
-
     const sale = await Sale.create(
       [
         {
@@ -67,49 +65,46 @@ export const createSale = async (shopId, saleData, userId, organizationId, ipAdd
       { session }
     );
 
+    // Stock decrease karo
     for (const item of saleData.items) {
       if (item.productId) {
-    await decreaseStock({
-  organizationId,
-  shopId,
-  productId: item.productId,
-  quantity: item.quantity,
-  referenceId: sale[0]._id,
-  referenceNumber: invoiceNumber,
-  value: item.itemTotal,
-  performedBy: userId,
-  customerId: customer._id,
-  session,
-});
+        await decreaseStock({
+          organizationId,
+          shopId,
+          productId: item.productId,
+          quantity: item.quantity,
+          referenceId: sale[0]._id,
+          referenceNumber: invoiceNumber,
+          value: item.itemTotal,
+          performedBy: userId,
+          customerId: customer._id,
+          session,
+        });
       }
     }
 
-await Customer.recordPurchase(customer._id, sale[0].financials.grandTotal, session);
+    // Customer purchase record karo
+    await Customer.recordPurchase(customer._id, sale[0].financials.grandTotal, session);
 
-    // if (sale[0].payment.paymentStatus !== 'paid') {
-    //   customer.currentBalance -= sale[0].payment.dueAmount;
-    //   customer.totalDue += sale[0].payment.dueAmount;
-      
-    // }
-
-    // await customer.save({ session });
-    if (sale[0].payment.paymentStatus !== 'paid') {
-  await createDebitEntry({
-    organizationId,
-    shopId,
-    partyType: 'customer',
-    partyId: customer._id,
-    partyModel: 'Customer',
-    partyName: customer.fullName,
-    amount: sale[0].payment.dueAmount,
-    referenceType: 'sale',
-    referenceId: sale[0]._id,
-    referenceNumber: invoiceNumber,
-    description: `Sale created - ${invoiceNumber}`,
-    createdBy: userId,
-    session,
-  });
-}
+    // Ledger mein debit entry banao — sirf agar due amount hai
+    // Matlab customer par amount pending hai
+    if (sale[0].payment.dueAmount > 0) {
+      await createDebitEntry({
+        organizationId,
+        shopId,
+        partyType: 'customer',
+        partyId: customer._id,
+        partyModel: 'Customer',
+        partyName: customer.fullName,
+        amount: sale[0].payment.dueAmount,
+        referenceType: 'sale',
+        referenceId: sale[0]._id,
+        referenceNumber: invoiceNumber,
+        description: `Sale created - ${invoiceNumber}`,
+        createdBy: userId,
+        session,
+      });
+    }
 
     await eventLogger.logSale(
       userId,
@@ -248,7 +243,7 @@ export const updateSale = async (shopId, saleId, updateData, userId, organizatio
   return sale;
 };
 
-// 5. DELETE SALE (WITH STOCK RESTORATION)
+// 5. DELETE SALE
 
 export const deleteSale = async (shopId, saleId, reason, userId, organizationId) => {
   const session = await mongoose.startSession();
@@ -262,24 +257,6 @@ export const deleteSale = async (shopId, saleId, reason, userId, organizationId)
       throw new BadRequestError('Can only delete draft sales');
     }
 
-//     for (const item of sale.items) {
-//   if (item.productId && sale.status === 'confirmed') {
-
-
-// await returnStock({
-//   organizationId,
-//   shopId,
-//   productId: item.productId,
-//   quantity: item.quantity,
-//   referenceId: sale._id,
-//   referenceNumber: sale.invoiceNumber,
-//   performedBy: userId,
-//   session,
-// });
-//         }
-//       }
-    
-
     await sale.softDelete();
 
     await eventLogger.logSale(
@@ -288,7 +265,6 @@ export const deleteSale = async (shopId, saleId, reason, userId, organizationId)
       shopId,
       'delete',
       sale._id,
-      // `Cancelled sale ${sale.invoiceNumber}`,
       `Deleted draft sale ${sale.invoiceNumber}`,
       { saleId: sale._id, reason }
     );
@@ -326,12 +302,13 @@ export const deliverSale = async (shopId, saleId, deliveryData, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
   if (!sale) throw new NotFoundError('Sale not found');
 
-    sale.status = 'delivered';
+  sale.status = 'delivered';
   sale.delivery.deliveredAt = new Date();
   sale.delivery.deliveredBy = userId;
   Object.assign(sale.delivery, deliveryData);
   sale.updatedBy = userId;
-  await sale.save(); 
+  await sale.save();
+
   cache.invalidateShop(shopId);
   return sale;
 };
@@ -340,23 +317,18 @@ export const completeSale = async (shopId, saleId, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
   if (!sale) throw new NotFoundError('Sale not found');
 
-  // ✅ Customer statistics update karo
   const customer = await Customer.findById(sale.customerId);
-  
-  await Customer.findByIdAndUpdate(
-    sale.customerId,
-    {
-      $inc: {
-        'statistics.completedOrders': +1, // ✅ ab yahan badhao
-      },
-      $set: {
-        'statistics.averageOrderValue': 
-          customer.statistics.totalSpent / (customer.statistics.completedOrders + 1), // ✅ sahi average
-      }
-    }
-  );
 
-  // ✅ markAsCompleted ki jagah seedha set karo — ek hi save
+  await Customer.findByIdAndUpdate(sale.customerId, {
+    $inc: {
+      'statistics.completedOrders': +1,
+    },
+    $set: {
+      'statistics.averageOrderValue':
+        customer.statistics.totalSpent / (customer.statistics.completedOrders + 1),
+    },
+  });
+
   sale.status = 'completed';
   sale.updatedBy = userId;
   await sale.save();
@@ -376,50 +348,52 @@ export const cancelSale = async (shopId, saleId, reason, refundAmount, userId) =
     if (sale.status === 'cancelled') {
       throw new BadRequestError('Sale is already cancelled');
     }
-  // 1. Stock wapas karo
+
+    // 1. Stock wapas karo
     for (const item of sale.items) {
       if (item.productId) {
-          await returnStock({
-  organizationId: sale.organizationId,
-  shopId,
-  productId: item.productId,
-  quantity: item.quantity,
-  referenceId: sale._id,
-  referenceNumber: sale.invoiceNumber,
-  performedBy: userId,
-  session,
-});
-        }
+        await returnStock({
+          organizationId: sale.organizationId,
+          shopId,
+          productId: item.productId,
+          quantity: item.quantity,
+          referenceId: sale._id,
+          referenceNumber: sale.invoiceNumber,
+          performedBy: userId,
+          session,
+        });
       }
-       // 2. Ledger entry reverse karo
-const ledgerEntry = await LedgerEntry.findOne({
-  referenceId: sale._id,
-  referenceType: 'sale',
-  status: 'active',
-}).session(session); // ✅
-
-if (ledgerEntry) {
-  await reverseEntry({
-    entryId: ledgerEntry._id,
-    createdBy: userId,
-    description: `Sale cancelled - ${sale.invoiceNumber}`,
-    session, // ✅
-  });
-}
-// Statistics update karo - order track
-await Customer.findByIdAndUpdate(
-  sale.customerId,
-  {
-    $inc: {
-      'statistics.cancelledOrders': +1, // ← cancel count badha
-      'statistics.completedOrders': -1, // ← completed count ghatao
-      'statistics.totalSpent': -sale.financials.grandTotal,
     }
-  },
-  { session }
-);
 
-    // await sale.cancel();
+    // 2. Ledger entry reverse karo
+    const ledgerEntry = await LedgerEntry.findOne({
+      referenceId: sale._id,
+      referenceType: 'sale',
+      status: 'active',
+    }).session(session);
+
+    if (ledgerEntry) {
+      await reverseEntry({
+        entryId: ledgerEntry._id,
+        createdBy: userId,
+        description: `Sale cancelled - ${sale.invoiceNumber}`,
+        session,
+      });
+    }
+
+    // 3. Customer statistics update karo
+    await Customer.findByIdAndUpdate(
+      sale.customerId,
+      {
+        $inc: {
+          'statistics.cancelledOrders': +1,
+          'statistics.completedOrders': -1,
+          'statistics.totalSpent': -sale.financials.grandTotal,
+        },
+      },
+      { session }
+    );
+
     sale.status = 'cancelled';
     sale.cancellation = {
       isCancelled: true,
@@ -444,56 +418,44 @@ await Customer.findByIdAndUpdate(
 };
 
 // 11-13. PAYMENT MANAGEMENT
-
-export const addPayment = async (shopId, saleId, paymentData, userId) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  
-  try {
-    const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null }).session(session);;
-    if (!sale) throw new NotFoundError('Sale not found');
-
-    await sale.addPayment({ ...paymentData, receivedBy: userId });
-
-    await createCreditEntry({
-      organizationId: sale.organizationId,
-      shopId,
-      partyType: 'customer',
-      partyId: sale.customerId,
-      partyModel: 'Customer',
-      partyName: sale.customerDetails.customerName,
-      amount: paymentData.amount,
-      referenceType: 'payment',
-      referenceId: sale._id,
-      referenceNumber: sale.invoiceNumber,
-      description: `Payment received - ${sale.invoiceNumber}`,
-      createdBy: userId,
-      session,
-    });
-
-    await session.commitTransaction();
-    cache.invalidateShop(shopId);
-    return sale;
-
-  } catch (error) {
-    await session.abortTransaction();
-    throw error;
-  } finally {
-    session.endSession();
-  }
-};
+// NOTE: addPayment ab Payment module handle karega
+// Sales service sirf Payment module ko redirect karti hai
 
 export const getSalePayments = async (shopId, saleId) => {
-  const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null }).select('payment');
+  // Pehle sale exist karti hai check karo
+  const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
   if (!sale) throw new NotFoundError('Sale not found');
-  return sale.payment.payments;
+
+  // Payment module se payments fetch karo — sale model se nahi
+  const payments = await Payment.find({
+    'reference.referenceId': saleId,
+    'reference.referenceType': 'sale',
+    shopId,
+    deletedAt: null,
+  })
+    .sort({ paymentDate: -1 })
+    .populate('processedBy', 'firstName lastName')
+    .lean();
+
+  return payments;
 };
 
 export const generateReceipt = async (shopId, saleId) => {
   const sale = await getSaleById(shopId, saleId);
 
+  // Payment module se payments fetch karo — sale.payment.payments se nahi
+  const payments = await Payment.find({
+    'reference.referenceId': saleId,
+    'reference.referenceType': 'sale',
+    shopId,
+    deletedAt: null,
+    status: 'completed',
+  })
+    .sort({ paymentDate: -1 })
+    .lean();
+
   const receipt = {
-    receiptNumber: sale.payment.receiptNumber || sale.invoiceNumber,
+    receiptNumber: sale.invoiceNumber,
     date: new Date(),
     customer: sale.customerDetails,
     sale: {
@@ -501,7 +463,7 @@ export const generateReceipt = async (shopId, saleId) => {
       saleDate: sale.saleDate,
       totalAmount: sale.financials.grandTotal,
     },
-    payments: sale.payment.payments,
+    payments,                         // Payment module se aaya
     totalPaid: sale.payment.paidAmount,
     dueAmount: sale.payment.dueAmount,
     paymentStatus: sale.payment.paymentStatus,
@@ -510,7 +472,7 @@ export const generateReceipt = async (shopId, saleId) => {
   return receipt;
 };
 
-// 14-15. RETURN & EXCHANGE (FULL IMPLEMENTATION)
+// 14-15. RETURN & EXCHANGE
 
 export const returnSale = async (shopId, saleId, returnData, userId) => {
   const session = await mongoose.startSession();
@@ -526,25 +488,25 @@ export const returnSale = async (shopId, saleId, returnData, userId) => {
 
     const itemsToReturn = returnData.itemsToReturn || sale.items;
 
+    // Stock wapas karo
     for (const returnItem of itemsToReturn) {
       const saleItem = sale.items.find(
         item => item.productId?.toString() === returnItem.productId?.toString()
       );
 
       if (saleItem && saleItem.productId) {
-await returnStock({
-  organizationId: sale.organizationId,
-  shopId,
-  productId: saleItem.productId,
-  quantity: returnItem.quantity || saleItem.quantity,
-  referenceId: sale._id,
-  referenceNumber: sale.invoiceNumber,
-  performedBy: userId,
-  session,
-});
-        }
+        await returnStock({
+          organizationId: sale.organizationId,
+          shopId,
+          productId: saleItem.productId,
+          quantity: returnItem.quantity || saleItem.quantity,
+          referenceId: sale._id,
+          referenceNumber: sale.invoiceNumber,
+          performedBy: userId,
+          session,
+        });
       }
-    
+    }
 
     await sale.processReturn({
       returnDate: returnData.returnDate || new Date(),
@@ -553,28 +515,9 @@ await returnStock({
       returnedBy: userId,
     });
 
-    if (returnData.refundAmount > 0) {
-  await createCreditEntry({
-    organizationId: sale.organizationId,
-    shopId,
-    partyType: 'customer',
-    partyId: sale.customerId,
-    partyModel: 'Customer',
-    partyName: sale.customerDetails.customerName,
-    amount: returnData.refundAmount,
-    referenceType: 'return',
-    referenceId: sale._id,
-    referenceNumber: sale.invoiceNumber,
-    description: `Return processed - ${sale.invoiceNumber}`,
-    createdBy: userId,
-    session,
-  });
-}
-    // if (customer) {
-      // customer.statistics.totalSpent -= returnData.refundAmount || 0;
-      // customer.currentBalance += returnData.refundAmount || 0;
-      // await customer.save({ session });
-    // }
+    // NOTE: Refund payment ab Payment module handle karega
+    // payment.service.js ka processRefund() call hoga
+    // Sales service yahan sirf sale status update karti hai
 
     await eventLogger.logSale(
       userId,
@@ -612,7 +555,7 @@ export const getReturnDetails = async (shopId, saleId) => {
   return sale.return;
 };
 
-// 16-17. OLD GOLD EXCHANGE (FULL IMPLEMENTATION)
+// 16-17. OLD GOLD EXCHANGE
 
 export const addOldGold = async (shopId, saleId, oldGoldData, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
@@ -693,7 +636,10 @@ export const removeOldGold = async (shopId, saleId, userId) => {
 // 18-25. ANALYTICS & REPORTS
 
 export const getSalesAnalytics = async (shopId, startDate, endDate, groupBy = 'day') => {
-  const matchStage = { shopId: mongoose.Types.ObjectId(shopId), deletedAt: null };
+  const matchStage = {
+    shopId: new mongoose.Types.ObjectId(shopId),
+    deletedAt: null,
+  };
 
   if (startDate || endDate) {
     matchStage.saleDate = {};
@@ -810,31 +756,31 @@ export const getCustomerSales = async (shopId, customerId, filters) => {
 };
 
 export const getCustomerSalesSummary = async (shopId, customerId) => {
-const result = await Sale.aggregate([
-  { 
-    $match: { 
-      shopId: new mongoose.Types.ObjectId(shopId), 
-      customerId: new mongoose.Types.ObjectId(customerId),
-      deletedAt: null 
-    } 
-  },
-  { 
-    $group: {
-      _id: null,
-      totalSales: { $sum: 1 },
-      totalAmount: { $sum: '$financials.grandTotal' },
-      totalDue: { $sum: '$payment.dueAmount' },
-      lastPurchase: { $max: '$saleDate' }, // ← latest date
-    }
-  }
-]);
+  const result = await Sale.aggregate([
+    {
+      $match: {
+        shopId: new mongoose.Types.ObjectId(shopId),
+        customerId: new mongoose.Types.ObjectId(customerId),
+        deletedAt: null,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalSales: { $sum: 1 },
+        totalAmount: { $sum: '$financials.grandTotal' },
+        totalDue: { $sum: '$payment.dueAmount' },
+        lastPurchase: { $max: '$saleDate' },
+      },
+    },
+  ]);
 
-return result[0] || {
-  totalSales: 0,
-  totalAmount: 0,
-  totalDue: 0,
-  lastPurchase: null,
-};
+  return result[0] || {
+    totalSales: 0,
+    totalAmount: 0,
+    totalDue: 0,
+    lastPurchase: null,
+  };
 };
 
 export const getSalesPersonSales = async (shopId, userId, filters) => {
@@ -871,13 +817,12 @@ export const getSalesPersonPerformance = async (shopId, userId, startDate, endDa
   };
 };
 
-// 28-30. INVOICE MANAGEMENT (FULL IMPLEMENTATION)
+// 28-30. INVOICE MANAGEMENT
 
 export const generateInvoice = async (shopId, saleId) => {
   const sale = await getSaleById(shopId, saleId);
   const shop = await JewelryShop.findById(shopId).lean();
 
-  // Simple invoice object (can be converted to PDF using pdfkit/puppeteer)
   const invoiceData = {
     invoiceNumber: sale.invoiceNumber,
     date: sale.saleDate,
@@ -894,15 +839,12 @@ export const generateInvoice = async (shopId, saleId) => {
     oldGold: sale.oldGoldExchange,
   };
 
-  // Return as JSON (for now) - can be converted to PDF Buffer
   return Buffer.from(JSON.stringify(invoiceData, null, 2));
 };
 
 export const sendInvoice = async (shopId, saleId, method, recipient) => {
   const sale = await getSaleById(shopId, saleId);
 
-  // TODO: Integrate with email/SMS service
-  // For now, log the action
   await eventLogger.logSale(
     null,
     sale.organizationId,
@@ -919,7 +861,6 @@ export const sendInvoice = async (shopId, saleId, method, recipient) => {
 export const printInvoice = async (shopId, saleId, printerType = 'A4') => {
   const sale = await getSaleById(shopId, saleId);
 
-  // Format invoice for printing (thermal or A4)
   const printData = {
     format: printerType,
     invoice: sale.invoiceNumber,
@@ -932,7 +873,7 @@ export const printInvoice = async (shopId, saleId, printerType = 'A4') => {
   return printData;
 };
 
-// 31-33. DISCOUNT MANAGEMENT (FULL IMPLEMENTATION)
+// 31-33. DISCOUNT MANAGEMENT
 
 export const applyDiscount = async (shopId, saleId, discountData, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
@@ -940,7 +881,6 @@ export const applyDiscount = async (shopId, saleId, discountData, userId) => {
 
   const { discountType, discountValue, discountReason } = discountData;
 
-  // Calculate discount amount
   let discountAmount = 0;
   if (discountType === 'percentage') {
     discountAmount = (sale.financials.subtotal * discountValue) / 100;
@@ -948,12 +888,9 @@ export const applyDiscount = async (shopId, saleId, discountData, userId) => {
     discountAmount = discountValue;
   }
 
-  // Update sale financials
   sale.financials.totalDiscount = discountAmount;
   sale.financials.grandTotal = sale.financials.subtotal + sale.financials.totalGST - discountAmount;
   sale.financials.netPayable = sale.financials.grandTotal - (sale.financials.oldGoldValue || 0);
-
-  // Update payment amounts
   sale.payment.totalAmount = sale.financials.netPayable;
   sale.payment.dueAmount = sale.financials.netPayable - sale.payment.paidAmount;
 
@@ -977,12 +914,9 @@ export const removeDiscount = async (shopId, saleId, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
   if (!sale) throw new NotFoundError('Sale not found');
 
-  // Remove discount
   sale.financials.totalDiscount = 0;
   sale.financials.grandTotal = sale.financials.subtotal + sale.financials.totalGST;
   sale.financials.netPayable = sale.financials.grandTotal - (sale.financials.oldGoldValue || 0);
-
-  // Update payment amounts
   sale.payment.totalAmount = sale.financials.netPayable;
   sale.payment.dueAmount = sale.financials.netPayable - sale.payment.paidAmount;
 
@@ -1002,7 +936,7 @@ export const removeDiscount = async (shopId, saleId, userId) => {
   return sale;
 };
 
-// 34-36. BULK OPERATIONS (FULL IMPLEMENTATION)
+// 34-36. BULK OPERATIONS
 
 export const bulkDeleteSales = async (shopId, saleIds, reason, userId) => {
   const session = await mongoose.startSession();
@@ -1015,22 +949,20 @@ export const bulkDeleteSales = async (shopId, saleIds, reason, userId) => {
       const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null }).session(session);
 
       if (sale && sale.status === 'draft') {
-        // Restore inventory
         for (const item of sale.items) {
           if (item.productId) {
-             await returnStock({
-  organizationId: sale.organizationId,
-  shopId,
-  productId: item.productId,
-  quantity: item.quantity,
-  referenceId: sale._id,
-  referenceNumber: sale.invoiceNumber,
-  performedBy: userId,
-  session,
-});
-            }
+            await returnStock({
+              organizationId: sale.organizationId,
+              shopId,
+              productId: item.productId,
+              quantity: item.quantity,
+              referenceId: sale._id,
+              referenceNumber: sale.invoiceNumber,
+              performedBy: userId,
+              session,
+            });
           }
-        
+        }
 
         await sale.softDelete();
         deletedCount++;
@@ -1067,7 +999,6 @@ export const bulkPrintInvoices = async (shopId, saleIds) => {
     deletedAt: null,
   }).lean();
 
-  // Create combined invoice data
   const bulkInvoiceData = {
     printDate: new Date(),
     totalInvoices: sales.length,
@@ -1079,7 +1010,6 @@ export const bulkPrintInvoices = async (shopId, saleIds) => {
     })),
   };
 
-  // Return as buffer (can be converted to PDF)
   return Buffer.from(JSON.stringify(bulkInvoiceData, null, 2));
 };
 
@@ -1094,8 +1024,6 @@ export const bulkSendReminders = async (shopId, saleIds, method) => {
   let sentCount = 0;
 
   for (const sale of sales) {
-    // TODO: Integrate with SMS/Email/WhatsApp service
-    // For now, just log
     await eventLogger.logSale(
       null,
       sale.organizationId,
@@ -1137,7 +1065,7 @@ export const getSalesByAmountRange = async (shopId, minAmount, maxAmount, filter
   return getAllSales(shopId, { ...filters, minAmount, maxAmount });
 };
 
-// 40-41. DOCUMENTS (FULL IMPLEMENTATION)
+// 40-41. DOCUMENTS
 
 export const uploadDocument = async (shopId, saleId, documentData, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
@@ -1176,7 +1104,7 @@ export const getDocuments = async (shopId, saleId) => {
   return sale.documents || [];
 };
 
-// 42-43. APPROVAL (FULL IMPLEMENTATION)
+// 42-43. APPROVAL
 
 export const approveSale = async (shopId, saleId, notes, userId) => {
   const sale = await Sale.findOne({ _id: saleId, shopId, deletedAt: null });
