@@ -22,7 +22,7 @@ import { NotFoundError, BadRequestError } from '../../utils/AppError.js';
 import {
   sendPurchasePaymentVoucherEmail,
   sendSupplierPaymentDoneEmail,
-} from '../../utils/emailService.js';
+} from '../../utils/email.js';
 
 // ─────────────────────────────────────────────
 // HELPER

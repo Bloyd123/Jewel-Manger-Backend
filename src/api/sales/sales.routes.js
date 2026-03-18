@@ -84,6 +84,7 @@ router.get(
   apiRateLimiter,
   saleController.getOverdueSales
 );
+
 //  GET /api/v1/shops/:shopId/sales/search
 
 router.get(
@@ -163,7 +164,8 @@ router.get(
   apiRateLimiter,
   saleController.getSalesPersonPerformance
 );
-  //  POST /api/v1/shops/:shopId/sales/bulk-delete
+
+//  POST /api/v1/shops/:shopId/sales/bulk-delete
 
 router.post(
   '/bulk-delete',
@@ -186,6 +188,7 @@ router.post(
   saleValidation.bulkPrint,
   saleController.bulkPrintInvoices
 );
+
 //  POST /api/v1/shops/:shopId/sales/bulk-send-reminders
 
 router.post(
@@ -257,8 +260,6 @@ router.delete(
   saleController.deleteSale
 );
 
-
-
 // PATCH /api/v1/shops/:shopId/sales/:saleId/status
 
 router.patch(
@@ -319,6 +320,16 @@ router.patch(
   saleController.cancelSale
 );
 
+// ── NEW: POST /api/v1/shops/:shopId/sales/:saleId/send-reminder ──
+router.post(
+  '/:saleId/send-reminder',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
+  checkPermission('canManageSales'),
+  createUpdateRateLimiter,
+  saleController.sendPaymentReminder
+);
+
 //  POST /api/v1/shops/:shopId/sales/:saleId/payments
 router.post(
   '/:saleId/payments',
@@ -352,7 +363,6 @@ router.get(
   saleController.generateReceipt
 );
 
-
 //  POST /api/v1/shops/:shopId/sales/:saleId/return
 
 router.post(
@@ -375,7 +385,6 @@ router.get(
   apiRateLimiter,
   saleController.getReturnDetails
 );
-
 
 //  POST /api/v1/shops/:shopId/sales/:saleId/old-gold
 
@@ -400,7 +409,6 @@ router.delete(
   saleController.removeOldGold
 );
 
-
   // GET /api/v1/shops/:shopId/sales/:saleId/invoice
 
 router.get(
@@ -423,6 +431,7 @@ router.post(
   saleValidation.sendInvoice,
   saleController.sendInvoice
 );
+
   // POST /api/v1/shops/:shopId/sales/:saleId/invoice/print
 
 router.post(
@@ -477,7 +486,6 @@ router.get(
   apiRateLimiter,
   saleController.getDocuments
 );
-
 
 //  POST /api/v1/shops/:shopId/sales/:saleId/approve
 

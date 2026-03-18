@@ -2,8 +2,10 @@ import Product from '../../models/Product.js';
 import MetalRate from '../../models/MetalRate.js';
 import InventoryTransaction from '../../models/InventoryTransaction.js';
 import JewelryShop from '../../models/Shop.js';
+import User from '../../models/User.js';
 import { adjustStock } from '../inventory/inventory.service.js';
 import eventLogger from '../../utils/eventLogger.js';
+import logger from '../../utils/logger.js';
 import cache from '../../utils/cache.js';
 import {
   ProductNotFoundError,
@@ -12,7 +14,11 @@ import {
   DuplicateProductCodeError,
 } from '../../utils/AppError.js';
 import Category from '../../models/Category.js';
+import { sendLowStockAlertEmail } from '../../utils/email.js';
 
+// ─────────────────────────────────────────────
+// CREATE
+// ─────────────────────────────────────────────
 export async function createProduct(productData, shopId, organizationId, userId) {
   const productCode = await Product.generateProductCode(shopId, 'PRD');
 
@@ -25,17 +31,12 @@ export async function createProduct(productData, shopId, organizationId, userId)
 
   const grossWeight = parseFloat(productData.weight?.grossWeight) || 0;
   const stoneWeight = parseFloat(productData.weight?.stoneWeight) || 0;
-  const netWeight = grossWeight - stoneWeight;
+  const netWeight   = grossWeight - stoneWeight;
 
   const pricing = await calculateProductPrice(
     {
       ...productData,
-      weight: {
-        ...productData.weight,
-        grossWeight,
-        stoneWeight,
-        netWeight,
-      },
+      weight: { ...productData.weight, grossWeight, stoneWeight, netWeight },
     },
     metalRates
   );
@@ -46,9 +47,9 @@ export async function createProduct(productData, shopId, organizationId, userId)
     });
   }
 
-  const quantity = productData.stock?.quantity || 1;
+  const quantity    = productData.stock?.quantity || 1;
   const reorderLevel = productData.stock?.reorderLevel || 0;
-  let stockStatus = 'in_stock';
+  let stockStatus   = 'in_stock';
 
   if (quantity === 0) {
     stockStatus = 'out_of_stock';
@@ -56,94 +57,60 @@ export async function createProduct(productData, shopId, organizationId, userId)
     stockStatus = 'low_stock';
   }
 
-
-  let finalCategoryId = productData.categoryId;
+  let finalCategoryId    = productData.categoryId;
   let finalSubCategoryId = productData.subCategoryId;
 
-  if (finalCategoryId === 'OTHER') {
-    finalCategoryId = process.env.OTHER_CATEGORY_ID;
-  }
-
-  if (finalSubCategoryId === 'OTHER_MISC') {
-    finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
-  }
-
+  if (finalCategoryId === 'OTHER')       finalCategoryId    = process.env.OTHER_CATEGORY_ID;
+  if (finalSubCategoryId === 'OTHER_MISC') finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
 
   const categoryExists = await Category.findOne({
-    _id: finalCategoryId,
-    isActive: true,
-    parentId: null,
+    _id: finalCategoryId, isActive: true, parentId: null,
   });
-
-  if (!categoryExists) {
-    throw new ValidationError('Invalid category selected');
-  }
+  if (!categoryExists) throw new ValidationError('Invalid category selected');
 
   if (finalSubCategoryId) {
     const subCategoryExists = await Category.findOne({
-      _id: finalSubCategoryId,
-      isActive: true,
-      parentId: finalCategoryId,
+      _id: finalSubCategoryId, isActive: true, parentId: finalCategoryId,
     });
-
-    if (!subCategoryExists) {
-      throw new ValidationError('Invalid subcategory selected');
-    }
+    if (!subCategoryExists) throw new ValidationError('Invalid subcategory selected');
   }
+
   const product = await Product.create({
     organizationId,
     shopId,
     productCode,
     ...productData,
-    categoryId: finalCategoryId,
+    categoryId:    finalCategoryId,
     subCategoryId: finalSubCategoryId,
-    weight: {
-      ...productData.weight,
-      netWeight,
-    },
-    pricing: {
-      ...productData.pricing,
-      ...pricing,
-    },
-    stock: {
-      ...productData.stock,
-      quantity,
-      status: stockStatus,
-    },
+    weight:  { ...productData.weight, netWeight },
+    pricing: { ...productData.pricing, ...pricing },
+    stock:   { ...productData.stock, quantity, status: stockStatus },
     createdBy: userId,
-    isActive: true,
+    isActive:  true,
     saleStatus: 'available',
   });
 
-await adjustStock({
-  organizationId,
-  shopId,
-  productId: product._id,
-  newQuantity: product.stock.quantity,
-  reason: 'Initial stock entry',
-  performedBy: userId,
-});
+  await adjustStock({
+    organizationId,
+    shopId,
+    productId:   product._id,
+    newQuantity: product.stock.quantity,
+    reason:      'Initial stock entry',
+    performedBy: userId,
+  });
 
   const shop = await JewelryShop.findById(shopId);
   if (shop) {
-    shop.statistics.totalProducts += 1;
+    shop.statistics.totalProducts      += 1;
     shop.statistics.totalInventoryValue += product.pricing.sellingPrice * product.stock.quantity;
     await shop.save();
   }
 
   await eventLogger.logProduct(
-    userId,
-    organizationId,
-    shopId,
-    'create',
-    product._id,
+    userId, organizationId, shopId, 'create', product._id,
     `Created product: ${product.name}`,
-    {
-      productCode: product.productCode,
-      categoryId: product.categoryId,
-      metalType: product.metal.type,
-      quantity: product.stock.quantity,
-    }
+    { productCode: product.productCode, categoryId: product.categoryId,
+      metalType: product.metal.type, quantity: product.stock.quantity }
   );
 
   cache.set(cache.productKey(product._id), product.toJSON(), 1800);
@@ -151,7 +118,9 @@ await adjustStock({
   return product;
 }
 
-
+// ─────────────────────────────────────────────
+// PRICE CALCULATION
+// ─────────────────────────────────────────────
 export async function calculateProductPrice(productData, metalRates) {
   const { metal, weight, makingCharges, stones, pricing } = productData;
 
@@ -159,136 +128,87 @@ export async function calculateProductPrice(productData, metalRates) {
 
   if (metal.type === 'gold') {
     switch (metal.purity) {
-      case '24K':
-        metalRate = metalRates.gold?.gold24K?.sellingRate || 0;
-        break;
-      case '22K':
-        metalRate = metalRates.gold?.gold22K?.sellingRate || 0;
-        break;
-      case '18K':
-        metalRate = metalRates.gold?.gold18K?.sellingRate || 0;
-        break;
-      case '916':
-        metalRate = metalRates.gold?.gold22K?.sellingRate || 0; // 916 = 22K
-        break;
-      default:
-        metalRate = metalRates.gold?.gold22K?.sellingRate || 0;
+      case '24K': metalRate = metalRates.gold?.gold24K?.sellingRate || 0; break;
+      case '22K': metalRate = metalRates.gold?.gold22K?.sellingRate || 0; break;
+      case '18K': metalRate = metalRates.gold?.gold18K?.sellingRate || 0; break;
+      case '916': metalRate = metalRates.gold?.gold22K?.sellingRate || 0; break;
+      default:    metalRate = metalRates.gold?.gold22K?.sellingRate || 0;
     }
   } else if (metal.type === 'silver') {
     switch (metal.purity) {
-      case '999':
-        metalRate = metalRates.silver?.pure?.sellingRate || 0;
-        break;
-      case '925':
-        metalRate = metalRates.silver?.sterling?.sellingRate || 0;
-        break;
-      default:
-        metalRate = metalRates.silver?.pure?.sellingRate || 0;
+      case '999': metalRate = metalRates.silver?.pure?.sellingRate     || 0; break;
+      case '925': metalRate = metalRates.silver?.sterling?.sellingRate || 0; break;
+      default:    metalRate = metalRates.silver?.pure?.sellingRate     || 0;
     }
   } else if (metal.type === 'platinum') {
     metalRate = metalRates.platinum?.sellingRate || 0;
   }
 
-  const netWeight = weight.netWeight || 0;
+  const netWeight  = weight.netWeight || 0;
   const metalValue = netWeight * metalRate;
 
   let makingChargesAmount = 0;
-  if (makingCharges?.type === 'per_gram') {
-    makingChargesAmount = netWeight * (makingCharges.value || 0);
-  } else if (makingCharges?.type === 'percentage') {
-    makingChargesAmount = (metalValue * (makingCharges.value || 0)) / 100;
-  } else if (makingCharges?.type === 'flat') {
-    makingChargesAmount = makingCharges.value || 0;
-  }
+  if (makingCharges?.type === 'per_gram')   makingChargesAmount = netWeight * (makingCharges.value || 0);
+  else if (makingCharges?.type === 'percentage') makingChargesAmount = (metalValue * (makingCharges.value || 0)) / 100;
+  else if (makingCharges?.type === 'flat')  makingChargesAmount = makingCharges.value || 0;
 
-  const stoneValue =
-    stones?.reduce((sum, stone) => {
-      return sum + (stone.stonePrice || 0) * (stone.pieceCount || 1);
-    }, 0) || 0;
+  const stoneValue = stones?.reduce((sum, stone) =>
+    sum + (stone.stonePrice || 0) * (stone.pieceCount || 1), 0) || 0;
 
   const otherCharges = pricing?.otherCharges || 0;
-
-  const subtotal = metalValue + stoneValue + makingChargesAmount + otherCharges;
+  const subtotal     = metalValue + stoneValue + makingChargesAmount + otherCharges;
 
   let discountAmount = 0;
-  if (pricing?.discount?.type === 'percentage') {
-    discountAmount = (subtotal * (pricing.discount.value || 0)) / 100;
-  } else if (pricing?.discount?.type === 'flat') {
-    discountAmount = pricing.discount.value || 0;
-  }
+  if (pricing?.discount?.type === 'percentage') discountAmount = (subtotal * (pricing.discount.value || 0)) / 100;
+  else if (pricing?.discount?.type === 'flat')  discountAmount = pricing.discount.value || 0;
 
   const afterDiscount = subtotal - discountAmount;
-
   const gstPercentage = pricing?.gst?.percentage || 3;
-  const gstAmount = (afterDiscount * gstPercentage) / 100;
-
-  const totalPrice = afterDiscount + gstAmount;
+  const gstAmount     = (afterDiscount * gstPercentage) / 100;
+  const totalPrice    = afterDiscount + gstAmount;
 
   return {
-    metalRate,
-    metalValue,
-    stoneValue,
+    metalRate, metalValue, stoneValue,
     makingCharges: makingChargesAmount,
-    otherCharges,
-    subtotal,
+    otherCharges, subtotal,
     discount: {
-      type: pricing?.discount?.type || 'none',
-      value: pricing?.discount?.value || 0,
+      type:   pricing?.discount?.type  || 'none',
+      value:  pricing?.discount?.value || 0,
       amount: discountAmount,
     },
-    gst: {
-      percentage: gstPercentage,
-      amount: gstAmount,
-    },
+    gst: { percentage: gstPercentage, amount: gstAmount },
     totalPrice,
     sellingPrice: totalPrice,
   };
 }
 
-
+// ─────────────────────────────────────────────
+// GET ALL
+// ─────────────────────────────────────────────
 export async function getProducts(shopId, organizationId, filters = {}, options = {}) {
   const {
-    page = 1,
-    limit = 20,
-    sort = '-createdAt',
-    category,
-    metalType,
-    purity,
-    status,
-    saleStatus,
-    minPrice,
-    maxPrice,
-    search,
-    gender,
-    isActive,
-    isFeatured,
+    page = 1, limit = 20, sort = '-createdAt',
+    category, metalType, purity, status, saleStatus,
+    minPrice, maxPrice, search, gender, isActive, isFeatured,
   } = filters;
 
-  // Build query
-  const query = {
-    shopId,
-    organizationId,
-    deletedAt: null,
-  };
+  const query = { shopId, organizationId, deletedAt: null };
 
-  // Apply filters
-  if (category) query.categoryId = category; // Now expecting ObjectId in filters
-  if (metalType) query['metal.type'] = metalType;
-  if (purity) query['metal.purity'] = purity;
-  if (status) query.status = status;
-  if (saleStatus) query.saleStatus = saleStatus;
-  if (gender) query.gender = gender;
-  if (isActive !== undefined) query.isActive = isActive;
-  if (isFeatured !== undefined) query.isFeatured = isFeatured;
+  if (category)                query.categoryId              = category;
+  if (metalType)               query['metal.type']           = metalType;
+  if (purity)                  query['metal.purity']         = purity;
+  if (status)                  query.status                  = status;
+  if (saleStatus)              query.saleStatus              = saleStatus;
+  if (gender)                  query.gender                  = gender;
+  if (isActive !== undefined)  query.isActive                = isActive;
+  if (isFeatured !== undefined) query.isFeatured             = isFeatured;
 
-  // Price range filter
   if (minPrice || maxPrice) {
     query['pricing.sellingPrice'] = {};
     if (minPrice) query['pricing.sellingPrice'].$gte = parseFloat(minPrice);
     if (maxPrice) query['pricing.sellingPrice'].$lte = parseFloat(maxPrice);
   }
 
-  // Search filter
   if (search) {
     query.$or = [
       { name: new RegExp(search, 'i') },
@@ -299,21 +219,17 @@ export async function getProducts(shopId, organizationId, filters = {}, options 
     ];
   }
 
-  // Execute query with pagination
   const skip = (page - 1) * limit;
   const [products, total] = await Promise.all([
     Product.find(query)
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit))
+      .sort(sort).skip(skip).limit(parseInt(limit))
       .populate('supplierId', 'name code contactPerson phone')
-      .populate('categoryId', 'name code') // ADD THIS
-      .populate('subCategoryId', 'name code') // ADD THIS
+      .populate('categoryId', 'name code')
+      .populate('subCategoryId', 'name code')
       .lean(),
     Product.countDocuments(query),
   ]);
 
-  // Calculate pagination metadata
   const totalPages = Math.ceil(total / limit);
 
   return {
@@ -321,125 +237,86 @@ export async function getProducts(shopId, organizationId, filters = {}, options 
     pagination: {
       currentPage: parseInt(page),
       totalPages,
-      pageSize: parseInt(limit),
-      totalItems: total,
+      pageSize:    parseInt(limit),
+      totalItems:  total,
       hasNextPage: page < totalPages,
       hasPrevPage: page > 1,
     },
   };
 }
 
-
+// ─────────────────────────────────────────────
+// GET BY ID
+// ─────────────────────────────────────────────
 export async function getProductById(productId, shopId, organizationId) {
   const cacheKey = cache.productKey(productId);
-  const cached = cache.get(cacheKey);
+  const cached   = cache.get(cacheKey);
   if (cached) return cached;
 
   const product = await Product.findOne({
-    _id: productId,
-    shopId,
-    organizationId,
-    deletedAt: null,
+    _id: productId, shopId, organizationId, deletedAt: null,
   })
     .populate('supplierId', 'name code contactPerson phone email')
-    .populate('categoryId', 'name code') 
-    .populate('subCategoryId', 'name code') 
+    .populate('categoryId', 'name code')
+    .populate('subCategoryId', 'name code')
     .populate('createdBy', 'firstName lastName email')
     .populate('updatedBy', 'firstName lastName email')
     .lean();
 
-  if (!product) {
-    throw new ProductNotFoundError('Product not found');
-  }
-  cache.set(cacheKey, product, 1800);
+  if (!product) throw new ProductNotFoundError('Product not found');
 
+  cache.set(cacheKey, product, 1800);
   return product;
 }
 
-
+// ─────────────────────────────────────────────
+// UPDATE PRODUCT
+// ─────────────────────────────────────────────
 export async function updateProduct(productId, shopId, organizationId, updateData, userId) {
   const product = await Product.findOne({
-    _id: productId,
-    shopId,
-    organizationId,
-    deletedAt: null,
+    _id: productId, shopId, organizationId, deletedAt: null,
   });
+  if (!product) throw new ProductNotFoundError('Product not found');
 
-  if (!product) {
-    throw new ProductNotFoundError('Product not found');
-  }
+  if (updateData.productCode) delete updateData.productCode;
 
-  if (updateData.productCode) {
-    delete updateData.productCode;
-  }
-
-  if (
-    updateData.weight?.grossWeight ||
-    updateData.weight?.stoneWeight ||
-    updateData.makingCharges
-  ) {
+  if (updateData.weight?.grossWeight || updateData.weight?.stoneWeight || updateData.makingCharges) {
     const metalRates = await MetalRate.getCurrentRate(shopId);
     if (metalRates) {
-      const pricing = await calculateProductPrice(
-        {
-          ...product.toObject(),
-          ...updateData,
-        },
-        metalRates
-      );
+      const pricing = await calculateProductPrice({ ...product.toObject(), ...updateData }, metalRates);
       updateData.pricing = { ...product.pricing, ...pricing };
     }
   }
 
   if (updateData.stock?.quantity !== undefined) {
-    const newQuantity = updateData.stock.quantity;
+    const newQuantity  = updateData.stock.quantity;
     const reorderLevel = updateData.stock.reorderLevel || product.stock.reorderLevel || 0;
 
-    if (newQuantity === 0) {
-      updateData.stock.status = 'out_of_stock';
-    } else if (newQuantity <= reorderLevel) {
-      updateData.stock.status = 'low_stock';
-    } else {
-      updateData.stock.status = 'in_stock';
-    }
+    if (newQuantity === 0)             updateData.stock.status = 'out_of_stock';
+    else if (newQuantity <= reorderLevel) updateData.stock.status = 'low_stock';
+    else                               updateData.stock.status = 'in_stock';
   }
 
-
-  let finalCategoryId = updateData.categoryId;
+  let finalCategoryId    = updateData.categoryId;
   let finalSubCategoryId = updateData.subCategoryId;
 
-  if (finalCategoryId === 'OTHER') {
-    finalCategoryId = process.env.OTHER_CATEGORY_ID;
-  }
-  if (finalSubCategoryId === 'OTHER_MISC') {
-    finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
-  }
+  if (finalCategoryId === 'OTHER')         finalCategoryId    = process.env.OTHER_CATEGORY_ID;
+  if (finalSubCategoryId === 'OTHER_MISC') finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
 
   if (finalCategoryId) {
-    const categoryExists = await Category.findOne({
-      _id: finalCategoryId,
-      isActive: true,
-      parentId: null,
-    });
-
-    if (!categoryExists) {
-      throw new ValidationError('Invalid category selected');
-    }
+    const categoryExists = await Category.findOne({ _id: finalCategoryId, isActive: true, parentId: null });
+    if (!categoryExists) throw new ValidationError('Invalid category selected');
   }
 
   if (finalSubCategoryId) {
     const subCategoryExists = await Category.findOne({
-      _id: finalSubCategoryId,
-      isActive: true,
+      _id: finalSubCategoryId, isActive: true,
       parentId: finalCategoryId || product.categoryId,
     });
-
-    if (!subCategoryExists) {
-      throw new ValidationError('Invalid subcategory selected');
-    }
+    if (!subCategoryExists) throw new ValidationError('Invalid subcategory selected');
   }
 
-  updateData.categoryId = finalCategoryId;
+  updateData.categoryId    = finalCategoryId;
   updateData.subCategoryId = finalSubCategoryId;
 
   Object.assign(product, updateData);
@@ -448,12 +325,9 @@ export async function updateProduct(productId, shopId, organizationId, updateDat
 
   cache.del(cache.productKey(productId));
   cache.deletePattern(`products:${shopId}:*`);
+
   await eventLogger.logProduct(
-    userId,
-    organizationId,
-    shopId,
-    'update',
-    product._id,
+    userId, organizationId, shopId, 'update', product._id,
     `Updated product: ${product.name}`,
     { updatedFields: Object.keys(updateData) }
   );
@@ -461,39 +335,32 @@ export async function updateProduct(productId, shopId, organizationId, updateDat
   return product;
 }
 
-
+// ─────────────────────────────────────────────
+// DELETE
+// ─────────────────────────────────────────────
 export async function deleteProduct(productId, shopId, organizationId, userId) {
   const product = await Product.findOne({
-    _id: productId,
-    shopId,
-    organizationId,
-    deletedAt: null,
+    _id: productId, shopId, organizationId, deletedAt: null,
   });
-
-  if (!product) {
-    throw new ProductNotFoundError('Product not found');
-  }
+  if (!product) throw new ProductNotFoundError('Product not found');
 
   await product.softDelete();
 
   const shop = await JewelryShop.findById(shopId);
   if (shop) {
-    shop.statistics.totalProducts = Math.max(0, shop.statistics.totalProducts - 1);
+    shop.statistics.totalProducts       = Math.max(0, shop.statistics.totalProducts - 1);
     shop.statistics.totalInventoryValue = Math.max(
       0,
       shop.statistics.totalInventoryValue - product.pricing.sellingPrice * product.stock.quantity
     );
     await shop.save();
   }
+
   cache.del(cache.productKey(productId));
   cache.deletePattern(`products:${shopId}:*`);
 
   await eventLogger.logProduct(
-    userId,
-    organizationId,
-    shopId,
-    'delete',
-    product._id,
+    userId, organizationId, shopId, 'delete', product._id,
     `Deleted product: ${product.name}`,
     { productCode: product.productCode }
   );
@@ -501,22 +368,19 @@ export async function deleteProduct(productId, shopId, organizationId, userId) {
   return { success: true };
 }
 
-
+// ─────────────────────────────────────────────
+// UPDATE STOCK  ← email call yahan hai
+// ─────────────────────────────────────────────
 export async function updateStock(productId, shopId, organizationId, stockData, userId) {
   const { operation, quantity, reason, referenceType, referenceId } = stockData;
 
   const product = await Product.findOne({
-    _id: productId,
-    shopId,
-    organizationId,
-    deletedAt: null,
+    _id: productId, shopId, organizationId, deletedAt: null,
   });
-
-  if (!product) {
-    throw new ProductNotFoundError('Product not found');
-  }
+  if (!product) throw new ProductNotFoundError('Product not found');
 
   const previousQuantity = product.stock.quantity;
+  const previousStatus   = product.stock.status; // ← pehle status save karo
   let newQuantity;
 
   switch (operation) {
@@ -525,9 +389,7 @@ export async function updateStock(productId, shopId, organizationId, stockData, 
       break;
     case 'subtract':
       newQuantity = previousQuantity - quantity;
-      if (newQuantity < 0) {
-        throw new InsufficientStockError('Insufficient stock available');
-      }
+      if (newQuantity < 0) throw new InsufficientStockError('Insufficient stock available');
       break;
     case 'set':
       newQuantity = quantity;
@@ -536,27 +398,52 @@ export async function updateStock(productId, shopId, organizationId, stockData, 
       throw new ValidationError('Invalid operation');
   }
 
-
   const transactionType =
     operation === 'add' ? 'IN' : operation === 'subtract' ? 'OUT' : 'ADJUSTMENT';
 
-await adjustStock({
-  organizationId,
-  shopId,
-  productId: product._id,
-  newQuantity,
-  reason: reason || `Stock ${operation}`,
-  performedBy: userId,
-});
+  // adjustStock return karta hai updated product — product.updateStock() internally status bhi set karta hai
+  const updatedProduct = await adjustStock({
+    organizationId,
+    shopId,
+    productId:   product._id,
+    newQuantity,
+    reason:      reason || `Stock ${operation}`,
+    performedBy: userId,
+  });
+
+  // ── LOW STOCK EMAIL ──────────────────────
+  const newStatus = updatedProduct?.stock?.status;
+
+  // Sirf tab email jab in_stock → low_stock ya out_of_stock ho
+  if (
+    previousStatus === 'in_stock' &&
+    (newStatus === 'low_stock' || newStatus === 'out_of_stock')
+  ) {
+    const shopAdmins = await User.find({
+      organizationId,
+      role:     { $in: ['org_admin', 'shop_admin'] },
+      isActive: true,
+    }).select('firstName email').lean();
+
+    if (shopAdmins.length > 0) {
+      Promise.all(
+        shopAdmins.map(admin =>
+          sendLowStockAlertEmail(updatedProduct, admin, newStatus).catch(err =>
+            logger.error(
+              `Low stock alert email failed — ${product.productCode} → ${admin.email}:`, err
+            )
+          )
+        )
+      );
+    }
+  }
+  // ─────────────────────────────────────────
 
   cache.del(cache.productKey(productId));
   cache.deletePattern(`products:${shopId}:*`);
+
   await eventLogger.logProduct(
-    userId,
-    organizationId,
-    shopId,
-    'stock_update',
-    product._id,
+    userId, organizationId, shopId, 'stock_update', product._id,
     `Updated stock for ${product.name}: ${operation} ${quantity}`,
     { previousQuantity, newQuantity, operation }
   );
@@ -565,7 +452,7 @@ await adjustStock({
     productId: product._id,
     previousQuantity,
     newQuantity,
-    status: product.status,
+    status: newStatus || product.status,
     transaction: {
       transactionType,
       quantity: Math.abs(quantity),
@@ -575,98 +462,62 @@ await adjustStock({
   };
 }
 
-
+// ─────────────────────────────────────────────
+// RESERVE / CANCEL RESERVATION
+// ─────────────────────────────────────────────
 export async function reserveProduct(productId, shopId, organizationId, reservationData, userId) {
   const { customerId, reservationDays = 7, notes } = reservationData;
 
   const product = await Product.findOne({
-    _id: productId,
-    shopId,
-    organizationId,
-    deletedAt: null,
+    _id: productId, shopId, organizationId, deletedAt: null,
   });
-
-  if (!product) {
-    throw new ProductNotFoundError('Product not found');
-  }
-
-  if (product.saleStatus === 'sold') {
-    throw new ValidationError('Product is already sold');
-  }
-
-  if (product.saleStatus === 'reserved') {
-    throw new ValidationError('Product is already reserved');
-  }
-
-  if (product.stock.quantity < 1) {
-    throw new InsufficientStockError('Product is out of stock');
-  }
+  if (!product) throw new ProductNotFoundError('Product not found');
+  if (product.saleStatus === 'sold')     throw new ValidationError('Product is already sold');
+  if (product.saleStatus === 'reserved') throw new ValidationError('Product is already reserved');
+  if (product.stock.quantity < 1)        throw new InsufficientStockError('Product is out of stock');
 
   await product.reserveProduct(customerId, reservationDays);
 
   await InventoryTransaction.create({
-    organizationId,
-    shopId,
-    productId: product._id,
-    productCode: product.productCode,
-    transactionType: 'RESERVED',
-    quantity: 1,
+    organizationId, shopId,
+    productId: product._id, productCode: product.productCode,
+    transactionType: 'RESERVED', quantity: 1,
     previousQuantity: product.stock.quantity,
-    newQuantity: product.stock.quantity,
+    newQuantity:      product.stock.quantity,
     transactionDate: new Date(),
     referenceType: 'reservation',
     performedBy: userId,
     reason: notes || 'Product reserved for customer',
     metadata: { customerId, reservationDays },
   });
+
   cache.del(cache.productKey(productId));
 
   await eventLogger.logProduct(
-    userId,
-    organizationId,
-    shopId,
-    'reserve',
-    product._id,
+    userId, organizationId, shopId, 'reserve', product._id,
     `Reserved product: ${product.name}`,
     { customerId, expiryDate: product.reservedFor.expiryDate }
   );
 
-  return {
-    saleStatus: product.saleStatus,
-    reservedFor: product.reservedFor,
-  };
+  return { saleStatus: product.saleStatus, reservedFor: product.reservedFor };
 }
-
 
 export async function cancelReservation(productId, shopId, organizationId, userId) {
   const product = await Product.findOne({
-    _id: productId,
-    shopId,
-    organizationId,
-    deletedAt: null,
+    _id: productId, shopId, organizationId, deletedAt: null,
   });
-
-  if (!product) {
-    throw new ProductNotFoundError('Product not found');
-  }
-
-  if (product.saleStatus !== 'reserved') {
-    throw new ValidationError('Product is not reserved');
-  }
+  if (!product) throw new ProductNotFoundError('Product not found');
+  if (product.saleStatus !== 'reserved') throw new ValidationError('Product is not reserved');
 
   const customerId = product.reservedFor?.customerId;
-
   await product.cancelReservation();
 
   await InventoryTransaction.create({
-    organizationId,
-    shopId,
-    productId: product._id,
-    productCode: product.productCode,
-    transactionType: 'UNRESERVED',
-    quantity: 1,
+    organizationId, shopId,
+    productId: product._id, productCode: product.productCode,
+    transactionType: 'UNRESERVED', quantity: 1,
     previousQuantity: product.stock.quantity,
-    newQuantity: product.stock.quantity,
+    newQuantity:      product.stock.quantity,
     transactionDate: new Date(),
     referenceType: 'reservation',
     performedBy: userId,
@@ -675,54 +526,38 @@ export async function cancelReservation(productId, shopId, organizationId, userI
   });
 
   cache.del(cache.productKey(productId));
+
   await eventLogger.logProduct(
-    userId,
-    organizationId,
-    shopId,
-    'unreserve',
-    product._id,
-    `Cancelled reservation: ${product.name}`,
-    { customerId }
+    userId, organizationId, shopId, 'unreserve', product._id,
+    `Cancelled reservation: ${product.name}`, { customerId }
   );
 
   return { saleStatus: product.saleStatus };
 }
 
+// ─────────────────────────────────────────────
+// MARK AS SOLD
+// ─────────────────────────────────────────────
 export async function markAsSold(productId, shopId, organizationId, saleData, userId) {
   const { customerId, saleId } = saleData;
 
   const product = await Product.findOne({
-    _id: productId,
-    shopId,
-    organizationId,
-    deletedAt: null,
+    _id: productId, shopId, organizationId, deletedAt: null,
   });
+  if (!product) throw new ProductNotFoundError('Product not found');
+  if (product.saleStatus === 'sold')  throw new ValidationError('Product is already sold');
+  if (product.stock.quantity < 1)     throw new InsufficientStockError('Product is out of stock');
 
-  if (!product) {
-    throw new ProductNotFoundError('Product not found');
-  }
-
-  if (product.saleStatus === 'sold') {
-    throw new ValidationError('Product is already sold');
-  }
-
-  if (product.stock.quantity < 1) {
-    throw new InsufficientStockError('Product is out of stock');
-  }
   await product.markAsSold(customerId);
 
   await InventoryTransaction.create({
-    organizationId,
-    shopId,
-    productId: product._id,
-    productCode: product.productCode,
-    transactionType: 'SALE',
-    quantity: 1,
+    organizationId, shopId,
+    productId: product._id, productCode: product.productCode,
+    transactionType: 'SALE', quantity: 1,
     previousQuantity: product.stock.quantity + 1,
-    newQuantity: product.stock.quantity,
+    newQuantity:      product.stock.quantity,
     transactionDate: new Date(),
-    referenceType: 'sale',
-    referenceId: saleId || null,
+    referenceType: 'sale', referenceId: saleId || null,
     performedBy: userId,
     reason: 'Product sold',
     value: product.pricing.sellingPrice,
@@ -731,126 +566,108 @@ export async function markAsSold(productId, shopId, organizationId, saleData, us
 
   cache.del(cache.productKey(productId));
   cache.deletePattern(`products:${shopId}:*`);
+
   await eventLogger.logProduct(
-    userId,
-    organizationId,
-    shopId,
-    'sold',
-    product._id,
-    `Sold product: ${product.name}`,
-    { customerId, saleId }
+    userId, organizationId, shopId, 'sold', product._id,
+    `Sold product: ${product.name}`, { customerId, saleId }
   );
 
   return {
     saleStatus: product.saleStatus,
-    soldDate: product.soldDate,
-    stock: product.stock,
+    soldDate:   product.soldDate,
+    stock:      product.stock,
   };
 }
 
+// ─────────────────────────────────────────────
+// RECALCULATE PRICE
+// ─────────────────────────────────────────────
 export async function recalculatePrice(productId, shopId, organizationId, priceData, userId) {
   const { useCurrentRate = true, customRate, customRates } = priceData;
 
   const product = await Product.findOne({
-    _id: productId,
-    shopId,
-    organizationId,
-    deletedAt: null,
+    _id: productId, shopId, organizationId, deletedAt: null,
   });
-
-  if (!product) {
-    throw new ProductNotFoundError('Product not found');
-  }
+  if (!product) throw new ProductNotFoundError('Product not found');
 
   const oldPrice = product.pricing.sellingPrice;
 
   let metalRates;
   if (useCurrentRate) {
     metalRates = await MetalRate.getCurrentRate(shopId);
-    if (!metalRates) {
-      throw new ValidationError('Current metal rates not found');
-    }
-} else if (customRate || customRates) {
-  metalRates = {
-    gold: {
-      gold24K: { sellingRate: customRates?.gold || customRate },
-      gold22K: { sellingRate: customRates?.gold || customRate },
-      gold18K: { sellingRate: customRates?.gold || customRate },
-    },
-    silver: {
-      pure:     { sellingRate: customRates?.silver || customRate },
-      sterling: { sellingRate: customRates?.silver || customRate },
-    },
-    platinum: { sellingRate: customRates?.platinum || customRate },
-  };
+    if (!metalRates) throw new ValidationError('Current metal rates not found');
+  } else if (customRate || customRates) {
+    metalRates = {
+      gold: {
+        gold24K: { sellingRate: customRates?.gold     || customRate },
+        gold22K: { sellingRate: customRates?.gold     || customRate },
+        gold18K: { sellingRate: customRates?.gold     || customRate },
+      },
+      silver: {
+        pure:     { sellingRate: customRates?.silver   || customRate },
+        sterling: { sellingRate: customRates?.silver   || customRate },
+      },
+      platinum: { sellingRate: customRates?.platinum || customRate },
+    };
   } else {
     throw new ValidationError('Either useCurrentRate or customRate must be provided');
   }
 
   await product.calculatePrice(metalRates);
 
-  const newPrice = product.pricing.sellingPrice;
-  const difference = newPrice - oldPrice;
+  const newPrice             = product.pricing.sellingPrice;
+  const difference           = newPrice - oldPrice;
   const differencePercentage = oldPrice > 0 ? (difference / oldPrice) * 100 : 0;
 
   cache.del(cache.productKey(productId));
 
   await eventLogger.logProduct(
-    userId,
-    organizationId,
-    shopId,
-    'price_recalculate',
-    product._id,
+    userId, organizationId, shopId, 'price_recalculate', product._id,
     `Recalculated price for ${product.name}`,
     { oldPrice, newPrice, difference, differencePercentage }
   );
 
   return {
-    oldPrice,
-    newPrice,
-    difference,
+    oldPrice, newPrice, difference,
     differencePercentage: parseFloat(differencePercentage.toFixed(2)),
     pricing: product.pricing,
   };
 }
 
-
+// ─────────────────────────────────────────────
+// LOW STOCK PRODUCTS
+// ─────────────────────────────────────────────
 export async function getLowStockProducts(shopId, organizationId, threshold) {
   const query = {
-    shopId,
-    organizationId,
-    deletedAt: null,
-    isActive: true,
+    shopId, organizationId, deletedAt: null, isActive: true,
     $or: [{ status: 'low_stock' }, { status: 'out_of_stock' }],
   };
 
   if (threshold !== undefined) {
     query.$or = [{ 'stock.quantity': { $lte: threshold } }, { status: 'out_of_stock' }];
   }
+
   const products = await Product.find(query)
     .sort({ 'stock.quantity': 1 })
     .select('name productCode categoryId subCategoryId stock pricing primaryImage')
     .populate('categoryId', 'name code')
     .populate('subCategoryId', 'name code')
     .lean();
+
   const criticalItems = products.filter(p => p.stock.quantity === 0).length;
 
   return {
     products,
-    meta: {
-      totalLowStockItems: products.length,
-      criticalItems,
-    },
+    meta: { totalLowStockItems: products.length, criticalItems },
   };
 }
 
+// ─────────────────────────────────────────────
+// SEARCH
+// ─────────────────────────────────────────────
 export async function searchProducts(shopId, organizationId, searchQuery, limit = 10) {
-  const query = {
-    shopId,
-    organizationId,
-    deletedAt: null,
-    isActive: true,
-    saleStatus: 'available',
+  return Product.find({
+    shopId, organizationId, deletedAt: null, isActive: true, saleStatus: 'available',
     $or: [
       { name: new RegExp(searchQuery, 'i') },
       { productCode: new RegExp(searchQuery, 'i') },
@@ -858,62 +675,42 @@ export async function searchProducts(shopId, organizationId, searchQuery, limit 
       { huid: new RegExp(searchQuery, 'i') },
       { tags: new RegExp(searchQuery, 'i') },
     ],
-  };
-
-  const products = await Product.find(query)
+  })
     .limit(parseInt(limit))
-    .select(
-      'name productCode categoryId subCategoryId metal weight pricing stock primaryImage saleStatus'
-    )
+    .select('name productCode categoryId subCategoryId metal weight pricing stock primaryImage saleStatus')
     .populate('categoryId', 'name code')
     .populate('subCategoryId', 'name code')
     .lean();
-
-  return products;
 }
 
+// ─────────────────────────────────────────────
+// PRODUCT HISTORY
+// ─────────────────────────────────────────────
 export async function getProductHistory(productId, shopId, organizationId, limit = 50) {
   const product = await Product.findOne({
-    _id: productId,
-    shopId,
-    organizationId,
-    deletedAt: null,
+    _id: productId, shopId, organizationId, deletedAt: null,
   });
-
-  if (!product) {
-    throw new ProductNotFoundError('Product not found');
-  }
+  if (!product) throw new ProductNotFoundError('Product not found');
 
   const history = await InventoryTransaction.getProductHistory(productId, limit);
 
   return {
-    product: {
-      _id: product._id,
-      name: product.name,
-      productCode: product.productCode,
-    },
+    product: { _id: product._id, name: product.name, productCode: product.productCode },
     history,
   };
 }
 
-
+// ─────────────────────────────────────────────
+// BULK DELETE / UPDATE STATUS
+// ─────────────────────────────────────────────
 export async function bulkDeleteProducts(productIds, shopId, organizationId, userId) {
   const products = await Product.find({
-    _id: { $in: productIds },
-    shopId,
-    organizationId,
-    deletedAt: null,
+    _id: { $in: productIds }, shopId, organizationId, deletedAt: null,
   });
-
-  if (products.length === 0) {
-    throw new ProductNotFoundError('No products found to delete');
-  }
+  if (products.length === 0) throw new ProductNotFoundError('No products found to delete');
 
   const deletedCount = products.length;
-
-  for (const product of products) {
-    await product.softDelete();
-  }
+  for (const product of products) await product.softDelete();
 
   const shop = await JewelryShop.findById(shopId);
   if (shop) {
@@ -924,11 +721,8 @@ export async function bulkDeleteProducts(productIds, shopId, organizationId, use
   cache.deletePattern(`products:${shopId}:*`);
 
   await eventLogger.logActivity({
-    userId,
-    organizationId,
-    shopId,
-    action: 'bulk_delete',
-    module: 'product',
+    userId, organizationId, shopId,
+    action: 'bulk_delete', module: 'product',
     description: `Bulk deleted ${deletedCount} products`,
     level: 'info',
     metadata: { productIds, deletedCount },
@@ -937,35 +731,19 @@ export async function bulkDeleteProducts(productIds, shopId, organizationId, use
   return { deletedCount };
 }
 
-
 export async function bulkUpdateStatus(productIds, shopId, organizationId, status, userId) {
   const result = await Product.updateMany(
-    {
-      _id: { $in: productIds },
-      shopId,
-      organizationId,
-      deletedAt: null,
-    },
-    {
-      $set: {
-        status,
-        updatedBy: userId,
-        updatedAt: new Date(),
-      },
-    }
+    { _id: { $in: productIds }, shopId, organizationId, deletedAt: null },
+    { $set: { status, updatedBy: userId, updatedAt: new Date() } }
   );
 
-  if (result.modifiedCount === 0) {
-    throw new ProductNotFoundError('No products found to update');
-  }
+  if (result.modifiedCount === 0) throw new ProductNotFoundError('No products found to update');
+
   cache.deletePattern(`products:${shopId}:*`);
 
   await eventLogger.logActivity({
-    userId,
-    organizationId,
-    shopId,
-    action: 'bulk_update_status',
-    module: 'product',
+    userId, organizationId, shopId,
+    action: 'bulk_update_status', module: 'product',
     description: `Bulk updated status to ${status} for ${result.modifiedCount} products`,
     level: 'info',
     metadata: { productIds, status, modifiedCount: result.modifiedCount },
