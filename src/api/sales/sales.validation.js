@@ -153,7 +153,7 @@ export const updateStatus = [
   body('status')
     .notEmpty()
     .withMessage('Status is required')
-    .isIn(['draft', 'pending', 'confirmed', 'delivered', 'completed', 'cancelled'])
+     .isIn(['draft', 'pending', 'confirmed', 'delivered', 'completed', 'cancelled', 'returned'])
     .withMessage('Invalid status'),
 
   handleValidationErrors,

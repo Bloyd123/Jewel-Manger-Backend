@@ -1,12 +1,16 @@
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import User from '../../models/User.js';
 import Organization from '../../models/Organization.js';
 import UserShopAccess from '../../models/UserShopAccess.js';
 import tokenManager from '../../utils/tokenManager.js';
 import eventLogger from '../../utils/eventLogger.js';
 import cache from '../../utils/cache.js';
-import { sendEmail } from '../../utils/email.js';
-import mongoose from 'mongoose';
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendPasswordChangedEmail,
+} from '../../utils/email.js';
 import {
   getPermissionsByRole,
   getAllPermissions,
@@ -22,48 +26,63 @@ import {
   ValidationError,
   InternalServerError,
 } from '../../utils/AppError.js';
+import logger from '../../utils/logger.js';
 
 const getDefaultPermissionsForShopAccess = (role) => {
   return getPermissionsByRole(role);
 };
 
-const sendVerificationEmail = async (user, verificationToken) => {
-  const verifyURL = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+/**
+ * Resolves shopAccesses and effectivePermissions based on user role.
+ * Used in loginUser, verify2FALogin, verifyBackupCode.
+ * @param {Object} user
+ * @returns {{ shopAccesses: Array, effectivePermissions: Object|null }}
+ */
+const resolveShopAccess = async (user) => {
+  let shopAccesses = [];
+  let effectivePermissions = null;
 
-  await sendEmail({
-    to: user.email,
-    subject: 'Email Verification - Jewelry ERP',
-    html: `
-      <h2>Welcome ${user.firstName}!</h2>
-      <p>Please verify your email address by clicking the link below:</p>
-      <a href="${verifyURL}" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
-        Verify Email
-      </a>
-      <p>This link will expire in 24 hours.</p>
-      <p>If you didn't create this account, please ignore this email.</p>
-    `,
-  });
+  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
+    shopAccesses = await UserShopAccess.find({
+      userId:    user._id,
+      isActive:  true,
+      deletedAt: null,
+      revokedAt: null,
+    })
+      .select('shopId role permissions isActive')
+      .populate('shopId', 'name displayName');
+
+  } else if (user.role === 'super_admin') {
+    effectivePermissions = getAllPermissions();
+
+  } else if (user.role === 'org_admin') {
+    effectivePermissions = getOrgAdminPermissions();
+
+    const Shop = mongoose.model('JewelryShop');
+    const orgShops = await Shop.find({
+      organizationId: user.organizationId,
+      isActive:       true,
+      deletedAt:      null,
+    })
+      .select('_id name displayName')
+      .lean();
+
+    shopAccesses = orgShops.map(shop => ({
+      shopId: {
+        _id:         shop._id,
+        name:        shop.name,
+        displayName: shop.displayName || shop.name,
+      },
+      role:        'org_admin',
+      permissions: null,
+      isActive:    true,
+    }));
+
+    logger.debug(`Org admin ${user.email} has access to ${shopAccesses.length} shops`);
+  }
+
+  return { shopAccesses, effectivePermissions };
 };
-
-const sendPasswordResetEmail = async (user, resetToken) => {
-  const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-
-  await sendEmail({
-    to: user.email,
-    subject: 'Password Reset Request - Jewelry ERP',
-    html: `
-      <h2>Password Reset Request</h2>
-      <p>Hi ${user.firstName},</p>
-      <p>You requested to reset your password. Click the link below:</p>
-      <a href="${resetURL}" style="display: inline-block; padding: 10px 20px; background: #2196F3; color: white; text-decoration: none; border-radius: 5px;">
-        Reset Password
-      </a>
-      <p>This link will expire in 1 hour.</p>
-      <p>If you didn't request this, please ignore this email.</p>
-    `,
-  });
-};
-
 
 export const registerUser = async (userData, ipAddress, userAgent, currentUser = null) => {
   const {
@@ -118,37 +137,34 @@ export const registerUser = async (userData, ipAddress, userAgent, currentUser =
     phone,
     organizationId: role === 'super_admin' ? null : organizationId,
     role,
-    primaryShop: primaryShop || null,
+    primaryShop:    primaryShop || null,
     department,
-    createdBy: currentUser?._id || null,
-    isActive: true,
+    createdBy:      currentUser?._id || null,
+    isActive:       true,
   });
 
   if (primaryShop) {
     const defaultPermissions = getDefaultPermissionsForShopAccess(role);
     await UserShopAccess.create({
-      userId: user._id,
-      shopId: primaryShop,
+      userId:         user._id,
+      shopId:         primaryShop,
       organizationId,
       role,
-      permissions: defaultPermissions,
-      isActive: true,
-      grantedBy: currentUser?._id || null,
+      permissions:    defaultPermissions,
+      isActive:       true,
+      grantedBy:      currentUser?._id || null,
     });
-    console.log('  UserShopAccess created for', user.email, 'with role', role);
+    logger.debug(`UserShopAccess created for ${user.email} with role ${role}`);
   }
 
   const verificationToken = tokenManager.generateEmailVerificationToken(user._id, user.email);
 
-  user.emailVerificationToken = crypto
-    .createHash('sha256')
-    .update(verificationToken)
-    .digest('hex');
+  user.emailVerificationToken   = crypto.createHash('sha256').update(verificationToken).digest('hex');
   user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
   await user.save();
 
   sendVerificationEmail(user, verificationToken).catch(err => {
-    console.error('Email sending failed:', err);
+    logger.error('Email sending failed:', err);
   });
 
   const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
@@ -166,7 +182,7 @@ export const registerUser = async (userData, ipAddress, userAgent, currentUser =
 
   await eventLogger.logAuth(user._id, user.organizationId, 'register', 'success', ipAddress, {
     email: user.email,
-    role: user.role,
+    role:  user.role,
   });
 
   cache.set(cache.userKey(user._id), user.toJSON(), 600);
@@ -177,8 +193,8 @@ export const registerUser = async (userData, ipAddress, userAgent, currentUser =
   };
 };
 
+
 export const loginUser = async (email, password, ipAddress, userAgent) => {
-  
   const user = await User.findByCredentials(email, password);
 
   if (!user.isActive) {
@@ -192,6 +208,7 @@ export const loginUser = async (email, password, ipAddress, userAgent) => {
     );
     throw new UnauthorizedError('Your account has been deactivated');
   }
+
   if (user.twoFactorEnabled) {
     const tempToken = tokenManager.generateTempSessionToken(user._id);
 
@@ -221,66 +238,24 @@ export const loginUser = async (email, password, ipAddress, userAgent) => {
   }
 
   const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
-  let shopAccesses = [];
-  let effectivePermissions = null;
 
   await user.updateLastLogin(ipAddress);
 
   await eventLogger.logAuth(user._id, user.organizationId, 'login', 'success', ipAddress, {
     browser: userAgent,
   });
-  console.log('USER ROLE:', user.role);
-console.log(' All roles check:', {
-  isShopLevel: ['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role),
-  isSuperAdmin: user.role === 'super_admin',
-  isOrgAdmin: user.role === 'org_admin'
-});
-  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
-    shopAccesses = await UserShopAccess.find({
-      userId: user._id,
-      isActive: true,
-      deletedAt: null,
-      revokedAt: null,
-    })
-      .select('shopId role permissions isActive')
-      .populate('shopId', 'name displayName');
-  }
-  else if (user.role === 'super_admin') {
-    effectivePermissions = getAllPermissions();
-  }
-else if (user.role === 'org_admin') {
-    effectivePermissions = getOrgAdminPermissions();
-    
-    const Shop = mongoose.model('JewelryShop');
-    const orgShops = await Shop.find({
-      organizationId: user.organizationId,
-      isActive: true,
-      deletedAt: null,
-    })
-      .select('_id name displayName')
-      .lean();
-    
-    shopAccesses = orgShops.map(shop => ({
-      shopId: {
-        _id: shop._id,
-        name: shop.name,
-        displayName: shop.displayName || shop.name,
-      },
-      role: 'org_admin',
-      permissions: null,
-      isActive: true,
-    }));
-    
-    console.log(` Org admin ${user.email} has access to ${shopAccesses.length} shops`);
-  }
+
+  logger.debug(`Login — user: ${user.email}, role: ${user.role}`);
+
+  const { shopAccesses, effectivePermissions } = await resolveShopAccess(user);
 
   cache.set(cache.userKey(user._id), user.toJSON(), 600);
 
   return {
     user: user.toJSON(),
     ...tokens,
-    shopAccesses, 
-    effectivePermissions, 
+    shopAccesses,
+    effectivePermissions,
   };
 };
 
@@ -289,14 +264,15 @@ export const logoutUser = async (userId, organizationId, refreshToken, accessTok
     try {
       await tokenManager.revokeRefreshToken(refreshToken);
     } catch (error) {
-      console.error('Refresh token revocation failed:', error);
+      logger.error('Refresh token revocation failed:', error);
     }
   }
+
   if (accessToken) {
     try {
       await tokenManager.blacklistAccessToken(accessToken);
     } catch (error) {
-      console.error('Access token blacklisting failed:', error);
+      logger.error('Access token blacklisting failed:', error);
     }
   }
 
@@ -319,6 +295,7 @@ export const logoutAllDevices = async (userId, organizationId, ipAddress) => {
 
   return { revokedCount };
 };
+
 
 export const refreshAccessToken = async (refreshToken, ipAddress, userAgent) => {
   const tokens = await tokenManager.refreshAccessToken(refreshToken, ipAddress, userAgent);
@@ -370,6 +347,7 @@ export const updateUserProfile = async (userId, updates) => {
   return user.toJSON();
 };
 
+
 export const changePassword = async (userId, currentPassword, newPassword, ipAddress) => {
   if (newPassword.length < 6) {
     throw new ValidationError('Password must be at least 6 characters');
@@ -393,6 +371,10 @@ export const changePassword = async (userId, currentPassword, newPassword, ipAdd
 
   cache.del(cache.userKey(user._id));
 
+  sendPasswordChangedEmail(user).catch(err => {
+    logger.error('Password changed email failed:', err);
+  });
+
   await eventLogger.logAuth(
     user._id,
     user.organizationId,
@@ -407,20 +389,21 @@ export const changePassword = async (userId, currentPassword, newPassword, ipAdd
 export const forgotPassword = async (email, ipAddress) => {
   const user = await User.findOne({ email, isActive: true });
 
+  // Silently succeed even if user not found — prevents email enumeration
   if (!user) {
     return { success: true };
   }
 
   const resetToken = tokenManager.generatePasswordResetToken(user._id);
 
-  user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  user.passwordResetToken   = crypto.createHash('sha256').update(resetToken).digest('hex');
   user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hour
   await user.save();
 
   try {
     await sendPasswordResetEmail(user, resetToken);
   } catch (error) {
-    user.passwordResetToken = undefined;
+    user.passwordResetToken   = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
     throw new InternalServerError('Failed to send password reset email');
@@ -451,8 +434,8 @@ export const resetPassword = async (token, newPassword, ipAddress) => {
     throw new ValidationError('Invalid or expired reset token');
   }
 
-  user.password = newPassword;
-  user.passwordResetToken = undefined;
+  user.password             = newPassword;
+  user.passwordResetToken   = undefined;
   user.passwordResetExpires = undefined;
   await user.save();
 
@@ -484,8 +467,8 @@ export const verifyEmail = async (token, ipAddress) => {
     return { alreadyVerified: true };
   }
 
-  user.isEmailVerified = true;
-  user.emailVerificationToken = undefined;
+  user.isEmailVerified          = true;
+  user.emailVerificationToken   = undefined;
   user.emailVerificationExpires = undefined;
   await user.save();
 
@@ -515,10 +498,7 @@ export const resendVerificationEmail = async (userId) => {
 
   const verificationToken = tokenManager.generateEmailVerificationToken(user._id, user.email);
 
-  user.emailVerificationToken = crypto
-    .createHash('sha256')
-    .update(verificationToken)
-    .digest('hex');
+  user.emailVerificationToken   = crypto.createHash('sha256').update(verificationToken).digest('hex');
   user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
   await user.save();
 
@@ -531,13 +511,13 @@ export const getActiveSessions = async (userId, currentTokenId) => {
   const sessions = await tokenManager.getUserTokens(userId);
 
   const formattedSessions = sessions.map(session => ({
-    id: session.tokenId,
-    device: session.userAgent || 'Unknown Device',
-    ipAddress: session.ipAddress,
-    lastUsed: session.lastUsedAt,
-    createdAt: session.createdAt,
-    expiresAt: session.expiresAt,
-    isCurrent: session.tokenId === currentTokenId,
+    id:         session.tokenId,
+    device:     session.userAgent || 'Unknown Device',
+    ipAddress:  session.ipAddress,
+    lastUsed:   session.lastUsedAt,
+    createdAt:  session.createdAt,
+    expiresAt:  session.expiresAt,
+    isCurrent:  session.tokenId === currentTokenId,
   }));
 
   return formattedSessions;
@@ -555,19 +535,19 @@ export const revokeSession = async (userId, organizationId, tokenId, ipAddress) 
 
 export const enable2FA = async (userId) => {
   const speakeasy = (await import('speakeasy')).default;
-  const QRCode = (await import('qrcode')).default;
+  const QRCode    = (await import('qrcode')).default;
 
   const user = await User.findById(userId);
   if (!user) throw new UserNotFoundError();
 
   const secret = speakeasy.generateSecret({
-    name: `JewelryERP (${user.email})`,
+    name:   `JewelPro (${user.email})`,
     length: 32,
   });
 
   const qrCodeDataURL = await QRCode.toDataURL(secret.otpauth_url);
 
-  user.twoFactorSecret = secret.base32;
+  user.twoFactorSecret  = secret.base32;
   user.twoFactorEnabled = false;
   await user.save();
 
@@ -579,35 +559,35 @@ export const enable2FA = async (userId) => {
 
 export const verify2FA = async (userId, token) => {
   const speakeasy = (await import('speakeasy')).default;
-  const bcrypt = (await import('bcryptjs')).default;
+  const bcrypt    = (await import('bcryptjs')).default;
 
   const user = await User.findById(userId).select('+twoFactorSecret');
   if (!user) throw new UserNotFoundError();
 
   const verified = speakeasy.totp.verify({
-    secret: user.twoFactorSecret,
+    secret:   user.twoFactorSecret,
     encoding: 'base32',
     token,
-    window: 2,
+    window:   2,
   });
 
   if (!verified) {
     throw new ValidationError('Invalid verification code');
   }
 
-  const backupCodes = [];
+  const backupCodes       = [];
   const hashedBackupCodes = [];
 
   for (let i = 0; i < 10; i++) {
-    const code = crypto.randomBytes(6).toString('hex').toUpperCase();
+    const code      = crypto.randomBytes(6).toString('hex').toUpperCase();
     const formatted = `${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8, 12)}`;
     backupCodes.push(formatted);
     hashedBackupCodes.push(await bcrypt.hash(formatted, 10));
   }
 
   user.twoFactorEnabled = true;
-  user.backupCodes = hashedBackupCodes;
-  user.backupCodesUsed = [];
+  user.backupCodes      = hashedBackupCodes;
+  user.backupCodesUsed  = [];
   await user.save();
 
   await eventLogger.logAuth(userId, user.organizationId, '2fa_enabled', 'success', null);
@@ -625,18 +605,18 @@ export const disable2FA = async (userId, password, token, ipAddress) => {
   if (!isMatch) throw new InvalidCredentialsError('Incorrect password');
 
   const verified = speakeasy.totp.verify({
-    secret: user.twoFactorSecret,
+    secret:   user.twoFactorSecret,
     encoding: 'base32',
     token,
-    window: 2,
+    window:   2,
   });
 
   if (!verified) throw new ValidationError('Invalid 2FA code');
 
   user.twoFactorEnabled = false;
-  user.twoFactorSecret = undefined;
-  user.backupCodes = undefined;
-  user.backupCodesUsed = undefined;
+  user.twoFactorSecret  = undefined;
+  user.backupCodes      = undefined;
+  user.backupCodesUsed  = undefined;
   await user.save();
 
   await eventLogger.logAuth(userId, user.organizationId, '2fa_disabled', 'success', ipAddress);
@@ -653,10 +633,10 @@ export const verify2FALogin = async (tempToken, token, ipAddress, userAgent) => 
   if (!user || !user.isActive) throw new UnauthorizedError('Invalid session');
 
   const verified = speakeasy.totp.verify({
-    secret: user.twoFactorSecret,
+    secret:   user.twoFactorSecret,
     encoding: 'base32',
     token,
-    window: 2,
+    window:   2,
   });
 
   if (!verified) throw new ValidationError('Invalid 2FA code');
@@ -664,6 +644,7 @@ export const verify2FALogin = async (tempToken, token, ipAddress, userAgent) => 
   const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
 
   await user.updateLastLogin(ipAddress);
+
   await eventLogger.logAuth(
     user._id,
     user.organizationId,
@@ -672,47 +653,7 @@ export const verify2FALogin = async (tempToken, token, ipAddress, userAgent) => 
     ipAddress
   );
 
-  let shopAccesses = [];
-  let effectivePermissions = null;
-
-  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
-    const UserShopAccess = mongoose.model('UserShopAccess');
-    shopAccesses = await UserShopAccess.find({
-      userId: user._id,
-      isActive: true,
-      deletedAt: null,
-      revokedAt: null,
-    })
-      .select('shopId role permissions isActive')
-      .populate('shopId', 'name displayName');
-  } else if (user.role === 'super_admin') {
-    effectivePermissions = getAllPermissions();
-  }  else if (user.role === 'org_admin') {
-    effectivePermissions = getOrgAdminPermissions();
-    
-    const Shop = mongoose.model('JewelryShop');
-    const orgShops = await Shop.find({
-      organizationId: user.organizationId,
-      isActive: true,
-      deletedAt: null,
-    })
-      .select('_id name displayName')
-      .lean();
-    
-    shopAccesses = orgShops.map(shop => ({
-      shopId: {
-        _id: shop._id,
-        name: shop.name,
-        displayName: shop.displayName || shop.name,
-      },
-      role: 'org_admin',
-      permissions: null,
-      isActive: true,
-    }));
-    
-    console.log(` Org admin ${user.email} has access to ${shopAccesses.length} shops`);
-  }
-
+  const { shopAccesses, effectivePermissions } = await resolveShopAccess(user);
 
   cache.set(cache.userKey(user._id), user.toJSON(), 600);
 
@@ -755,6 +696,7 @@ export const verifyBackupCode = async (tempToken, backupCode, ipAddress, userAge
   const tokens = await tokenManager.generateTokenPair(user, ipAddress, userAgent);
 
   await user.updateLastLogin(ipAddress);
+
   await eventLogger.logAuth(
     user._id,
     user.organizationId,
@@ -765,46 +707,8 @@ export const verifyBackupCode = async (tempToken, backupCode, ipAddress, userAge
 
   const remainingCodes = user.backupCodes.length - user.backupCodesUsed.length;
 
-  let shopAccesses = [];
-  let effectivePermissions = null;
+  const { shopAccesses, effectivePermissions } = await resolveShopAccess(user);
 
-  if (['shop_admin', 'manager', 'staff', 'accountant', 'viewer'].includes(user.role)) {
-    const UserShopAccess = mongoose.model('UserShopAccess');
-    shopAccesses = await UserShopAccess.find({
-      userId: user._id,
-      isActive: true,
-      deletedAt: null,
-      revokedAt: null,
-    })
-      .select('shopId role permissions isActive')
-      .populate('shopId', 'name displayName');
-  } else if (user.role === 'super_admin') {
-    effectivePermissions = getAllPermissions();
-  } else if (user.role === 'org_admin') {
-  effectivePermissions = getOrgAdminPermissions();
-  
-  const Shop = mongoose.model('JewelryShop');
-  const orgShops = await Shop.find({
-    organizationId: user.organizationId,
-    isActive: true,
-    deletedAt: null,
-  })
-    .select('_id name displayName')
-    .lean();
-  
-  shopAccesses = orgShops.map(shop => ({
-    shopId: {
-      _id: shop._id,
-      name: shop.name,
-      displayName: shop.displayName || shop.name,
-    },
-    role: 'org_admin',
-    permissions: null,
-    isActive: true,
-  }));
-  
-  console.log(` Org admin ${user.email} has access to ${shopAccesses.length} shops`);
-}
   cache.set(cache.userKey(user._id), user.toJSON(), 600);
 
   return {

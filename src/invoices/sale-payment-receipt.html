@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JewelPro - Payment Receipt</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+  .invoice-wrap { max-width: 820px; margin: 0 auto; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+  .inv-header { background: #1a1a2e; padding: 24px 32px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .inv-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .inv-logo-circle { width: 40px; height: 40px; border-radius: 50%; background: #FFD700; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #1a1a2e; }
+  .inv-shop-name { font-size: 22px; font-weight: 600; color: #FFD700; }
+  .inv-shop-sub { color: #aaa; font-size: 12px; margin: 2px 0; }
+  .inv-title { text-align: right; }
+  .inv-title h2 { color: #FFD700; font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .inv-title p { color: #aaa; font-size: 12px; margin: 2px 0; }
+  .inv-title span { color: #fff; }
+  .inv-info { padding: 20px 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-bottom: 1px solid #eee; }
+  .info-label { font-size: 10px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .info-name { font-size: 15px; font-weight: 600; color: #1a1a2e; margin-bottom: 3px; }
+  .info-row { font-size: 12px; color: #666; margin: 2px 0; }
+  .info-right { text-align: right; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 4px; }
+  .badge-paid { background: #e6f4ea; color: #1e7e34; }
+  .badge-partial { background: #fff3cd; color: #856404; }
+  .badge-unpaid { background: #fde8e8; color: #b91c1c; }
+  .badge-cash { background: #e8f4fd; color: #1565c0; }
+  .badge-upi { background: #f3e8ff; color: #6b21a8; }
+  .badge-card { background: #fdf3e8; color: #92400e; }
+  .badge-cheque { background: #e8fdf3; color: #065f46; }
+  .badge-bank_transfer { background: #e8edf8; color: #1e3a8a; }
+  .badge-mixed { background: #f0f0f0; color: #444; }
+
+  /* AMOUNT HIGHLIGHT */
+  .amount-highlight { padding: 20px 32px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
+  .amount-highlight-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .amount-highlight-value { font-size: 32px; font-weight: 700; color: #1a1a2e; }
+  .amount-words { font-size: 12px; color: #666; margin-top: 4px; font-style: italic; }
+  .net-box-sm { background: #1a1a2e; border-radius: 6px; padding: 14px 20px; text-align: right; white-space: nowrap; }
+  .net-label { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .net-amount { font-size: 26px; font-weight: 700; color: #FFD700; }
+
+  .section { padding: 16px 32px; }
+  .section-title { font-size: 10px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 8px 10px; background: #f8f8f8; color: #666; font-weight: 600; border-bottom: 1px solid #eee; text-align: left; }
+  th.r, td.r { text-align: right; }
+  td { padding: 9px 10px; border-bottom: 1px solid #f0f0f0; color: #333; }
+  .fin-neg { color: #c0392b !important; }
+  .fin-pos { color: #1e7e34 !important; }
+  .pay-total td { background: #f8f8f8; font-weight: 600; }
+  .pay-due td { color: #c0392b; font-weight: 600; }
+
+  /* AGAINST INVOICE */
+  .against-row { padding: 14px 32px; border-top: 1px solid #eee; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: start; }
+  .fin-table td { padding: 3px 0; font-size: 12px; }
+  .fin-table td:last-child { text-align: right; padding-left: 24px; color: #1a1a2e; }
+  .fin-table td:first-child { color: #666; }
+
+  /* MODE DETAIL */
+  .mode-detail { padding: 14px 32px; border-top: 1px solid #eee; }
+  .mode-detail-table td { padding: 3px 0; font-size: 12px; }
+  .mode-detail-table td:first-child { color: #888; width: 160px; }
+  .mode-detail-table td:last-child { color: #1a1a2e; font-weight: 600; }
+
+  .bank-qr { padding: 16px 32px; border-top: 1px solid #eee; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: start; }
+  .bank-table td { padding: 3px 0; font-size: 12px; }
+  .bank-table td:first-child { color: #888; width: 130px; }
+  .bank-table td:last-child { color: #1a1a2e; font-weight: 600; }
+  .qr-box { text-align: center; }
+  .qr-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .qr-upi { font-size: 10px; color: #888; margin-top: 4px; }
+  .inv-terms { padding: 10px 32px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: flex-end; }
+  .inv-terms p { font-size: 11px; color: #999; max-width: 400px; }
+  .sign-box { text-align: right; }
+  .sign-line { height: 40px; border-bottom: 1px solid #ccc; width: 120px; margin-bottom: 4px; }
+  .sign-label { font-size: 11px; color: #999; }
+  .inv-footer { background: #1a1a2e; padding: 10px 32px; display: flex; justify-content: space-between; align-items: center; }
+</style>
+</head>
+<body>
+<div class="invoice-wrap">
+
+  <div class="inv-header">
+    <div>
+      <div class="inv-logo">
+        <div class="inv-logo-circle" id="shopInitials"></div>
+        <span class="inv-shop-name" id="shopName"></span>
+      </div>
+      <p class="inv-shop-sub" id="shopAddress"></p>
+      <p class="inv-shop-sub">GST: <span id="shopGst"></span> | Ph: <span id="shopPhone"></span></p>
+    </div>
+    <div class="inv-title">
+      <h2>PAYMENT RECEIPT</h2>
+      <p>Receipt No: <span id="receiptNo"></span></p>
+      <p>Invoice No: <span id="invoiceNo"></span></p>
+      <p>Date: <span id="docDate"></span></p>
+      <p>Time: <span id="docTime"></span></p>
+    </div>
+  </div>
+
+  <!-- CUSTOMER INFO -->
+  <div class="inv-info">
+    <div>
+      <div class="info-label">Customer</div>
+      <div class="info-name" id="custName"></div>
+      <div class="info-row">Code: <span id="custCode"></span> | Ph: <span id="custPhone"></span></div>
+      <div class="info-row" id="custEmailRow">Email: <span id="custEmail"></span></div>
+      <div class="info-row" id="custPanRow">PAN: <span id="custPan"></span></div>
+      <div class="info-row" id="custGstRow">GST: <span id="custGst"></span></div>
+    </div>
+    <div class="info-right">
+      <div class="info-label">Payment Info</div>
+      <div class="info-row">Mode: <span class="badge" id="payModeLabel"></span></div>
+      <div class="info-row">Status: <span class="badge" id="payStatusBadge"></span></div>
+      <div class="info-row">Sales Person: <span id="salesPerson"></span></div>
+      <div class="info-row" id="dueDateRow">Due Date: <span id="dueDate" style="color:#c0392b;"></span></div>
+    </div>
+  </div>
+
+  <!-- AMOUNT HIGHLIGHT -->
+  <div class="amount-highlight">
+    <div>
+      <div class="amount-highlight-label">Amount Received</div>
+      <div class="amount-highlight-value" id="thisPaymentAmt"></div>
+      <div class="amount-words" id="amountWords"></div>
+    </div>
+    <div class="net-box-sm">
+      <div class="net-label">Balance Due</div>
+      <div class="net-amount" id="balanceDue"></div>
+    </div>
+  </div>
+
+  <!-- PAYMENT DETAILS TABLE -->
+  <div class="section">
+    <div class="section-title">All Payments Against This Invoice</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Receipt No.</th>
+          <th>Date &amp; Time</th>
+          <th>Mode</th>
+          <th>Transaction ID</th>
+          <th class="r">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="payHistBody"></tbody>
+      <tfoot id="payHistFoot"></tfoot>
+    </table>
+  </div>
+
+  <!-- AGAINST INVOICE -->
+  <div class="against-row">
+    <div>
+      <div class="section-title">Against Invoice</div>
+      <table class="fin-table" id="againstTable"></table>
+    </div>
+    <div>
+      <div style="background:#f8f8f8; border-radius:6px; padding:14px 20px; text-align:right; white-space:nowrap; border:1px solid #eee;">
+        <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Total Received</div>
+        <div style="font-size:22px;font-weight:700;color:#1e7e34;" id="totalPaidBox"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CURRENT PAYMENT MODE DETAILS -->
+  <div class="mode-detail">
+    <div class="section-title">Payment Details</div>
+    <table class="mode-detail-table" id="modeDetailTable"></table>
+  </div>
+
+  <!-- BANK + QR -->
+  <div class="bank-qr">
+    <div>
+      <div class="section-title">Bank Details</div>
+      <table class="bank-table">
+        <tr><td>Bank Name</td><td id="bankName"></td></tr>
+        <tr><td>Account Holder</td><td id="bankHolder"></td></tr>
+        <tr><td>Account No.</td><td id="bankAcc"></td></tr>
+        <tr><td>IFSC Code</td><td id="bankIfsc"></td></tr>
+        <tr><td>Branch</td><td id="bankBranch"></td></tr>
+        <tr><td>Account Type</td><td id="bankType"></td></tr>
+      </table>
+    </div>
+    <div class="qr-box">
+      <div class="qr-label">Scan to Pay</div>
+      <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100" height="100" fill="white" rx="4"/>
+        <rect x="5" y="5" width="35" height="35" fill="none" stroke="#1a1a2e" stroke-width="3" rx="2"/>
+        <rect x="11" y="11" width="23" height="23" fill="#1a1a2e" rx="1"/>
+        <rect x="60" y="5" width="35" height="35" fill="none" stroke="#1a1a2e" stroke-width="3" rx="2"/>
+        <rect x="66" y="11" width="23" height="23" fill="#1a1a2e" rx="1"/>
+        <rect x="5" y="60" width="35" height="35" fill="none" stroke="#1a1a2e" stroke-width="3" rx="2"/>
+        <rect x="11" y="66" width="23" height="23" fill="#1a1a2e" rx="1"/>
+        <rect x="44" y="5" width="5" height="5" fill="#1a1a2e"/><rect x="51" y="5" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="44" y="12" width="5" height="5" fill="#1a1a2e"/><rect x="51" y="19" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="44" y="26" width="5" height="5" fill="#1a1a2e"/><rect x="51" y="26" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="44" y="44" width="5" height="5" fill="#1a1a2e"/><rect x="58" y="44" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="72" y="44" width="5" height="5" fill="#1a1a2e"/><rect x="86" y="44" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="44" y="51" width="5" height="5" fill="#1a1a2e"/><rect x="65" y="51" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="79" y="51" width="5" height="5" fill="#1a1a2e"/><rect x="44" y="58" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="58" y="65" width="5" height="5" fill="#1a1a2e"/><rect x="72" y="65" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="86" y="65" width="5" height="5" fill="#1a1a2e"/><rect x="44" y="79" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="58" y="79" width="5" height="5" fill="#1a1a2e"/><rect x="79" y="79" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="44" y="86" width="5" height="5" fill="#1a1a2e"/><rect x="65" y="86" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="86" y="86" width="5" height="5" fill="#1a1a2e"/>
+      </svg>
+      <div class="qr-upi" id="qrUpi"></div>
+    </div>
+  </div>
+
+  <div class="inv-terms">
+    <p id="termsText"></p>
+    <div class="sign-box">
+      <div class="sign-line"></div>
+      <div class="sign-label">Authorised Signatory</div>
+    </div>
+  </div>
+
+  <div class="inv-footer">
+    <span style="font-size:11px;color:#aaa;">Payment Receipt — JewelPro Sales</span>
+    <div>
+      <span style="font-size:11px;color:#888;">Powered by </span>
+      <strong style="font-size:13px;color:#FFD700;letter-spacing:0.5px;">JewelPro</strong>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// CONTROLLER SE AATA HAI:
+//   const sale           = await saleService.getSaleById(shopId, saleId, organizationId)
+//   const payments       = await saleService.getPayments(saleId, shopId, organizationId)
+//   const currentPayment = payments[payments.length - 1]  // most recent payment
+//   const shop           = await JewelryShop.findById(shopId)
+//   const customer       = await Customer.findById(sale.customerId)
+//   const primaryBank    = shop.getPrimaryBank() || {}
+//   const primaryUPI     = shop.getPrimaryUPI()  || {}
+// ─────────────────────────────────────────────
+
+const DATA = {
+  shop: {
+    name:        shop.name,
+    displayName: shop.displayName,
+    address:     shop.fullAddress,
+    phone:       shop.phone,
+    gst:         shop.gstNumber,
+    terms:       shop.settings.printSettings.termsConditions,
+    bank: {
+      name:      primaryBank.bankName,
+      holder:    primaryBank.accountHolderName,
+      accountNo: primaryBank.accountNumber,
+      ifsc:      primaryBank.ifscCode,
+      branch:    primaryBank.branchName,
+      type:      primaryBank.accountType,
+    },
+    upi: {
+      id:     primaryUPI.upiId,
+      qrCode: primaryUPI.qrCode,
+    }
+  },
+
+  sale: {
+    invoiceNumber: sale.invoiceNumber,                    // Sale.invoiceNumber
+    saleDate:      sale.saleDate,                         // Sale.saleDate
+    salesPerson:   sale.salesPerson?.firstName + " " + sale.salesPerson?.lastName,
+    financials: {
+      netPayable: sale.financials.netPayable,             // Sale.financials.netPayable
+    },
+    payment: {
+      paymentMode:   sale.payment.paymentMode,
+      paymentStatus: sale.payment.paymentStatus,
+      paidAmount:    sale.payment.paidAmount,
+      dueAmount:     sale.payment.dueAmount,
+      dueDate:       sale.payment.dueDate,
+    }
+  },
+
+  customer: {
+    fullName:     customer.fullName,
+    customerCode: customer.customerCode,
+    phone:        customer.phone,
+    email:        customer.email,
+    panNumber:    customer.panNumber,
+    gstNumber:    customer.gstNumber,
+  },
+
+  // Current (latest) payment
+  currentPayment: {
+    paymentNumber: currentPayment.paymentNumber,          // Payment.paymentNumber
+    paymentDate:   currentPayment.paymentDate,            // Payment.paymentDate
+    amount:        currentPayment.amount,                 // Payment.amount
+    paymentMode:   currentPayment.paymentMode,            // Payment.paymentMode
+    notes:         currentPayment.notes,
+
+    upiTransactionId:  currentPayment.paymentDetails?.upiDetails?.transactionId,
+    upiId:             currentPayment.paymentDetails?.upiDetails?.upiId,
+    chequeNumber:      currentPayment.paymentDetails?.chequeDetails?.chequeNumber,
+    chequeDate:        currentPayment.paymentDetails?.chequeDetails?.chequeDate,
+    chequeBankName:    currentPayment.paymentDetails?.chequeDetails?.bankName,
+    cardTransactionId: currentPayment.paymentDetails?.cardDetails?.transactionId,
+    cardLast4:         currentPayment.paymentDetails?.cardDetails?.last4Digits,
+    bankRefNumber:     currentPayment.paymentDetails?.bankTransferDetails?.referenceNumber,
+    bankName:          currentPayment.paymentDetails?.bankTransferDetails?.bankName,
+  },
+
+  // All payments against this sale
+  payments: payments.map(p => ({
+    paymentNumber: p.paymentNumber,
+    paymentDate:   p.paymentDate,
+    amount:        p.amount,
+    paymentMode:   p.paymentMode,
+    transactionId: p.paymentDetails?.upiDetails?.transactionId
+                || p.paymentDetails?.chequeDetails?.chequeNumber
+                || p.paymentDetails?.cardDetails?.transactionId
+                || p.paymentDetails?.bankTransferDetails?.referenceNumber
+                || null,
+  }))
+};
+
+const fmt  = n => n != null ? "Rs." + Number(n).toLocaleString("en-IN") : "-";
+const fmtD = d => d ? new Date(d).toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" }) : "-";
+const fmtT = d => d ? new Date(d).toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" }) : "-";
+const v    = x => x != null && x !== "" ? x : "-";
+
+const modeLabel = { cash:"Cash", upi:"UPI", card:"Card", cheque:"Cheque", bank_transfer:"Bank Transfer", mixed:"Mixed", credit:"Credit" };
+const payStatusLabel = { paid:"Paid", partial:"Partial", unpaid:"Unpaid" };
+
+function numberToWords(num) {
+  if (!num) return "";
+  const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine",
+    "Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  function convert(n) {
+    if (n < 20) return ones[n];
+    if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? " " + ones[n%10] : "");
+    if (n < 1000) return ones[Math.floor(n/100)] + " Hundred" + (n%100 ? " " + convert(n%100) : "");
+    if (n < 100000) return convert(Math.floor(n/1000)) + " Thousand" + (n%1000 ? " " + convert(n%1000) : "");
+    if (n < 10000000) return convert(Math.floor(n/100000)) + " Lakh" + (n%100000 ? " " + convert(n%100000) : "");
+    return convert(Math.floor(n/10000000)) + " Crore" + (n%10000000 ? " " + convert(n%10000000) : "");
+  }
+  const parts = String(num).split(".");
+  let words = "Rupees " + convert(parseInt(parts[0]));
+  if (parts[1] && parseInt(parts[1]) > 0) words += " and " + convert(parseInt(parts[1])) + " Paise";
+  return words + " Only";
+}
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = (text != null && text !== "") ? text : "-";
+}
+function show(id, visible) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = visible ? "" : "none";
+}
+
+function render() {
+  const { shop, sale, customer, currentPayment, payments } = DATA;
+
+  const nm = shop.displayName || shop.name || "";
+  const initials = nm.split(" ").filter(Boolean).map(w => w[0]).join("").substring(0,2).toUpperCase() || "JP";
+  setText("shopInitials", initials);
+  setText("shopName",    shop.displayName || shop.name);
+  setText("shopAddress", shop.address);
+  setText("shopGst",     shop.gst);
+  setText("shopPhone",   shop.phone);
+
+  setText("bankName",   shop.bank.name);
+  setText("bankHolder", shop.bank.holder);
+  setText("bankAcc",    shop.bank.accountNo);
+  setText("bankIfsc",   shop.bank.ifsc);
+  setText("bankBranch", shop.bank.branch);
+  setText("bankType",   shop.bank.type ? shop.bank.type.charAt(0).toUpperCase() + shop.bank.type.slice(1) : "-");
+  setText("qrUpi",      shop.upi?.id);
+  setText("termsText",  shop.terms || "This is a computer generated receipt.");
+
+  // Header
+  setText("receiptNo", currentPayment.paymentNumber);
+  setText("invoiceNo", sale.invoiceNumber);
+  setText("docDate",   fmtD(currentPayment.paymentDate));
+  setText("docTime",   fmtT(currentPayment.paymentDate));
+
+  // Customer
+  setText("custName",  customer.fullName);
+  setText("custCode",  customer.customerCode);
+  setText("custPhone", customer.phone);
+  show("custEmailRow", !!customer.email);
+  setText("custEmail", customer.email);
+  show("custPanRow",   !!customer.panNumber);
+  setText("custPan",   customer.panNumber);
+  show("custGstRow",   !!customer.gstNumber);
+  setText("custGst",   customer.gstNumber);
+  setText("salesPerson", sale.salesPerson);
+
+  const mb = document.getElementById("payModeLabel");
+  if (mb) { mb.className = "badge badge-" + (currentPayment.paymentMode || ""); mb.textContent = modeLabel[currentPayment.paymentMode] || v(currentPayment.paymentMode); }
+
+  const sb = document.getElementById("payStatusBadge");
+  if (sb) { sb.className = "badge badge-" + (sale.payment.paymentStatus || ""); sb.textContent = payStatusLabel[sale.payment.paymentStatus] || v(sale.payment.paymentStatus); }
+
+  show("dueDateRow", !!(sale.payment.dueDate && sale.payment.paymentStatus !== "paid"));
+  setText("dueDate", fmtD(sale.payment.dueDate));
+
+  // Amount highlight
+  setText("thisPaymentAmt", fmt(currentPayment.amount));
+  setText("amountWords",    numberToWords(currentPayment.amount));
+  setText("balanceDue",     fmt(sale.payment.dueAmount));
+
+  // All payments table
+  document.getElementById("payHistBody").innerHTML = (payments || []).map(p => `
+    <tr>
+      <td style="font-weight:600;color:#1a1a2e;">${v(p.paymentNumber)}</td>
+      <td>${fmtD(p.paymentDate)}, ${fmtT(p.paymentDate)}</td>
+      <td><span class="badge badge-${p.paymentMode || ""}">${modeLabel[p.paymentMode] || v(p.paymentMode)}</span></td>
+      <td style="font-size:11px;color:#999;">${v(p.transactionId)}</td>
+      <td class="r" style="font-weight:600;">${fmt(p.amount)}</td>
+    </tr>`).join("");
+
+  const totalPaid = (payments || []).reduce((s, p) => s + (p.amount || 0), 0);
+  let foot = `<tr class="pay-total"><td colspan="4">Total Received</td><td class="r fin-pos">${fmt(totalPaid)}</td></tr>`;
+  if (sale.payment.dueAmount > 0)
+    foot += `<tr class="pay-due"><td colspan="4">Balance Due</td><td class="r">${fmt(sale.payment.dueAmount)}</td></tr>`;
+  document.getElementById("payHistFoot").innerHTML = foot;
+
+  // Against invoice summary
+  document.getElementById("againstTable").innerHTML = `
+    <tr><td>Invoice No.</td><td>${v(sale.invoiceNumber)} (${fmtD(sale.saleDate)})</td></tr>
+    <tr><td>Invoice Total</td><td>${fmt(sale.financials.netPayable)}</td></tr>
+    <tr><td>Total Received</td><td class="fin-pos">${fmt(sale.payment.paidAmount)}</td></tr>
+    <tr><td>Balance Due</td><td class="${sale.payment.dueAmount > 0 ? 'fin-neg' : 'fin-pos'}">${fmt(sale.payment.dueAmount)}</td></tr>`;
+  setText("totalPaidBox", fmt(sale.payment.paidAmount));
+
+  // Mode-specific details
+  const cp = currentPayment;
+  let modeRows = `<tr><td>Receipt Date</td><td>${fmtD(cp.paymentDate)}</td></tr>`;
+  modeRows += `<tr><td>Amount</td><td>${fmt(cp.amount)}</td></tr>`;
+  modeRows += `<tr><td>Mode</td><td>${modeLabel[cp.paymentMode] || v(cp.paymentMode)}</td></tr>`;
+
+  if (cp.paymentMode === "upi") {
+    if (cp.upiTransactionId) modeRows += `<tr><td>UPI Transaction ID</td><td>${v(cp.upiTransactionId)}</td></tr>`;
+    if (cp.upiId)            modeRows += `<tr><td>UPI ID</td><td>${v(cp.upiId)}</td></tr>`;
+  } else if (cp.paymentMode === "cheque") {
+    if (cp.chequeNumber)   modeRows += `<tr><td>Cheque No.</td><td>${v(cp.chequeNumber)}</td></tr>`;
+    if (cp.chequeDate)     modeRows += `<tr><td>Cheque Date</td><td>${fmtD(cp.chequeDate)}</td></tr>`;
+    if (cp.chequeBankName) modeRows += `<tr><td>Bank</td><td>${v(cp.chequeBankName)}</td></tr>`;
+  } else if (cp.paymentMode === "card") {
+    if (cp.cardTransactionId) modeRows += `<tr><td>Transaction ID</td><td>${v(cp.cardTransactionId)}</td></tr>`;
+    if (cp.cardLast4)         modeRows += `<tr><td>Card Last 4</td><td>xxxx xxxx xxxx ${v(cp.cardLast4)}</td></tr>`;
+  } else if (cp.paymentMode === "bank_transfer") {
+    if (cp.bankRefNumber) modeRows += `<tr><td>Reference No.</td><td>${v(cp.bankRefNumber)}</td></tr>`;
+    if (cp.bankName)      modeRows += `<tr><td>Bank</td><td>${v(cp.bankName)}</td></tr>`;
+  }
+
+  if (cp.notes) modeRows += `<tr><td>Notes</td><td>${v(cp.notes)}</td></tr>`;
+  document.getElementById("modeDetailTable").innerHTML = modeRows;
+}
+
+render();
+</script>
+</body>
+</html>

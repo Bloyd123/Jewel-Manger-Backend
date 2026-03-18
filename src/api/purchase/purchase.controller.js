@@ -1,35 +1,40 @@
 // FILE: src/api/purchase/purchase.controller.js
-// Purchase Module Controller - All 22 Route Handlers
 
 import { catchAsync } from '../middlewares/errorHandler.js';
 import * as purchaseService from './purchase.service.js';
-import { sendSuccess, sendCreated, sendPaginated, sendNotFound } from '../../utils/sendResponse.js';
-import { NotFoundError } from '../../utils/AppError.js';
-
-// 1. PURCHASE CRUD OPERATIONS
+import { sendSuccess, sendCreated, sendPaginated } from '../../utils/sendResponse.js';
 
 /**
- * Create new purchase order/invoice
- * @route POST /api/v1/shops/:shopId/purchases
+ POST /api/v1/shops/:shopId/purchases
  */
 export const createPurchase = catchAsync(async (req, res) => {
   const { shopId } = req.params;
   const userId = req.user._id;
+  const organizationId = req.user.organizationId; 
 
-  const purchase = await purchaseService.createPurchase(shopId, req.body, userId);
+  const purchase = await purchaseService.createPurchase(
+    shopId,
+    organizationId, 
+    req.body,
+    userId
+  );
 
   sendCreated(res, 'Purchase created successfully', purchase);
 });
 
 /**
- * Get all purchases with filters & pagination
- * @route GET /api/v1/shops/:shopId/purchases
+ GET /api/v1/shops/:shopId/purchases
  */
 export const getAllPurchases = catchAsync(async (req, res) => {
   const { shopId } = req.params;
+  const organizationId = req.user.organizationId; // ← add
   const filters = req.query;
 
-  const result = await purchaseService.getAllPurchases(shopId, filters);
+  const result = await purchaseService.getAllPurchases(
+    shopId,
+    organizationId, 
+    filters
+  );
 
   sendPaginated(
     res,
@@ -42,73 +47,88 @@ export const getAllPurchases = catchAsync(async (req, res) => {
 });
 
 /**
- * Get single purchase by ID
- * @route GET /api/v1/shops/:shopId/purchases/:purchaseId
+  GET /api/v1/shops/:shopId/purchases/:purchaseId
  */
 export const getPurchaseById = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; 
+  const organizationId = req.user.organizationId; 
 
-  const purchase = await purchaseService.getPurchaseById(purchaseId);
-
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
-  }
+  const purchase = await purchaseService.getPurchaseById(
+    purchaseId,
+    shopId,        
+    organizationId 
+  );
 
   sendSuccess(res, 200, 'Purchase retrieved successfully', purchase);
 });
 
 /**
- * Update purchase details
- * @route PUT /api/v1/shops/:shopId/purchases/:purchaseId
+PUT /api/v1/shops/:shopId/purchases/:purchaseId
  */
 export const updatePurchase = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; 
   const userId = req.user._id;
+  const organizationId = req.user.organizationId; 
 
-  const purchase = await purchaseService.updatePurchase(purchaseId, req.body, userId);
+  const purchase = await purchaseService.updatePurchase(
+    purchaseId,
+    shopId,        
+    organizationId, 
+    req.body,
+    userId
+  );
 
   sendSuccess(res, 200, 'Purchase updated successfully', purchase);
 });
 
 /**
- * Soft delete purchase
- * @route DELETE /api/v1/shops/:shopId/purchases/:purchaseId
+ DELETE /api/v1/shops/:shopId/purchases/:purchaseId
  */
 export const deletePurchase = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; // ← shopId add
+  const organizationId = req.user.organizationId; // ← add
 
-  await purchaseService.deletePurchase(purchaseId);
+  await purchaseService.deletePurchase(
+    purchaseId,
+    shopId,        // ← pass
+    organizationId // ← pass
+  );
 
   sendSuccess(res, 200, 'Purchase deleted successfully', null);
 });
 
-// 2. PURCHASE STATUS MANAGEMENT
-
-/**
- * Update purchase status
- * @route PATCH /api/v1/shops/:shopId/purchases/:purchaseId/status
+/** PATCH /api/v1/shops/:shopId/purchases/:purchaseId/status
  */
 export const updatePurchaseStatus = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; 
   const { status } = req.body;
   const userId = req.user._id;
+  const organizationId = req.user.organizationId; 
 
-  const purchase = await purchaseService.updatePurchaseStatus(purchaseId, status, userId);
+  const purchase = await purchaseService.updatePurchaseStatus(
+    purchaseId,
+    status,
+    userId,
+    shopId,        
+    organizationId 
+  );
 
   sendSuccess(res, 200, 'Purchase status updated successfully', purchase);
 });
 
 /**
- * Mark purchase as received (update inventory)
- * @route PATCH /api/v1/shops/:shopId/purchases/:purchaseId/receive
+ PATCH /api/v1/shops/:shopId/purchases/:purchaseId/receive
  */
 export const receivePurchase = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; 
   const userId = req.user._id;
+  const organizationId = req.user.organizationId; 
   const { receivedBy, receivedDate, notes } = req.body;
 
   const purchase = await purchaseService.receivePurchase(
     purchaseId,
+    shopId,        
+    organizationId, 
     { receivedBy, receivedDate, notes },
     userId
   );
@@ -117,86 +137,132 @@ export const receivePurchase = catchAsync(async (req, res) => {
 });
 
 /**
- * Cancel purchase
- * @route PATCH /api/v1/shops/:shopId/purchases/:purchaseId/cancel
+PATCH /api/v1/shops/:shopId/purchases/:purchaseId/cancel
  */
 export const cancelPurchase = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; 
   const { reason } = req.body;
+  const userId = req.user._id;
+  const organizationId = req.user.organizationId; 
 
-  const purchase = await purchaseService.cancelPurchase(purchaseId, reason);
+  const purchase = await purchaseService.cancelPurchase(
+    purchaseId,
+    shopId,        
+    organizationId, 
+    reason,
+    userId
+  );
 
   sendSuccess(res, 200, 'Purchase cancelled successfully', purchase);
 });
 
-// 3. PURCHASE APPROVAL
+/** PATCH /api/v1/shops/:shopId/purchases/:purchaseId/return
+ */
+export const returnPurchase = catchAsync(async (req, res) => {
+  const { purchaseId, shopId } = req.params; 
+  const { reason } = req.body;
+  const userId = req.user._id;
+  const organizationId = req.user.organizationId; 
 
+  const purchase = await purchaseService.returnPurchase(
+    purchaseId,
+    shopId,        
+    organizationId, 
+    reason,
+    userId
+  );
+
+  sendSuccess(res, 200, 'Purchase returned successfully', purchase);
+});
 /**
- * Approve purchase
- * @route POST /api/v1/shops/:shopId/purchases/:purchaseId/approve
+ POST /api/v1/shops/:shopId/purchases/:purchaseId/approve
  */
 export const approvePurchase = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; 
   const userId = req.user._id;
+  const organizationId = req.user.organizationId; 
   const { notes } = req.body;
 
-  const purchase = await purchaseService.approvePurchase(purchaseId, userId, notes);
+  const purchase = await purchaseService.approvePurchase(
+    purchaseId,
+    shopId,
+    organizationId, 
+    userId,
+    notes
+  );
 
   sendSuccess(res, 200, 'Purchase approved successfully', purchase);
 });
 
 /**
- * Reject purchase
- * @route POST /api/v1/shops/:shopId/purchases/:purchaseId/reject
+POST /api/v1/shops/:shopId/purchases/:purchaseId/reject
  */
 export const rejectPurchase = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; 
   const userId = req.user._id;
+  const organizationId = req.user.organizationId; 
   const { reason } = req.body;
 
-  const purchase = await purchaseService.rejectPurchase(purchaseId, userId, reason);
+  const purchase = await purchaseService.rejectPurchase(
+    purchaseId,
+    shopId,        
+    organizationId, 
+    userId,
+    reason
+  );
 
   sendSuccess(res, 200, 'Purchase rejected successfully', purchase);
 });
 
-// 4. PAYMENT MANAGEMENT
 
 /**
- * Add payment to purchase
- * @route POST /api/v1/shops/:shopId/purchases/:purchaseId/payments
+ POST /api/v1/shops/:shopId/purchases/:purchaseId/payments
  */
 export const addPayment = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; // ← shopId add
   const userId = req.user._id;
+  const organizationId = req.user.organizationId; // ← add
 
-  const purchase = await purchaseService.addPayment(purchaseId, req.body, userId);
+  const result = await purchaseService.addPayment(
+    purchaseId,
+    req.body,
+    userId,
+    shopId,        
+    organizationId 
+  );
 
-  sendSuccess(res, 200, 'Payment added successfully', purchase);
+  sendSuccess(res, 200, 'Payment added successfully', result);
 });
 
 /**
- * Get all payments for a purchase
- * @route GET /api/v1/shops/:shopId/purchases/:purchaseId/payments
+GET /api/v1/shops/:shopId/purchases/:purchaseId/payments
  */
 export const getPayments = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; 
+  const organizationId = req.user.organizationId; 
 
-  const payments = await purchaseService.getPayments(purchaseId);
+  const payments = await purchaseService.getPayments(
+    purchaseId,
+    shopId,        
+    organizationId 
+  );
 
   sendSuccess(res, 200, 'Payments retrieved successfully', payments);
 });
-
-// 5. SUPPLIER-SPECIFIC PURCHASES
-
 /**
- * Get all purchases from a specific supplier
- * @route GET /api/v1/shops/:shopId/purchases/supplier/:supplierId
+ GET /api/v1/shops/:shopId/purchases/supplier/:supplierId
  */
 export const getPurchasesBySupplier = catchAsync(async (req, res) => {
   const { shopId, supplierId } = req.params;
+  const organizationId = req.user.organizationId; 
   const filters = req.query;
 
-  const result = await purchaseService.getPurchasesBySupplier(shopId, supplierId, filters);
+  const result = await purchaseService.getPurchasesBySupplier(
+    shopId,
+    supplierId,
+    organizationId, 
+    filters
+  );
 
   sendPaginated(
     res,
@@ -208,128 +274,169 @@ export const getPurchasesBySupplier = catchAsync(async (req, res) => {
   );
 });
 
-// 6. PURCHASE ANALYTICS & REPORTS
-
 /**
- * Get purchase analytics & summary
- * @route GET /api/v1/shops/:shopId/purchases/analytics
+ GET /api/v1/shops/:shopId/purchases/analytics
  */
 export const getPurchaseAnalytics = catchAsync(async (req, res) => {
   const { shopId } = req.params;
+  const organizationId = req.user.organizationId; 
   const filters = req.query;
 
-  const analytics = await purchaseService.getPurchaseAnalytics(shopId, filters);
+  const analytics = await purchaseService.getPurchaseAnalytics(
+    shopId,
+    organizationId, 
+    filters
+  );
 
   sendSuccess(res, 200, 'Purchase analytics retrieved successfully', analytics);
 });
 
 /**
- * Get all pending/incomplete purchases
- * @route GET /api/v1/shops/:shopId/purchases/pending
+ GET /api/v1/shops/:shopId/purchases/pending
  */
 export const getPendingPurchases = catchAsync(async (req, res) => {
   const { shopId } = req.params;
+  const organizationId = req.user.organizationId; 
+  const { page, limit } = req.query; 
 
-  const purchases = await purchaseService.getPendingPurchases(shopId);
+  const result = await purchaseService.getPendingPurchases(
+    shopId,
+    organizationId, 
+    page,
+    limit
+  );
 
-  sendSuccess(res, 200, 'Pending purchases retrieved successfully', purchases);
+  sendPaginated(
+    res,
+    result.purchases,
+    result.page,
+    result.limit,
+    result.total,
+    'Pending purchases retrieved successfully'
+  );
 });
 
 /**
- * Get all unpaid/partially paid purchases
- * @route GET /api/v1/shops/:shopId/purchases/unpaid
+ GET /api/v1/shops/:shopId/purchases/unpaid
  */
 export const getUnpaidPurchases = catchAsync(async (req, res) => {
   const { shopId } = req.params;
+  const organizationId = req.user.organizationId; // ← add
+  const { page, limit } = req.query; // ← pagination add
 
-  const purchases = await purchaseService.getUnpaidPurchases(shopId);
+  const result = await purchaseService.getUnpaidPurchases(
+    shopId,
+    organizationId, // ← pass
+    page,
+    limit
+  );
 
-  sendSuccess(res, 200, 'Unpaid purchases retrieved successfully', purchases);
+  sendPaginated(
+    res,
+    result.purchases,
+    result.page,
+    result.limit,
+    result.total,
+    'Unpaid purchases retrieved successfully'
+  );
 });
 
-// 7. BULK OPERATIONS
-
 /**
- * Bulk delete multiple purchases (draft only)
- * @route POST /api/v1/shops/:shopId/purchases/bulk-delete
+POST /api/v1/shops/:shopId/purchases/bulk-delete
  */
 export const bulkDeletePurchases = catchAsync(async (req, res) => {
+  const { shopId } = req.params;
+  const organizationId = req.user.organizationId; // ← add
   const { purchaseIds } = req.body;
 
-  const result = await purchaseService.bulkDeletePurchases(purchaseIds);
+  const result = await purchaseService.bulkDeletePurchases(
+    purchaseIds,
+    shopId,        // ← pass
+    organizationId // ← pass
+  );
 
   sendSuccess(res, 200, `${result.deletedCount} purchases deleted successfully`, result);
 });
 
 /**
- * Bulk approve multiple purchases
- * @route POST /api/v1/shops/:shopId/purchases/bulk-approve
+POST /api/v1/shops/:shopId/purchases/bulk-approve
  */
 export const bulkApprovePurchases = catchAsync(async (req, res) => {
-  const { purchaseIds } = req.body;
+  const { shopId } = req.params;
+  const organizationId = req.user.organizationId; // ← add
   const userId = req.user._id;
+  const { purchaseIds } = req.body;
 
-  const result = await purchaseService.bulkApprovePurchases(purchaseIds, userId);
+  const result = await purchaseService.bulkApprovePurchases(
+    purchaseIds,
+    userId,
+    shopId,        
+    organizationId 
+  );
 
   sendSuccess(res, 200, `${result.approvedCount} purchases approved successfully`, result);
 });
 
-// 8. PURCHASE DOCUMENTS
-
 /**
- * Upload purchase-related documents
- * @route POST /api/v1/shops/:shopId/purchases/:purchaseId/documents
+ POST /api/v1/shops/:shopId/purchases/:purchaseId/documents
  */
 export const uploadDocument = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; // ← shopId add
+  const organizationId = req.user.organizationId; // ← add
   const { documentType, documentUrl, documentNumber } = req.body;
 
-  const purchase = await purchaseService.uploadDocument(purchaseId, {
-    documentType,
-    documentUrl,
-    documentNumber,
-  });
+  const purchase = await purchaseService.uploadDocument(
+    purchaseId,
+    shopId,        
+    organizationId, 
+    { documentType, documentUrl, documentNumber }
+  );
 
   sendSuccess(res, 200, 'Document uploaded successfully', purchase);
 });
 
 /**
- * Get all documents for a purchase
- * @route GET /api/v1/shops/:shopId/purchases/:purchaseId/documents
+GET /api/v1/shops/:shopId/purchases/:purchaseId/documents
  */
 export const getDocuments = catchAsync(async (req, res) => {
-  const { purchaseId } = req.params;
+  const { purchaseId, shopId } = req.params; // ← shopId add
+  const organizationId = req.user.organizationId; // ← add
 
-  const documents = await purchaseService.getDocuments(purchaseId);
+  const documents = await purchaseService.getDocuments(
+    purchaseId,
+    shopId,        // ← pass
+    organizationId // ← pass
+  );
 
   sendSuccess(res, 200, 'Documents retrieved successfully', documents);
 });
 
-// 9. PURCHASE FILTERS & SEARCH
 
-/**
- * Quick search purchases
- * @route GET /api/v1/shops/:shopId/purchases/search
- */
+//  GET /api/v1/shops/:shopId/purchases/search
+
 export const searchPurchases = catchAsync(async (req, res) => {
   const { shopId } = req.params;
+  const organizationId = req.user.organizationId; 
   const { q, limit = 20 } = req.query;
 
-  const purchases = await purchaseService.searchPurchases(shopId, q, limit);
+  const purchases = await purchaseService.searchPurchases(
+    shopId,
+    organizationId, 
+    q,
+    limit
+  );
 
   sendSuccess(res, 200, 'Search results retrieved successfully', purchases);
 });
-
-/**
- * Get purchases within date range
- * @route GET /api/v1/shops/:shopId/purchases/by-date-range
- */
+//  GET /api/v1/shops/:shopId/purchases/by-date-range
 export const getPurchasesByDateRange = catchAsync(async (req, res) => {
   const { shopId } = req.params;
+  const organizationId = req.user.organizationId; 
   const { startDate, endDate, page = 1, limit = 20 } = req.query;
 
   const result = await purchaseService.getPurchasesByDateRange(
     shopId,
+    organizationId, 
     startDate,
     endDate,
     page,

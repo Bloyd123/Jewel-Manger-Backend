@@ -1,62 +1,81 @@
-// FILE: src/api/services/purchase.service.js
-// Purchase Service - UPDATED (Payment module se integrate kiya)
-
+// FILE: src/api/purchase/purchase.service.js
 import Purchase from '../../models/Purchase.js';
-import Payment from '../../models/Payment.js';
 import eventLogger from '../../utils/eventLogger.js';
 import { businessLogger } from '../../utils/logger.js';
+import logger from '../../utils/logger.js';
 import {
   increaseStock,
+  decreaseStock,
   createProductFromPurchase,
 } from '../inventory/inventory.service.js';
 import Supplier from '../../models/Supplier.js';
-import LedgerEntry from '../ledger/ledger.model.js'; 
+import User from '../../models/User.js';
+import JewelryShop from '../../models/Shop.js';
+import LedgerEntry from '../ledger/ledger.model.js';
 import {
   createDebitEntry,
+  createCreditEntry,
   reverseEntry,
 } from '../ledger/ledger.service.js';
-import { NotFoundError, BadRequestError, ValidationError } from '../../utils/AppError.js';
+import { createPayment, getPurchasePayments } from '../payment/payment.service.js';
+import { NotFoundError, BadRequestError } from '../../utils/AppError.js';
+import {
+  sendPurchasePaymentVoucherEmail,
+  sendSupplierPaymentDoneEmail,
+} from '../../utils/emailService.js';
 
-// 1. PURCHASE CRUD OPERATIONS
+// ─────────────────────────────────────────────
+// HELPER
+// ─────────────────────────────────────────────
+const findPurchase = async (purchaseId, shopId, organizationId) => {
+  const purchase = await Purchase.findOne({
+    _id: purchaseId,
+    shopId,
+    organizationId,
+    deletedAt: null,
+  });
 
-/**
- * Create new purchase order/invoice
- */
-export const createPurchase = async (shopId, data, userId) => {
-  // 1. Validate supplier exists
+  if (!purchase) {
+    throw new NotFoundError('Purchase not found');
+  }
+
+  return purchase;
+};
+
+// ─────────────────────────────────────────────
+// CREATE
+// ─────────────────────────────────────────────
+export const createPurchase = async (shopId, organizationId, data, userId) => {
   const supplier = await Supplier.findById(data.supplierId);
   if (!supplier) {
     throw new NotFoundError('Supplier not found');
   }
 
-  // 2. Generate purchase number
-  const purchaseNumber = await Purchase.generatePurchaseNumber(shopId);
-
-  // 3. Prepare supplier details
+  const purchaseNumber  = await Purchase.generatePurchaseNumber(shopId);
   const supplierDetails = {
-    supplierName: supplier.businessName,
-    supplierCode: supplier.supplierCode,
+    supplierName:  supplier.businessName,
+    supplierCode:  supplier.supplierCode,
     contactPerson: supplier.contactPerson?.firstName || '',
-    phone: supplier.contactPerson?.phone || '',
-    email: supplier.contactPerson?.email || '',
-    address: supplier.address ? `${supplier.address.street}, ${supplier.address.city}` : '',
+    phone:         supplier.contactPerson?.phone     || '',
+    email:         supplier.contactPerson?.email     || '',
+    address:       supplier.address
+      ? `${supplier.address.street}, ${supplier.address.city}`
+      : '',
     gstNumber: supplier.gstNumber || '',
   };
 
-  // 4. Create purchase
   const purchase = await Purchase.create({
     ...data,
     shopId,
+    organizationId,
     purchaseNumber,
     supplierDetails,
-    organizationId: supplier.organizationId,
     createdBy: userId,
   });
 
-  // 5. Log activity
   await eventLogger.logPurchase(
     userId,
-    supplier.organizationId,
+    organizationId,
     shopId,
     'create',
     purchase._id,
@@ -68,17 +87,17 @@ export const createPurchase = async (shopId, data, userId) => {
     userId,
     shopId,
     purchaseNumber,
-    amount: purchase.financials.grandTotal,
+    amount:     purchase.financials.grandTotal,
     supplierId: supplier._id,
   });
 
   return purchase.populate('supplierId', 'businessName supplierCode contactPerson');
 };
 
-/**
- * Get all purchases with filters & pagination
- */
-export const getAllPurchases = async (shopId, filters) => {
+// ─────────────────────────────────────────────
+// GET ALL
+// ─────────────────────────────────────────────
+export const getAllPurchases = async (shopId, organizationId, filters) => {
   const {
     page = 1,
     limit = 20,
@@ -91,16 +110,16 @@ export const getAllPurchases = async (shopId, filters) => {
     search,
   } = filters;
 
-  const query = { shopId, deletedAt: null };
+  const query = { shopId, organizationId, deletedAt: null };
 
-  if (supplierId) query.supplierId = supplierId;
-  if (status) query.status = status;
-  if (paymentStatus) query['payment.paymentStatus'] = paymentStatus;
+  if (supplierId)    query.supplierId                  = supplierId;
+  if (status)        query.status                      = status;
+  if (paymentStatus) query['payment.paymentStatus']    = paymentStatus;
 
   if (startDate || endDate) {
     query.purchaseDate = {};
     if (startDate) query.purchaseDate.$gte = new Date(startDate);
-    if (endDate) query.purchaseDate.$lte = new Date(endDate);
+    if (endDate)   query.purchaseDate.$lte = new Date(endDate);
   }
 
   if (search) {
@@ -110,59 +129,55 @@ export const getAllPurchases = async (shopId, filters) => {
     ];
   }
 
-  const total = await Purchase.countDocuments(query);
+  const [purchases, total] = await Promise.all([
+    Purchase.find(query)
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .populate('supplierId', 'businessName supplierCode')
+      .populate('createdBy', 'firstName lastName')
+      .lean(),
+    Purchase.countDocuments(query),
+  ]);
 
-  const purchases = await Purchase.find(query)
-    .sort(sort)
-    .skip((page - 1) * limit)
-    .limit(parseInt(limit))
-    .populate('supplierId', 'businessName supplierCode')
-    .populate('createdBy', 'firstName lastName')
-    .lean();
-
-  return {
-    purchases,
-    page: parseInt(page),
-    limit: parseInt(limit),
-    total,
-  };
+  return { purchases, page: parseInt(page), limit: parseInt(limit), total };
 };
 
-/**
- * Get single purchase by ID
- */
-export const getPurchaseById = async purchaseId => {
-  const purchase = await Purchase.findById(purchaseId)
+// ─────────────────────────────────────────────
+// GET BY ID
+// ─────────────────────────────────────────────
+export const getPurchaseById = async (purchaseId, shopId, organizationId) => {
+  const purchase = await Purchase.findOne({
+    _id: purchaseId,
+    shopId,
+    organizationId,
+    deletedAt: null,
+  })
     .populate('supplierId', 'businessName supplierCode contactPerson address')
     .populate('createdBy', 'firstName lastName email')
     .populate('updatedBy', 'firstName lastName')
     .populate('approvedBy', 'firstName lastName')
     .populate('delivery.receivedBy', 'firstName lastName');
 
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
-  }
-
+  if (!purchase) throw new NotFoundError('Purchase not found');
   return purchase;
 };
 
-/**
- * Update purchase details (only draft/pending)
- */
-export const updatePurchase = async (purchaseId, data, userId) => {
-  const purchase = await Purchase.findById(purchaseId);
-
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
-  }
+// ─────────────────────────────────────────────
+// UPDATE
+// ─────────────────────────────────────────────
+export const updatePurchase = async (purchaseId, shopId, organizationId, data, userId) => {
+  const purchase = await findPurchase(purchaseId, shopId, organizationId);
 
   if (!['draft', 'pending'].includes(purchase.status)) {
     throw new BadRequestError('Cannot edit completed or cancelled purchases');
   }
 
+  if (data.purchaseNumber) delete data.purchaseNumber;
+  if (data.organizationId) delete data.organizationId;
+
   Object.assign(purchase, data);
   purchase.updatedBy = userId;
-
   await purchase.save();
 
   await eventLogger.logPurchase(
@@ -178,15 +193,11 @@ export const updatePurchase = async (purchaseId, data, userId) => {
   return purchase.populate('supplierId', 'businessName supplierCode');
 };
 
-/**
- * Soft delete purchase (only draft status)
- */
-export const deletePurchase = async purchaseId => {
-  const purchase = await Purchase.findById(purchaseId);
-
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
-  }
+// ─────────────────────────────────────────────
+// DELETE
+// ─────────────────────────────────────────────
+export const deletePurchase = async (purchaseId, shopId, organizationId) => {
+  const purchase = await findPurchase(purchaseId, shopId, organizationId);
 
   if (purchase.status !== 'draft') {
     throw new BadRequestError('Only draft purchases can be deleted');
@@ -206,17 +217,33 @@ export const deletePurchase = async purchaseId => {
 
   return { message: 'Purchase deleted successfully' };
 };
-export const updatePurchaseStatus = async (purchaseId, status, userId) => {
-  const purchase = await Purchase.findById(purchaseId);
 
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
+// ─────────────────────────────────────────────
+// STATUS UPDATE
+// ─────────────────────────────────────────────
+export const updatePurchaseStatus = async (purchaseId, status, userId, shopId, organizationId) => {
+  const purchase = await findPurchase(purchaseId, shopId, organizationId);
+
+  const allowedTransitions = {
+    draft:            ['cancelled'],
+    pending:          ['ordered', 'cancelled'],
+    ordered:          ['received', 'partial_received', 'cancelled'],
+    received:         ['completed'],
+    partial_received: ['completed', 'cancelled'],
+    completed:        [],
+    cancelled:        [],
+    returned:         [],
+  };
+
+  if (!allowedTransitions[purchase.status]?.includes(status)) {
+    throw new BadRequestError(
+      `Cannot change status from '${purchase.status}' to '${status}'`
+    );
   }
 
-  const oldStatus = purchase.status;
-  purchase.status = status;
+  const oldStatus    = purchase.status;
+  purchase.status    = status;
   purchase.updatedBy = userId;
-
   await purchase.save();
 
   await eventLogger.logPurchase(
@@ -232,70 +259,62 @@ export const updatePurchaseStatus = async (purchaseId, status, userId) => {
   return purchase;
 };
 
-/**
- * Mark purchase as received (update inventory)
- * NOTE: Ledger mein sirf due amount ki debit entry — Payment module credit entry karega
- */
-export const receivePurchase = async (purchaseId, receiveData, userId) => {
-  const purchase = await Purchase.findById(purchaseId);
-
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
-  }
+// ─────────────────────────────────────────────
+// RECEIVE PURCHASE
+// ─────────────────────────────────────────────
+export const receivePurchase = async (purchaseId, shopId, organizationId, receiveData, userId) => {
+  const purchase = await findPurchase(purchaseId, shopId, organizationId);
 
   if (purchase.status === 'completed') {
     throw new BadRequestError('Purchase already marked as received');
   }
 
-  purchase.status = 'completed';
+  purchase.status                = 'completed';
   purchase.delivery.receivedDate = receiveData.receivedDate || new Date();
-  purchase.delivery.receivedBy = receiveData.receivedBy || userId;
+  purchase.delivery.receivedBy   = receiveData.receivedBy   || userId;
   if (receiveData.notes) purchase.notes = receiveData.notes;
-
   await purchase.save();
 
   for (const item of purchase.items) {
     if (item.productId) {
       await increaseStock({
-        organizationId: purchase.organizationId,
-        shopId: purchase.shopId,
-        productId: item.productId,
-        quantity: item.quantity,
-        referenceId: purchase._id,
+        organizationId:  purchase.organizationId,
+        shopId:          purchase.shopId,
+        productId:       item.productId,
+        quantity:        item.quantity,
+        referenceId:     purchase._id,
         referenceNumber: purchase.purchaseNumber,
-        value: item.itemTotal,
-        performedBy: userId,
+        value:           item.itemTotal,
+        performedBy:     userId,
       });
     } else {
       await createProductFromPurchase({
-        organizationId: purchase.organizationId,
-        shopId: purchase.shopId,
+        organizationId:  purchase.organizationId,
+        shopId:          purchase.shopId,
         item,
-        purchaseId: purchase._id,
-        purchaseNumber: purchase.purchaseNumber,
-        supplierId: purchase.supplierId,
+        purchaseId:      purchase._id,
+        purchaseNumber:  purchase.purchaseNumber,
+        supplierId:      purchase.supplierId,
         supplierDetails: purchase.supplierDetails,
         userId,
       });
     }
   }
 
-  // Ledger mein supplier ka due amount debit karo
-  // Matlab humpar supplier ka itna paisa baaki hai
   if (purchase.payment.dueAmount > 0) {
     await createDebitEntry({
-      organizationId: purchase.organizationId,
-      shopId: purchase.shopId,
-      partyType: 'supplier',
-      partyId: purchase.supplierId,
-      partyModel: 'Supplier',
-      partyName: purchase.supplierDetails.supplierName,
-      amount: purchase.payment.dueAmount,
-      referenceType: 'purchase',
-      referenceId: purchase._id,
+      organizationId:  purchase.organizationId,
+      shopId:          purchase.shopId,
+      partyType:       'supplier',
+      partyId:         purchase.supplierId,
+      partyModel:      'Supplier',
+      partyName:       purchase.supplierDetails.supplierName,
+      amount:          purchase.payment.dueAmount,
+      referenceType:   'purchase',
+      referenceId:     purchase._id,
       referenceNumber: purchase.purchaseNumber,
-      description: `Purchase received - ${purchase.purchaseNumber}`,
-      createdBy: userId,
+      description:     `Purchase received - ${purchase.purchaseNumber}`,
+      createdBy:       userId,
     });
   }
 
@@ -312,28 +331,48 @@ export const receivePurchase = async (purchaseId, receiveData, userId) => {
   return purchase;
 };
 
-
-export const cancelPurchase = async (purchaseId, reason, userId) => {
-  const purchase = await Purchase.findById(purchaseId);
-
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
-  }
+// ─────────────────────────────────────────────
+// CANCEL
+// ─────────────────────────────────────────────
+export const cancelPurchase = async (purchaseId, shopId, organizationId, reason, userId) => {
+  const purchase = await findPurchase(purchaseId, shopId, organizationId);
 
   if (purchase.status === 'completed') {
     throw new BadRequestError('Cannot cancel completed purchase');
   }
 
+  if (['received', 'partial_received'].includes(purchase.status)) {
+    for (const item of purchase.items) {
+      if (item.productId) {
+        const product = await Product.findById(item.productId);
+        if (product) {
+          const reverseQty = Math.min(item.quantity, product.stock.quantity);
+          if (reverseQty > 0) {
+            await decreaseStock({
+              organizationId:  purchase.organizationId,
+              shopId:          purchase.shopId,
+              productId:       item.productId,
+              quantity:        reverseQty,
+              referenceId:     purchase._id,
+              referenceNumber: purchase.purchaseNumber,
+              performedBy:     userId,
+            });
+          }
+        }
+      }
+    }
+  }
+
   const ledgerEntry = await LedgerEntry.findOne({
-    referenceId: purchase._id,
+    referenceId:   purchase._id,
     referenceType: 'purchase',
-    status: 'active',
+    status:        'active',
   });
 
   if (ledgerEntry) {
     await reverseEntry({
-      entryId: ledgerEntry._id,
-      createdBy: userId,
+      entryId:     ledgerEntry._id,
+      createdBy:   userId,
       description: `Purchase cancelled - ${purchase.purchaseNumber}`,
     });
   }
@@ -341,7 +380,7 @@ export const cancelPurchase = async (purchaseId, reason, userId) => {
   await purchase.cancel();
 
   await eventLogger.logPurchase(
-    purchase.createdBy,
+    userId,
     purchase.organizationId,
     purchase.shopId,
     'cancel',
@@ -353,12 +392,73 @@ export const cancelPurchase = async (purchaseId, reason, userId) => {
   return purchase;
 };
 
-export const approvePurchase = async (purchaseId, userId, notes) => {
-  const purchase = await Purchase.findById(purchaseId);
+// ─────────────────────────────────────────────
+// RETURN
+// ─────────────────────────────────────────────
+export const returnPurchase = async (purchaseId, shopId, organizationId, reason, userId) => {
+  const purchase = await findPurchase(purchaseId, shopId, organizationId);
 
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
+  if (purchase.status !== 'completed') {
+    throw new BadRequestError('Only completed purchases can be returned');
   }
+
+  for (const item of purchase.items) {
+    if (item.productId) {
+      const product = await Product.findById(item.productId);
+      if (product) {
+        const reverseQty = Math.min(item.quantity, product.stock.quantity);
+        if (reverseQty > 0) {
+          await decreaseStock({
+            organizationId:  purchase.organizationId,
+            shopId:          purchase.shopId,
+            productId:       item.productId,
+            quantity:        reverseQty,
+            referenceId:     purchase._id,
+            referenceNumber: purchase.purchaseNumber,
+            performedBy:     userId,
+          });
+        }
+      }
+    }
+  }
+
+  await createCreditEntry({
+    organizationId:  purchase.organizationId,
+    shopId:          purchase.shopId,
+    partyType:       'supplier',
+    partyId:         purchase.supplierId,
+    partyModel:      'Supplier',
+    partyName:       purchase.supplierDetails.supplierName,
+    amount:          purchase.financials.grandTotal,
+    referenceType:   'purchase',
+    referenceId:     purchase._id,
+    referenceNumber: purchase.purchaseNumber,
+    description:     `Purchase returned - ${purchase.purchaseNumber}`,
+    createdBy:       userId,
+  });
+
+  purchase.status    = 'returned';
+  purchase.updatedBy = userId;
+  await purchase.save();
+
+  await eventLogger.logPurchase(
+    userId,
+    purchase.organizationId,
+    purchase.shopId,
+    'return',
+    purchase._id,
+    `Returned purchase ${purchase.purchaseNumber} to supplier`,
+    { purchaseNumber: purchase.purchaseNumber, reason }
+  );
+
+  return purchase;
+};
+
+// ─────────────────────────────────────────────
+// APPROVE / REJECT
+// ─────────────────────────────────────────────
+export const approvePurchase = async (purchaseId, shopId, organizationId, userId, notes) => {
+  const purchase = await findPurchase(purchaseId, shopId, organizationId);
 
   if (purchase.approvalStatus === 'approved') {
     throw new BadRequestError('Purchase already approved');
@@ -379,12 +479,8 @@ export const approvePurchase = async (purchaseId, userId, notes) => {
   return purchase;
 };
 
-export const rejectPurchase = async (purchaseId, userId, reason) => {
-  const purchase = await Purchase.findById(purchaseId);
-
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
-  }
+export const rejectPurchase = async (purchaseId, shopId, organizationId, userId, reason) => {
+  const purchase = await findPurchase(purchaseId, shopId, organizationId);
 
   if (purchase.approvalStatus === 'rejected') {
     throw new BadRequestError('Purchase already rejected');
@@ -405,117 +501,188 @@ export const rejectPurchase = async (purchaseId, userId, reason) => {
   return purchase;
 };
 
+// ─────────────────────────────────────────────
+// ADD PAYMENT  ← email calls yahan hain
+// ─────────────────────────────────────────────
+export const addPayment = async (purchaseId, paymentData, userId, shopId, organizationId) => {
+  const purchase = await findPurchase(purchaseId, shopId, organizationId);
 
-export const getPurchasePayments = async (shopId, purchaseId) => {
-  const purchase = await Purchase.findById(purchaseId);
-  if (!purchase) throw new NotFoundError('Purchase not found');
+  if (purchase.status === 'cancelled') {
+    throw new BadRequestError('Cannot add payment to cancelled purchase');
+  }
 
-  const payments = await Payment.find({
-    'reference.referenceId': purchaseId,
-    'reference.referenceType': 'purchase',
-    shopId,
-    deletedAt: null,
-  })
-    .sort({ paymentDate: -1 })
-    .populate('processedBy', 'firstName lastName')
-    .lean();
+  if (paymentData.amount > purchase.payment.dueAmount) {
+    throw new BadRequestError(
+      `Payment amount ₹${paymentData.amount} exceeds due amount ₹${purchase.payment.dueAmount}`
+    );
+  }
 
-  return payments;
+  const result = await createPayment(shopId, organizationId, userId, {
+    ...paymentData,
+    transactionType: 'payment',
+    party: {
+      partyType: 'supplier',
+      partyId:   purchase.supplierId,
+      partyName: purchase.supplierDetails.supplierName,
+    },
+    reference: {
+      referenceType:   'purchase',
+      referenceId:     purchase._id,
+      referenceNumber: purchase.purchaseNumber,
+    },
+  });
+
+  // ── EMAILS ────────────────────────────────
+  // Supplier aur shop admins ko concurrently fetch karo
+  // taaki 2 separate queries na rahe serial mein
+  const [supplier, shop, shopAdmins] = await Promise.all([
+    Supplier.findById(purchase.supplierId).lean(),
+    JewelryShop.findById(shopId).lean(),
+    User.find({
+      organizationId,
+      role:     { $in: ['org_admin', 'shop_admin'] },
+      isActive: true,
+    })
+      .select('firstName email')
+      .lean(),
+  ]);
+
+  // 1. Supplier ko payment voucher email
+  if (supplier?.contactPerson?.email || supplier?.businessEmail) {
+    sendPurchasePaymentVoucherEmail(result.payment, purchase, supplier, shop).catch(err => {
+      logger.error(`Purchase payment voucher email failed for ${purchase.purchaseNumber}:`, err);
+    });
+  }
+
+  // 2. Org admin / shop admin ko internal notification
+  // Har admin ko alag email — Promise.all se parallel
+  if (shopAdmins.length > 0) {
+    Promise.all(
+      shopAdmins.map(admin =>
+        sendSupplierPaymentDoneEmail(result.payment, purchase, supplier, shop, admin).catch(err => {
+          logger.error(
+            `Supplier payment done email failed for admin ${admin.email} — ${purchase.purchaseNumber}:`,
+            err
+          );
+        })
+      )
+    );
+  }
+  // ─────────────────────────────────────────
+
+  return result;
 };
 
-export const getPurchasesBySupplier = async (shopId, supplierId, filters) => {
+// ─────────────────────────────────────────────
+// GET PAYMENTS
+// ─────────────────────────────────────────────
+export const getPayments = async (purchaseId, shopId, organizationId) => {
+  await findPurchase(purchaseId, shopId, organizationId);
+  const result = await getPurchasePayments(shopId, purchaseId);
+  return result;
+};
+
+// ─────────────────────────────────────────────
+// SUPPLIER / ANALYTICS
+// ─────────────────────────────────────────────
+export const getPurchasesBySupplier = async (shopId, supplierId, organizationId, filters) => {
   const { page = 1, limit = 20, status, paymentStatus } = filters;
 
-  const query = { shopId, supplierId, deletedAt: null };
+  const query = { shopId, supplierId, organizationId, deletedAt: null };
 
-  if (status) query.status = status;
+  if (status)        query.status                   = status;
   if (paymentStatus) query['payment.paymentStatus'] = paymentStatus;
 
-  const total = await Purchase.countDocuments(query);
+  const [purchases, total] = await Promise.all([
+    Purchase.find(query)
+      .sort('-purchaseDate')
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .lean(),
+    Purchase.countDocuments(query),
+  ]);
 
-  const purchases = await Purchase.find(query)
-    .sort('-purchaseDate')
-    .skip((page - 1) * limit)
-    .limit(parseInt(limit))
-    .lean();
-
-  return {
-    purchases,
-    page: parseInt(page),
-    limit: parseInt(limit),
-    total,
-  };
+  return { purchases, page: parseInt(page), limit: parseInt(limit), total };
 };
 
-export const getPurchaseAnalytics = async (shopId, filters) => {
+export const getPurchaseAnalytics = async (shopId, organizationId, filters) => {
   const { startDate, endDate } = filters;
 
-  const query = { shopId, deletedAt: null };
+  const query = { shopId, organizationId, deletedAt: null };
 
   if (startDate || endDate) {
     query.purchaseDate = {};
     if (startDate) query.purchaseDate.$gte = new Date(startDate);
-    if (endDate) query.purchaseDate.$lte = new Date(endDate);
+    if (endDate)   query.purchaseDate.$lte = new Date(endDate);
   }
 
-  const totalPurchases = await Purchase.countDocuments(query);
+  const [
+    totalPurchases,
+    totalValue,
+    pendingPurchases,
+    paymentBreakdown,
+    topSuppliers,
+    monthlyTrend,
+  ] = await Promise.all([
+    Purchase.countDocuments(query),
 
-  const totalValue = await Purchase.aggregate([
-    { $match: query },
-    { $group: { _id: null, total: { $sum: '$financials.grandTotal' } } },
-  ]);
+    Purchase.aggregate([
+      { $match: query },
+      { $group: { _id: null, total: { $sum: '$financials.grandTotal' } } },
+    ]),
 
-  const pendingPurchases = await Purchase.countDocuments({
-    ...query,
-    status: { $in: ['draft', 'pending', 'ordered'] },
-  });
+    Purchase.countDocuments({
+      ...query,
+      status: { $in: ['draft', 'pending', 'ordered'] },
+    }),
 
-  const paymentBreakdown = await Purchase.aggregate([
-    { $match: query },
-    { $group: { _id: '$payment.paymentStatus', count: { $sum: 1 } } },
-  ]);
+    Purchase.aggregate([
+      { $match: query },
+      { $group: { _id: '$payment.paymentStatus', count: { $sum: 1 } } },
+    ]),
 
-  const topSuppliers = await Purchase.aggregate([
-    { $match: query },
-    {
-      $group: {
-        _id: '$supplierId',
-        totalPurchases: { $sum: 1 },
-        totalValue: { $sum: '$financials.grandTotal' },
-      },
-    },
-    { $sort: { totalValue: -1 } },
-    { $limit: 5 },
-    {
-      $lookup: {
-        from: 'suppliers',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'supplier',
-      },
-    },
-    { $unwind: '$supplier' },
-  ]);
-
-  const monthlyTrend = await Purchase.aggregate([
-    { $match: query },
-    {
-      $group: {
-        _id: {
-          year: { $year: '$purchaseDate' },
-          month: { $month: '$purchaseDate' },
+    Purchase.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id:            '$supplierId',
+          totalPurchases: { $sum: 1 },
+          totalValue:     { $sum: '$financials.grandTotal' },
         },
-        count: { $sum: 1 },
-        totalValue: { $sum: '$financials.grandTotal' },
       },
-    },
-    { $sort: { '_id.year': -1, '_id.month': -1 } },
-    { $limit: 12 },
+      { $sort: { totalValue: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from:         'suppliers',
+          localField:   '_id',
+          foreignField: '_id',
+          as:           'supplier',
+        },
+      },
+      { $unwind: '$supplier' },
+    ]),
+
+    Purchase.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: {
+            year:  { $year:  '$purchaseDate' },
+            month: { $month: '$purchaseDate' },
+          },
+          count:      { $sum: 1 },
+          totalValue: { $sum: '$financials.grandTotal' },
+        },
+      },
+      { $sort: { '_id.year': -1, '_id.month': -1 } },
+      { $limit: 12 },
+    ]),
   ]);
 
   return {
     totalPurchases,
-    totalPurchaseValue: totalValue[0]?.total || 0,
+    totalPurchaseValue:    totalValue[0]?.total || 0,
     pendingPurchases,
     paymentStatusBreakdown: paymentBreakdown,
     topSuppliers,
@@ -523,54 +690,115 @@ export const getPurchaseAnalytics = async (shopId, filters) => {
   };
 };
 
+// ─────────────────────────────────────────────
+// PENDING / UNPAID
+// ─────────────────────────────────────────────
+export const getPendingPurchases = async (shopId, organizationId, page = 1, limit = 20) => {
+  const skip = (page - 1) * limit;
 
-export const getPendingPurchases = async shopId => {
-  return Purchase.findPending(shopId).populate('supplierId', 'businessName supplierCode');
+  const [purchases, total] = await Promise.all([
+    Purchase.findPending(shopId, organizationId)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('supplierId', 'businessName supplierCode'),
+    Purchase.countDocuments({
+      shopId,
+      organizationId,
+      status:    { $in: ['draft', 'pending', 'ordered'] },
+      deletedAt: null,
+    }),
+  ]);
+
+  return { purchases, page: parseInt(page), limit: parseInt(limit), total };
 };
 
+export const getUnpaidPurchases = async (shopId, organizationId, page = 1, limit = 20) => {
+  const skip = (page - 1) * limit;
 
-export const getUnpaidPurchases = async shopId => {
-  return Purchase.findUnpaid(shopId).populate('supplierId', 'businessName supplierCode');
+  const [purchases, total] = await Promise.all([
+    Purchase.findUnpaid(shopId, organizationId)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('supplierId', 'businessName supplierCode'),
+    Purchase.countDocuments({
+      shopId,
+      organizationId,
+      'payment.paymentStatus': { $in: ['unpaid', 'partial'] },
+      status:                  { $ne: 'cancelled' },
+      deletedAt:               null,
+    }),
+  ]);
+
+  return { purchases, page: parseInt(page), limit: parseInt(limit), total };
 };
 
-
-export const bulkDeletePurchases = async purchaseIds => {
+// ─────────────────────────────────────────────
+// BULK
+// ─────────────────────────────────────────────
+export const bulkDeletePurchases = async (purchaseIds, shopId, organizationId) => {
   const purchases = await Purchase.find({
-    _id: { $in: purchaseIds },
-    status: 'draft',
+    _id:       { $in: purchaseIds },
+    shopId,
+    organizationId,
+    status:    'draft',
+    deletedAt: null,
   });
 
-  if (purchases.length !== purchaseIds.length) {
-    throw new BadRequestError('Only draft purchases can be deleted');
+  if (purchases.length === 0) {
+    throw new BadRequestError('No draft purchases found to delete');
   }
 
-  await Purchase.updateMany({ _id: { $in: purchaseIds } }, { $set: { deletedAt: new Date() } });
+  await Purchase.updateMany(
+    { _id: { $in: purchaseIds }, shopId, organizationId, status: 'draft' },
+    { $set: { deletedAt: new Date() } }
+  );
 
   return { deletedCount: purchases.length };
 };
 
-
-export const bulkApprovePurchases = async (purchaseIds, userId) => {
+export const bulkApprovePurchases = async (purchaseIds, userId, shopId, organizationId) => {
   const purchases = await Purchase.find({
-    _id: { $in: purchaseIds },
+    _id:            { $in: purchaseIds },
+    shopId,
+    organizationId,
     approvalStatus: 'pending',
   });
 
-  let approvedCount = 0;
-
-  for (const purchase of purchases) {
-    await purchase.approve(userId);
-    approvedCount++;
+  if (purchases.length === 0) {
+    throw new BadRequestError('No pending purchases found to approve');
   }
 
-  return { approvedCount };
+  await Purchase.updateMany(
+    { _id: { $in: purchaseIds }, shopId, organizationId },
+    [
+      {
+        $set: {
+          approvalStatus: 'approved',
+          approvedBy:     userId,
+          approvedAt:     new Date(),
+          status: {
+            $cond: {
+              if:   { $eq: ['$status', 'draft'] },
+              then: 'pending',
+              else: '$status',
+            },
+          },
+        },
+      },
+    ]
+  );
+
+  return { approvedCount: purchases.length };
 };
 
-export const uploadDocument = async (purchaseId, documentData) => {
-  const purchase = await Purchase.findById(purchaseId);
+// ─────────────────────────────────────────────
+// DOCUMENTS
+// ─────────────────────────────────────────────
+export const uploadDocument = async (purchaseId, shopId, organizationId, documentData) => {
+  const purchase = await findPurchase(purchaseId, shopId, organizationId);
 
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
+  if (purchase.documents.length >= 10) {
+    throw new BadRequestError('Maximum 10 documents allowed per purchase');
   }
 
   purchase.documents.push(documentData);
@@ -579,37 +807,48 @@ export const uploadDocument = async (purchaseId, documentData) => {
   return purchase;
 };
 
+export const getDocuments = async (purchaseId, shopId, organizationId) => {
+  const purchase = await Purchase.findOne({
+    _id: purchaseId,
+    shopId,
+    organizationId,
+    deletedAt: null,
+  }).select('documents');
 
-export const getDocuments = async purchaseId => {
-  const purchase = await Purchase.findById(purchaseId).select('documents');
-
-  if (!purchase) {
-    throw new NotFoundError('Purchase not found');
-  }
-
+  if (!purchase) throw new NotFoundError('Purchase not found');
   return purchase.documents;
 };
 
-export const searchPurchases = async (shopId, searchQuery, limit = 20) => {
-  const query = {
+// ─────────────────────────────────────────────
+// SEARCH / DATE RANGE
+// ─────────────────────────────────────────────
+export const searchPurchases = async (shopId, organizationId, searchQuery, limit = 20) => {
+  return Purchase.find({
     shopId,
+    organizationId,
     deletedAt: null,
     $or: [
       { purchaseNumber: new RegExp(searchQuery, 'i') },
       { 'supplierDetails.supplierName': new RegExp(searchQuery, 'i') },
     ],
-  };
-
-  return Purchase.find(query)
+  })
     .sort('-purchaseDate')
     .limit(parseInt(limit))
     .select('purchaseNumber supplierDetails purchaseDate financials.grandTotal status')
     .lean();
 };
 
-export const getPurchasesByDateRange = async (shopId, startDate, endDate, page, limit) => {
+export const getPurchasesByDateRange = async (
+  shopId,
+  organizationId,
+  startDate,
+  endDate,
+  page,
+  limit
+) => {
   const query = {
     shopId,
+    organizationId,
     purchaseDate: {
       $gte: new Date(startDate),
       $lte: new Date(endDate),
@@ -617,19 +856,15 @@ export const getPurchasesByDateRange = async (shopId, startDate, endDate, page, 
     deletedAt: null,
   };
 
-  const total = await Purchase.countDocuments(query);
+  const [purchases, total] = await Promise.all([
+    Purchase.find(query)
+      .sort('-purchaseDate')
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .populate('supplierId', 'businessName supplierCode')
+      .lean(),
+    Purchase.countDocuments(query),
+  ]);
 
-  const purchases = await Purchase.find(query)
-    .sort('-purchaseDate')
-    .skip((page - 1) * limit)
-    .limit(parseInt(limit))
-    .populate('supplierId', 'businessName supplierCode')
-    .lean();
-
-  return {
-    purchases,
-    page: parseInt(page),
-    limit: parseInt(limit),
-    total,
-  };
+  return { purchases, page: parseInt(page), limit: parseInt(limit), total };
 };

@@ -1,5 +1,5 @@
 // FILE: src/api/services/order.service.js
-// Order Service - UPDATED (Payment module se integrate kiya)
+// Order Service - UPDATED (Payment module + Email integrated)
 
 import Order from '../../models/Order.js';
 import Customer from '../../models/Customer.js';
@@ -12,6 +12,7 @@ import {
 } from '../../utils/AppError.js';
 import logger from '../../utils/logger.js';
 import eventLogger from '../../utils/eventLogger.js';
+import { sendOrderStatusUpdateEmail } from '../../utils/emailService.js';
 
 // ============================================================
 // 1. CREATE ORDER
@@ -33,9 +34,9 @@ export const createOrder = async (orderData, userId, shopId, organizationId) => 
     const customerDetails = {
       customerName: customer.fullName,
       customerCode: customer.customerCode,
-      phone: customer.phone,
-      email: customer.email || '',
-      address: customer.address?.street || '',
+      phone:        customer.phone,
+      email:        customer.email || '',
+      address:      customer.address?.street || '',
     };
 
     const order = await Order.create({
@@ -45,18 +46,16 @@ export const createOrder = async (orderData, userId, shopId, organizationId) => 
       shopId,
       customerDetails,
       createdBy: userId,
-      status: 'draft',
+      status:    'draft',
     });
 
     await eventLogger.logActivity({
-      userId,
-      organizationId,
-      shopId,
-      action: 'create',
-      module: 'order',
+      userId, organizationId, shopId,
+      action:      'create',
+      module:      'order',
       description: `Created order ${orderNumber}`,
-      metadata: { orderId: order._id, orderNumber },
-      level: 'info',
+      metadata:    { orderId: order._id, orderNumber },
+      level:       'info',
     });
 
     logger.info(`Order created: ${orderNumber}`, { userId, orderId: order._id });
@@ -91,23 +90,19 @@ export const getOrders = async (filters, shopId, organizationId) => {
       dueSoon,
     } = filters;
 
-    const query = {
-      shopId,
-      organizationId,
-      deletedAt: null,
-    };
+    const query = { shopId, organizationId, deletedAt: null };
 
-    if (status) query.status = status;
-    if (orderType) query.orderType = orderType;
-    if (priority) query.priority = priority;
-    if (customerId) query.customerId = customerId;
-    if (assignedTo) query['assignment.assignedTo'] = assignedTo;
-    if (paymentStatus) query['payment.paymentStatus'] = paymentStatus;
+    if (status)        query.status                        = status;
+    if (orderType)     query.orderType                     = orderType;
+    if (priority)      query.priority                      = priority;
+    if (customerId)    query.customerId                    = customerId;
+    if (assignedTo)    query['assignment.assignedTo']      = assignedTo;
+    if (paymentStatus) query['payment.paymentStatus']      = paymentStatus;
 
     if (startDate || endDate) {
       query.orderDate = {};
       if (startDate) query.orderDate.$gte = new Date(startDate);
-      if (endDate) query.orderDate.$lte = new Date(endDate);
+      if (endDate)   query.orderDate.$lte = new Date(endDate);
     }
 
     if (overdue === 'true') {
@@ -116,7 +111,7 @@ export const getOrders = async (filters, shopId, organizationId) => {
     }
 
     if (dueSoon) {
-      const days = parseInt(dueSoon);
+      const days       = parseInt(dueSoon);
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + days);
       query['timeline.estimatedCompletionDate'] = {
@@ -134,8 +129,7 @@ export const getOrders = async (filters, shopId, organizationId) => {
       ];
     }
 
-    const total = await Order.countDocuments(query);
-
+    const total  = await Order.countDocuments(query);
     const orders = await Order.find(query)
       .sort(sort)
       .skip((page - 1) * limit)
@@ -148,9 +142,9 @@ export const getOrders = async (filters, shopId, organizationId) => {
       orders,
       pagination: {
         currentPage: parseInt(page),
-        totalPages: Math.ceil(total / limit),
-        totalItems: total,
-        pageSize: parseInt(limit),
+        totalPages:  Math.ceil(total / limit),
+        totalItems:  total,
+        pageSize:    parseInt(limit),
       },
     };
   } catch (error) {
@@ -166,10 +160,7 @@ export const getOrders = async (filters, shopId, organizationId) => {
 export const getOrderById = async (orderId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
-      _id: orderId,
-      shopId,
-      organizationId,
-      deletedAt: null,
+      _id: orderId, shopId, organizationId, deletedAt: null,
     })
       .populate('customerId', 'firstName lastName phone email customerCode')
       .populate('assignment.assignedTo', 'firstName lastName email')
@@ -177,9 +168,7 @@ export const getOrderById = async (orderId, shopId, organizationId) => {
       .populate('progressUpdates.updatedBy', 'firstName lastName')
       .lean();
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
+    if (!order) throw new NotFoundError('Order not found');
 
     return order;
   } catch (error) {
@@ -195,47 +184,30 @@ export const getOrderById = async (orderId, shopId, organizationId) => {
 export const updateOrder = async (orderId, updateData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
-      _id: orderId,
-      shopId,
-      organizationId,
-      deletedAt: null,
+      _id: orderId, shopId, organizationId, deletedAt: null,
     });
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
+    if (!order) throw new NotFoundError('Order not found');
 
     if (!['draft', 'confirmed'].includes(order.status)) {
       throw new ValidationError('Cannot edit order in current status');
     }
 
-    const allowedFields = [
-      'priority',
-      'timeline',
-      'financials',
-      'notes',
-      'specialInstructions',
-      'tags',
-    ];
-
-    allowedFields.forEach((field) => {
-      if (updateData[field] !== undefined) {
-        order[field] = updateData[field];
-      }
+    const allowedFields = ['priority', 'timeline', 'financials', 'notes', 'specialInstructions', 'tags'];
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) order[field] = updateData[field];
     });
 
     order.updatedBy = userId;
     await order.save();
 
     await eventLogger.logActivity({
-      userId,
-      organizationId,
-      shopId,
-      action: 'update',
-      module: 'order',
+      userId, organizationId, shopId,
+      action:      'update',
+      module:      'order',
       description: `Updated order ${order.orderNumber}`,
-      metadata: { orderId: order._id, orderNumber: order.orderNumber },
-      level: 'info',
+      metadata:    { orderId: order._id, orderNumber: order.orderNumber },
+      level:       'info',
     });
 
     return order;
@@ -246,39 +218,34 @@ export const updateOrder = async (orderId, updateData, userId, shopId, organizat
 };
 
 // ============================================================
-// 5. UPDATE ORDER STATUS
+// 5. UPDATE ORDER STATUS  ← email call yahan hai
 // ============================================================
 
 export const updateOrderStatus = async (orderId, status, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
-      _id: orderId,
-      shopId,
-      organizationId,
-      deletedAt: null,
+      _id: orderId, shopId, organizationId, deletedAt: null,
     });
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
+    if (!order) throw new NotFoundError('Order not found');
 
     const validTransitions = {
-      draft: ['confirmed', 'cancelled'],
-      confirmed: ['in_progress', 'cancelled'],
-      in_progress: ['on_hold', 'quality_check', 'cancelled'],
-      on_hold: ['in_progress', 'cancelled'],
+      draft:         ['confirmed', 'cancelled'],
+      confirmed:     ['in_progress', 'cancelled'],
+      in_progress:   ['on_hold', 'quality_check', 'cancelled'],
+      on_hold:       ['in_progress', 'cancelled'],
       quality_check: ['ready', 'in_progress'],
-      ready: ['delivered'],
-      delivered: ['completed'],
-      completed: [],
-      cancelled: [],
+      ready:         ['delivered'],
+      delivered:     ['completed'],
+      completed:     [],
+      cancelled:     [],
     };
 
     if (!validTransitions[order.status]?.includes(status)) {
       throw new ValidationError(`Cannot transition from ${order.status} to ${status}`);
     }
 
-    order.status = status;
+    order.status    = status;
     order.updatedBy = userId;
 
     if (status === 'in_progress' && !order.timeline.actualStartDate) {
@@ -291,15 +258,28 @@ export const updateOrderStatus = async (orderId, status, userId, shopId, organiz
     await order.save();
 
     await eventLogger.logActivity({
-      userId,
-      organizationId,
-      shopId,
-      action: 'update_status',
-      module: 'order',
+      userId, organizationId, shopId,
+      action:      'update_status',
+      module:      'order',
       description: `Changed order ${order.orderNumber} status to ${status}`,
-      metadata: { orderId: order._id, oldStatus: order.status, newStatus: status },
-      level: 'info',
+      metadata:    { orderId: order._id, oldStatus: order.status, newStatus: status },
+      level:       'info',
     });
+
+    // ── EMAIL: sirf confirmed ya ready pe ───
+    if (['confirmed', 'ready'].includes(status) && order.customerDetails?.email) {
+      const customer = {
+        fullName: order.customerDetails.customerName,
+        email:    order.customerDetails.email,
+      };
+
+      sendOrderStatusUpdateEmail(order, customer, status).catch(err => {
+        logger.error(
+          `Order status email failed — ${order.orderNumber} → ${status}:`, err
+        );
+      });
+    }
+    // ─────────────────────────────────────────
 
     return order;
   } catch (error) {
@@ -309,44 +289,51 @@ export const updateOrderStatus = async (orderId, status, userId, shopId, organiz
 };
 
 // ============================================================
-// 6. CONFIRM ORDER
+// 6. CONFIRM ORDER  ← email call yahan bhi hai
 // ============================================================
 
 export const confirmOrder = async (orderId, confirmedBy, notes, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
-      _id: orderId,
-      shopId,
-      organizationId,
-      deletedAt: null,
+      _id: orderId, shopId, organizationId, deletedAt: null,
     });
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
+    if (!order) throw new NotFoundError('Order not found');
 
     if (order.status !== 'draft') {
       throw new ValidationError('Only draft orders can be confirmed');
     }
 
-    order.status = 'confirmed';
+    order.status    = 'confirmed';
     order.updatedBy = confirmedBy;
-    if (notes) {
-      order.notes = notes;
-    }
+    if (notes) order.notes = notes;
 
     await order.save();
 
     await eventLogger.logActivity({
-      userId: confirmedBy,
-      organizationId,
-      shopId,
-      action: 'confirm',
-      module: 'order',
+      userId:      confirmedBy,
+      organizationId, shopId,
+      action:      'confirm',
+      module:      'order',
       description: `Confirmed order ${order.orderNumber}`,
-      metadata: { orderId: order._id },
-      level: 'success',
+      metadata:    { orderId: order._id },
+      level:       'success',
     });
+
+    // ── EMAIL: Order confirmed ───────────────
+    if (order.customerDetails?.email) {
+      const customer = {
+        fullName: order.customerDetails.customerName,
+        email:    order.customerDetails.email,
+      };
+
+      sendOrderStatusUpdateEmail(order, customer, 'confirmed').catch(err => {
+        logger.error(
+          `Order confirm email failed — ${order.orderNumber}:`, err
+        );
+      });
+    }
+    // ─────────────────────────────────────────
 
     return order;
   } catch (error) {
@@ -362,41 +349,32 @@ export const confirmOrder = async (orderId, confirmedBy, notes, shopId, organiza
 export const assignOrder = async (orderId, assignmentData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
-      _id: orderId,
-      shopId,
-      organizationId,
-      deletedAt: null,
+      _id: orderId, shopId, organizationId, deletedAt: null,
     });
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
+    if (!order) throw new NotFoundError('Order not found');
 
     const assignee = await User.findById(assignmentData.assignedTo);
-    if (!assignee) {
-      throw new NotFoundError('User not found');
-    }
+    if (!assignee) throw new NotFoundError('User not found');
 
     order.assignment = {
-      assignedTo: assignmentData.assignedTo,
-      assignedBy: userId,
-      assignedAt: new Date(),
+      assignedTo:  assignmentData.assignedTo,
+      assignedBy:  userId,
+      assignedAt:  new Date(),
       workstation: assignmentData.workstation || '',
-      artisan: assignmentData.artisan || null,
+      artisan:     assignmentData.artisan || null,
     };
 
     order.updatedBy = userId;
     await order.save();
 
     await eventLogger.logActivity({
-      userId,
-      organizationId,
-      shopId,
-      action: 'assign',
-      module: 'order',
+      userId, organizationId, shopId,
+      action:      'assign',
+      module:      'order',
       description: `Assigned order ${order.orderNumber} to ${assignee.fullName}`,
-      metadata: { orderId: order._id, assignedTo: assignee._id },
-      level: 'info',
+      metadata:    { orderId: order._id, assignedTo: assignee._id },
+      level:       'info',
     });
 
     return order;
@@ -413,22 +391,17 @@ export const assignOrder = async (orderId, assignmentData, userId, shopId, organ
 export const addProgressUpdate = async (orderId, progressData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
-      _id: orderId,
-      shopId,
-      organizationId,
-      deletedAt: null,
+      _id: orderId, shopId, organizationId, deletedAt: null,
     });
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
+    if (!order) throw new NotFoundError('Order not found');
 
     order.progressUpdates.push({
-      updateDate: new Date(),
-      status: progressData.status || order.status,
+      updateDate:  new Date(),
+      status:      progressData.status || order.status,
       description: progressData.description,
-      photos: progressData.photos || [],
-      updatedBy: userId,
+      photos:      progressData.photos || [],
+      updatedBy:   userId,
     });
 
     if (progressData.status && progressData.status !== order.status) {
@@ -439,14 +412,12 @@ export const addProgressUpdate = async (orderId, progressData, userId, shopId, o
     await order.save();
 
     await eventLogger.logActivity({
-      userId,
-      organizationId,
-      shopId,
-      action: 'progress_update',
-      module: 'order',
+      userId, organizationId, shopId,
+      action:      'progress_update',
+      module:      'order',
       description: `Added progress update for order ${order.orderNumber}`,
-      metadata: { orderId: order._id },
-      level: 'info',
+      metadata:    { orderId: order._id },
+      level:       'info',
     });
 
     return order;
@@ -463,23 +434,18 @@ export const addProgressUpdate = async (orderId, progressData, userId, shopId, o
 export const performQualityCheck = async (orderId, checkData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
-      _id: orderId,
-      shopId,
-      organizationId,
-      deletedAt: null,
+      _id: orderId, shopId, organizationId, deletedAt: null,
     });
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
+    if (!order) throw new NotFoundError('Order not found');
 
     order.qualityCheck = {
-      status: checkData.status,
+      status:    checkData.status,
       checkedBy: userId,
       checkedAt: new Date(),
-      remarks: checkData.remarks || '',
-      issues: checkData.issues || [],
-      photos: checkData.photos || [],
+      remarks:   checkData.remarks || '',
+      issues:    checkData.issues  || [],
+      photos:    checkData.photos  || [],
     };
 
     if (checkData.status === 'passed') {
@@ -492,15 +458,30 @@ export const performQualityCheck = async (orderId, checkData, userId, shopId, or
     await order.save();
 
     await eventLogger.logActivity({
-      userId,
-      organizationId,
-      shopId,
-      action: 'quality_check',
-      module: 'order',
+      userId, organizationId, shopId,
+      action:      'quality_check',
+      module:      'order',
       description: `Performed quality check for order ${order.orderNumber} - ${checkData.status}`,
-      metadata: { orderId: order._id, checkStatus: checkData.status },
-      level: checkData.status === 'passed' ? 'success' : 'warn',
+      metadata:    { orderId: order._id, checkStatus: checkData.status },
+      level:       checkData.status === 'passed' ? 'success' : 'warn',
     });
+
+    // ── EMAIL: quality check pass → ready ───
+    // performQualityCheck ke andar bhi status 'ready' ho sakti hai
+    // woh updateOrderStatus se nahi jaata — isliye yahan bhi check karo
+    if (checkData.status === 'passed' && order.customerDetails?.email) {
+      const customer = {
+        fullName: order.customerDetails.customerName,
+        email:    order.customerDetails.email,
+      };
+
+      sendOrderStatusUpdateEmail(order, customer, 'ready').catch(err => {
+        logger.error(
+          `Order ready email failed — ${order.orderNumber}:`, err
+        );
+      });
+    }
+    // ─────────────────────────────────────────
 
     return order;
   } catch (error) {
@@ -511,19 +492,15 @@ export const performQualityCheck = async (orderId, checkData, userId, shopId, or
 
 // ============================================================
 // 10. GET ORDER PAYMENTS — Payment module se
-// NOTE: addOrderPayment hataya — Payment module handle karega
-// Order service ka kaam sirf order dhundhna hai
 // ============================================================
 
 export const getOrderPayments = async (orderId, shopId) => {
   try {
-    // Pehle order exist karta hai check karo
     const order = await Order.findOne({ _id: orderId, shopId, deletedAt: null });
     if (!order) throw new NotFoundError('Order not found');
 
-    // Payment module se payments fetch karo
     const payments = await Payment.find({
-      'reference.referenceId': orderId,
+      'reference.referenceId':   orderId,
       'reference.referenceType': 'order',
       shopId,
       deletedAt: null,
@@ -546,15 +523,10 @@ export const getOrderPayments = async (orderId, shopId) => {
 export const markAsDelivered = async (orderId, deliveryData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
-      _id: orderId,
-      shopId,
-      organizationId,
-      deletedAt: null,
+      _id: orderId, shopId, organizationId, deletedAt: null,
     });
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
+    if (!order) throw new NotFoundError('Order not found');
 
     if (order.status !== 'ready') {
       throw new ValidationError('Order must be in ready status to mark as delivered');
@@ -566,19 +538,17 @@ export const markAsDelivered = async (orderId, deliveryData, userId, shopId, org
       deliveredAt: new Date(),
     };
 
-    order.status = 'delivered';
+    order.status    = 'delivered';
     order.updatedBy = userId;
     await order.save();
 
     await eventLogger.logActivity({
-      userId,
-      organizationId,
-      shopId,
-      action: 'deliver',
-      module: 'order',
+      userId, organizationId, shopId,
+      action:      'deliver',
+      module:      'order',
       description: `Marked order ${order.orderNumber} as delivered`,
-      metadata: { orderId: order._id },
-      level: 'success',
+      metadata:    { orderId: order._id },
+      level:       'success',
     });
 
     return order;
@@ -595,34 +565,27 @@ export const markAsDelivered = async (orderId, deliveryData, userId, shopId, org
 export const completeOrder = async (orderId, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
-      _id: orderId,
-      shopId,
-      organizationId,
-      deletedAt: null,
+      _id: orderId, shopId, organizationId, deletedAt: null,
     });
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
+    if (!order) throw new NotFoundError('Order not found');
 
     if (order.status !== 'delivered') {
       throw new ValidationError('Order must be delivered before marking as completed');
     }
 
-    order.status = 'completed';
-    order.timeline.actualCompletionDate = new Date();
-    order.updatedBy = userId;
+    order.status                         = 'completed';
+    order.timeline.actualCompletionDate  = new Date();
+    order.updatedBy                      = userId;
     await order.save();
 
     await eventLogger.logActivity({
-      userId,
-      organizationId,
-      shopId,
-      action: 'complete',
-      module: 'order',
+      userId, organizationId, shopId,
+      action:      'complete',
+      module:      'order',
       description: `Completed order ${order.orderNumber}`,
-      metadata: { orderId: order._id },
-      level: 'success',
+      metadata:    { orderId: order._id },
+      level:       'success',
     });
 
     return order;
@@ -639,30 +602,25 @@ export const completeOrder = async (orderId, userId, shopId, organizationId) => 
 export const cancelOrder = async (orderId, cancellationData, userId, shopId, organizationId) => {
   try {
     const order = await Order.findOne({
-      _id: orderId,
-      shopId,
-      organizationId,
-      deletedAt: null,
+      _id: orderId, shopId, organizationId, deletedAt: null,
     });
 
-    if (!order) {
-      throw new NotFoundError('Order not found');
-    }
+    if (!order) throw new NotFoundError('Order not found');
 
     if (['completed', 'cancelled'].includes(order.status)) {
       throw new ValidationError('Cannot cancel a completed or already cancelled order');
     }
 
     order.cancellation = {
-      isCancelled: true,
-      cancelledAt: new Date(),
-      cancelledBy: userId,
+      isCancelled:        true,
+      cancelledAt:        new Date(),
+      cancelledBy:        userId,
       cancellationReason: cancellationData.reason,
-      refundAmount: cancellationData.refundAmount || 0,
-      refundStatus: cancellationData.refundAmount > 0 ? 'pending' : 'not_applicable',
+      refundAmount:       cancellationData.refundAmount || 0,
+      refundStatus:       cancellationData.refundAmount > 0 ? 'pending' : 'not_applicable',
     };
 
-    order.status = 'cancelled';
+    order.status    = 'cancelled';
     order.updatedBy = userId;
     await order.save();
 
@@ -670,14 +628,12 @@ export const cancelOrder = async (orderId, cancellationData, userId, shopId, org
     // payment.service.js ka processRefund() call hoga controller se
 
     await eventLogger.logActivity({
-      userId,
-      organizationId,
-      shopId,
-      action: 'cancel',
-      module: 'order',
+      userId, organizationId, shopId,
+      action:      'cancel',
+      module:      'order',
       description: `Cancelled order ${order.orderNumber}`,
-      metadata: { orderId: order._id, reason: cancellationData.reason },
-      level: 'warn',
+      metadata:    { orderId: order._id, reason: cancellationData.reason },
+      level:       'warn',
     });
 
     return order;
@@ -694,16 +650,12 @@ export const cancelOrder = async (orderId, cancellationData, userId, shopId, org
 export const getOrderAnalytics = async (filters, shopId, organizationId) => {
   try {
     const { startDate, endDate } = filters;
-    const query = {
-      shopId,
-      organizationId,
-      deletedAt: null,
-    };
+    const query = { shopId, organizationId, deletedAt: null };
 
     if (startDate || endDate) {
       query.orderDate = {};
       if (startDate) query.orderDate.$gte = new Date(startDate);
-      if (endDate) query.orderDate.$lte = new Date(endDate);
+      if (endDate)   query.orderDate.$lte = new Date(endDate);
     }
 
     const [
@@ -714,25 +666,29 @@ export const getOrderAnalytics = async (filters, shopId, organizationId) => {
       avgCompletionTime,
     ] = await Promise.all([
       Order.countDocuments(query),
+
       Order.aggregate([
         { $match: query },
         { $group: { _id: '$status', count: { $sum: 1 } } },
       ]),
+
       Order.aggregate([
         { $match: query },
         { $group: { _id: '$orderType', count: { $sum: 1 } } },
       ]),
+
       Order.countDocuments({
         ...query,
         'timeline.estimatedCompletionDate': { $lt: new Date() },
         status: { $in: ['confirmed', 'in_progress', 'on_hold'] },
       }),
+
       Order.aggregate([
         {
           $match: {
             ...query,
             status: 'completed',
-            'timeline.actualStartDate': { $exists: true },
+            'timeline.actualStartDate':      { $exists: true },
             'timeline.actualCompletionDate': { $exists: true },
           },
         },
@@ -746,12 +702,7 @@ export const getOrderAnalytics = async (filters, shopId, organizationId) => {
             },
           },
         },
-        {
-          $group: {
-            _id: null,
-            avgDuration: { $avg: '$duration' },
-          },
-        },
+        { $group: { _id: null, avgDuration: { $avg: '$duration' } } },
       ]),
     ]);
 
@@ -759,11 +710,36 @@ export const getOrderAnalytics = async (filters, shopId, organizationId) => {
       totalOrders,
       statusBreakdown,
       typeBreakdown,
-      overdueOrders: overdueCount,
+      overdueOrders:        overdueCount,
       averageCompletionTime: avgCompletionTime[0]?.avgDuration || 0,
     };
   } catch (error) {
     logger.error('Error fetching order analytics:', error);
+    throw error;
+  }
+};
+
+// ============================================================
+// 15. ADD ORDER PAYMENT (controller se call hoga)
+// ============================================================
+
+export const addOrderPayment = async (orderId, paymentData, userId, shopId, organizationId) => {
+  try {
+    const order = await Order.findOne({
+      _id: orderId, shopId, organizationId, deletedAt: null,
+    });
+
+    if (!order) throw new NotFoundError('Order not found');
+
+    if (['cancelled', 'completed'].includes(order.status)) {
+      throw new ValidationError('Cannot add payment to cancelled or completed order');
+    }
+
+    // Payment module se createPayment call karo — controller handle karega
+    // Yahan sirf order validate karo
+    return order;
+  } catch (error) {
+    logger.error('Error adding order payment:', error);
     throw error;
   }
 };

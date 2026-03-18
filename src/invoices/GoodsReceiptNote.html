@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JewelPro - Goods Receipt Note</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+  .invoice-wrap { max-width: 820px; margin: 0 auto; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+
+  /* HEADER */
+  .inv-header { background: #1a1a2e; padding: 24px 32px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .inv-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .inv-logo-circle { width: 40px; height: 40px; border-radius: 50%; background: #FFD700; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #1a1a2e; }
+  .inv-shop-name { font-size: 22px; font-weight: 600; color: #FFD700; }
+  .inv-shop-sub { color: #aaa; font-size: 12px; margin: 2px 0; }
+  .inv-title { text-align: right; }
+  .inv-title h2 { color: #FFD700; font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .inv-title p { color: #aaa; font-size: 12px; margin: 2px 0; }
+  .inv-title span { color: #fff; }
+
+  /* INFO ROW */
+  .inv-info { padding: 20px 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-bottom: 1px solid #eee; }
+  .info-label { font-size: 10px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .info-name { font-size: 15px; font-weight: 600; color: #1a1a2e; margin-bottom: 3px; }
+  .info-row { font-size: 12px; color: #666; margin: 2px 0; }
+  .info-right { text-align: right; }
+
+  /* BADGES */
+  .badge { display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 4px; }
+  .badge-completed  { background: #e6f4ea; color: #1e7e34; }
+  .badge-received   { background: #e6f4ea; color: #1e7e34; }
+  .badge-pending    { background: #fff3cd; color: #856404; }
+  .badge-ordered    { background: #e8f4fd; color: #1565c0; }
+  .badge-draft      { background: #f0f0f0; color: #666; }
+  .badge-cancelled  { background: #fde8e8; color: #b91c1c; }
+  .badge-returned   { background: #fde8e8; color: #b91c1c; }
+  .badge-partial_received { background: #fff3cd; color: #856404; }
+  .badge-approved   { background: #e6f4ea; color: #1e7e34; }
+  .badge-rejected   { background: #fde8e8; color: #b91c1c; }
+
+  /* SECTION */
+  .section { padding: 16px 32px; }
+  .section-title { font-size: 10px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 8px 10px; background: #f8f8f8; color: #666; font-weight: 600; border-bottom: 1px solid #eee; text-align: left; }
+  th.r, td.r { text-align: right; }
+  th.c, td.c { text-align: center; }
+  td { padding: 9px 10px; border-bottom: 1px solid #f0f0f0; color: #333; }
+  .td-name { font-weight: 600; color: #1a1a2e; margin-bottom: 2px; }
+  .td-sub { font-size: 11px; color: #999; }
+  .td-total { font-weight: 600; color: #1a1a2e; }
+
+  /* FINANCIALS */
+  .fin-row { display: grid; grid-template-columns: 1fr auto; gap: 24px; padding: 12px 32px 16px; border-top: 1px solid #eee; }
+  .fin-table td { padding: 3px 0; font-size: 12px; }
+  .fin-table td:last-child { text-align: right; padding-left: 24px; color: #1a1a2e; }
+  .fin-table td:first-child { color: #666; }
+  .fin-neg { color: #c0392b !important; }
+  .fin-pos { color: #1e7e34 !important; }
+  .net-box { background: #1a1a2e; border-radius: 6px; padding: 14px 20px; text-align: right; white-space: nowrap; }
+  .net-label { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .net-amount { font-size: 26px; font-weight: 700; color: #FFD700; }
+
+  /* PAYMENT STATUS BOX */
+  .pay-status-box { padding: 0 32px 16px; border-top: 1px solid #eee; }
+  .pay-status-box .section-title { padding-top: 14px; }
+  .pay-total td { background: #f8f8f8; font-weight: 600; }
+  .pay-due td { color: #c0392b; font-weight: 600; }
+
+  /* DELIVERY / SUPPLIER INVOICE ROW */
+  .meta-row { padding: 14px 32px; border-top: 1px solid #eee; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .meta-table td { padding: 3px 0; font-size: 12px; }
+  .meta-table td:first-child { color: #888; width: 140px; }
+  .meta-table td:last-child { color: #1a1a2e; font-weight: 600; }
+
+  /* BANK + QR */
+  .bank-qr { padding: 16px 32px; border-top: 1px solid #eee; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: start; }
+  .bank-table td { padding: 3px 0; font-size: 12px; }
+  .bank-table td:first-child { color: #888; width: 130px; }
+  .bank-table td:last-child { color: #1a1a2e; font-weight: 600; }
+  .qr-box { text-align: center; }
+  .qr-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .qr-upi { font-size: 10px; color: #888; margin-top: 4px; }
+
+  /* TERMS */
+  .inv-terms { padding: 10px 32px; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: flex-end; }
+  .inv-terms p { font-size: 11px; color: #999; max-width: 400px; }
+  .sign-box { text-align: right; }
+  .sign-line { height: 40px; border-bottom: 1px solid #ccc; width: 120px; margin-bottom: 4px; }
+  .sign-label { font-size: 11px; color: #999; }
+
+  /* FOOTER */
+  .inv-footer { background: #1a1a2e; padding: 10px 32px; display: flex; justify-content: space-between; align-items: center; }
+</style>
+</head>
+<body>
+<div class="invoice-wrap">
+
+  <!-- HEADER -->
+  <div class="inv-header">
+    <div>
+      <div class="inv-logo">
+        <div class="inv-logo-circle" id="shopInitials"></div>
+        <span class="inv-shop-name" id="shopName"></span>
+      </div>
+      <p class="inv-shop-sub" id="shopAddress"></p>
+      <p class="inv-shop-sub">GST: <span id="shopGst"></span> | Ph: <span id="shopPhone"></span></p>
+    </div>
+    <div class="inv-title">
+      <h2>GOODS RECEIPT NOTE</h2>
+      <p>GRN No: <span id="docNumber"></span></p>
+      <p>Purchase No: <span id="purchaseNumber"></span></p>
+      <p>Date: <span id="docDate"></span></p>
+      <p>Received: <span id="receivedDate"></span></p>
+    </div>
+  </div>
+
+  <!-- SUPPLIER + PURCHASE INFO -->
+  <div class="inv-info">
+    <div>
+      <div class="info-label">Supplier</div>
+      <div class="info-name" id="supplierName"></div>
+      <div class="info-row">Code: <span id="supplierCode"></span></div>
+      <div class="info-row">Ph: <span id="supplierPhone"></span></div>
+      <div class="info-row" id="supplierEmailRow">Email: <span id="supplierEmail"></span></div>
+      <div class="info-row" id="supplierGstRow">GST: <span id="supplierGst"></span></div>
+      <div class="info-row" id="supplierAddrRow"><span id="supplierAddr"></span></div>
+    </div>
+    <div class="info-right">
+      <div class="info-label">Purchase Info</div>
+      <div class="info-row">Type: <span id="purchaseType"></span></div>
+      <div class="info-row">Status: <span class="badge" id="purchaseStatus"></span></div>
+      <div class="info-row">Approval: <span class="badge" id="approvalStatus"></span></div>
+      <div class="info-row">Payment: <span class="badge" id="paymentStatus"></span></div>
+      <div class="info-row" id="supplierInvRow">Supplier Inv: <span id="supplierInvNo"></span></div>
+    </div>
+  </div>
+
+  <!-- ITEMS TABLE -->
+  <div class="section">
+    <div class="section-title">Items Received</div>
+    <table style="table-layout:fixed;">
+      <thead>
+        <tr>
+          <th style="width:26%;">Item</th>
+          <th class="c" style="width:9%;">Metal</th>
+          <th class="c" style="width:8%;">Purity</th>
+          <th class="c" style="width:9%;">Gross Wt</th>
+          <th class="c" style="width:9%;">Net Wt</th>
+          <th class="c" style="width:8%;">Qty</th>
+          <th class="c" style="width:9%;">Rate/g</th>
+          <th class="c" style="width:8%;">GST%</th>
+          <th class="r" style="width:12%;">Total</th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+  </div>
+
+  <!-- FINANCIALS -->
+  <div class="fin-row">
+    <div>
+      <div class="section-title">Financial Summary</div>
+      <table class="fin-table" id="finTable"></table>
+    </div>
+    <div>
+      <div class="net-box">
+        <div class="net-label">Grand Total</div>
+        <div class="net-amount" id="grandTotal"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAYMENT STATUS -->
+  <div class="pay-status-box">
+    <div class="section-title">Payment Summary</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Total Amount</th>
+          <th class="r">Paid Amount</th>
+          <th class="r">Due Amount</th>
+          <th class="r">Payment Mode</th>
+          <th class="r">Due Date</th>
+        </tr>
+      </thead>
+      <tbody id="paymentSummaryBody"></tbody>
+    </table>
+  </div>
+
+  <!-- DELIVERY + SUPPLIER INVOICE META -->
+  <div class="meta-row">
+    <div>
+      <div class="section-title">Delivery Details</div>
+      <table class="meta-table">
+        <tr><td>Delivery Date</td><td id="deliveryDate"></td></tr>
+        <tr><td>Received By</td><td id="receivedBy"></td></tr>
+        <tr><td>Transporter</td><td id="transporter"></td></tr>
+        <tr><td>Vehicle No.</td><td id="vehicleNo"></td></tr>
+        <tr><td>LR Number</td><td id="lrNumber"></td></tr>
+        <tr><td>E-Way Bill</td><td id="ewayBill"></td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="section-title">Supplier Invoice</div>
+      <table class="meta-table">
+        <tr><td>Invoice No.</td><td id="suppInvNo"></td></tr>
+        <tr><td>Invoice Date</td><td id="suppInvDate"></td></tr>
+        <tr><td>Invoice Amount</td><td id="suppInvAmt"></td></tr>
+        <tr><td>Payment Terms</td><td id="payTerms"></td></tr>
+        <tr><td>Created By</td><td id="createdBy"></td></tr>
+        <tr><td>Notes</td><td id="purchaseNotes"></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- BANK + QR -->
+  <div class="bank-qr">
+    <div>
+      <div class="section-title">Our Bank Details (For Supplier Reference)</div>
+      <table class="bank-table">
+        <tr><td>Bank Name</td><td id="bankName"></td></tr>
+        <tr><td>Account Holder</td><td id="bankHolder"></td></tr>
+        <tr><td>Account No.</td><td id="bankAcc"></td></tr>
+        <tr><td>IFSC Code</td><td id="bankIfsc"></td></tr>
+        <tr><td>Branch</td><td id="bankBranch"></td></tr>
+        <tr><td>Account Type</td><td id="bankType"></td></tr>
+      </table>
+    </div>
+    <div class="qr-box">
+      <div class="qr-label">Our UPI</div>
+      <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100" height="100" fill="white" rx="4"/>
+        <rect x="5" y="5" width="35" height="35" fill="none" stroke="#1a1a2e" stroke-width="3" rx="2"/>
+        <rect x="11" y="11" width="23" height="23" fill="#1a1a2e" rx="1"/>
+        <rect x="60" y="5" width="35" height="35" fill="none" stroke="#1a1a2e" stroke-width="3" rx="2"/>
+        <rect x="66" y="11" width="23" height="23" fill="#1a1a2e" rx="1"/>
+        <rect x="5" y="60" width="35" height="35" fill="none" stroke="#1a1a2e" stroke-width="3" rx="2"/>
+        <rect x="11" y="66" width="23" height="23" fill="#1a1a2e" rx="1"/>
+        <rect x="44" y="5" width="5" height="5" fill="#1a1a2e"/><rect x="51" y="5" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="44" y="12" width="5" height="5" fill="#1a1a2e"/><rect x="51" y="19" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="44" y="26" width="5" height="5" fill="#1a1a2e"/><rect x="51" y="26" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="44" y="44" width="5" height="5" fill="#1a1a2e"/><rect x="58" y="44" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="72" y="44" width="5" height="5" fill="#1a1a2e"/><rect x="86" y="44" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="44" y="51" width="5" height="5" fill="#1a1a2e"/><rect x="65" y="51" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="79" y="51" width="5" height="5" fill="#1a1a2e"/><rect x="44" y="58" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="58" y="65" width="5" height="5" fill="#1a1a2e"/><rect x="72" y="65" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="86" y="65" width="5" height="5" fill="#1a1a2e"/><rect x="44" y="79" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="58" y="79" width="5" height="5" fill="#1a1a2e"/><rect x="79" y="79" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="44" y="86" width="5" height="5" fill="#1a1a2e"/><rect x="65" y="86" width="5" height="5" fill="#1a1a2e"/>
+        <rect x="86" y="86" width="5" height="5" fill="#1a1a2e"/>
+      </svg>
+      <div class="qr-upi" id="qrUpi"></div>
+    </div>
+  </div>
+
+  <!-- TERMS -->
+  <div class="inv-terms">
+    <p id="termsText"></p>
+    <div class="sign-box">
+      <div class="sign-line"></div>
+      <div class="sign-label">Authorised Signatory</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="inv-footer">
+    <span style="font-size:11px;color:#aaa;">Goods Receipt Note — JewelPro Purchase Management</span>
+    <div>
+      <span style="font-size:11px;color:#888;">Powered by </span>
+      <strong style="font-size:13px;color:#FFD700;letter-spacing:0.5px;">JewelPro</strong>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// CONTROLLER SE ATA HAI:
+//   const purchase  = await purchaseService.getPurchaseById(purchaseId, shopId, organizationId)
+//   const supplier  = await Supplier.findById(purchase.supplierId)
+//   const shop      = await JewelryShop.findById(shopId)
+//   const primaryBank = shop.getPrimaryBank() || {}
+//   const primaryUPI  = shop.getPrimaryUPI()  || {}
+//   const receivedByUser = await User.findById(purchase.delivery?.receivedBy)
+//   const createdByUser  = await User.findById(purchase.createdBy)
+// ─────────────────────────────────────────────
+
+const DATA = {
+  shop: {
+    name:        shop.name,
+    displayName: shop.displayName,
+    address:     shop.fullAddress,                          // virtual
+    phone:       shop.phone,
+    gst:         shop.gstNumber,
+    terms:       shop.settings.printSettings.termsConditions,
+    bank: {
+      name:      primaryBank.bankName,
+      holder:    primaryBank.accountHolderName,
+      accountNo: primaryBank.accountNumber,
+      ifsc:      primaryBank.ifscCode,
+      branch:    primaryBank.branchName,
+      type:      primaryBank.accountType,
+    },
+    upi: {
+      id:     primaryUPI.upiId,
+      qrCode: primaryUPI.qrCode,
+    }
+  },
+
+  purchase: {
+    purchaseNumber: purchase.purchaseNumber,                // Purchase.purchaseNumber
+    purchaseDate:   purchase.purchaseDate,                  // Purchase.purchaseDate
+    purchaseType:   purchase.purchaseType,                  // Purchase.purchaseType
+    status:         purchase.status,                        // Purchase.status
+    approvalStatus: purchase.approvalStatus,                // Purchase.approvalStatus
+
+    items: purchase.items.map(item => ({
+      productName:   item.productName,                      // Purchase.items[].productName
+      productCode:   item.productCode,                      // Purchase.items[].productCode
+      huid:          item.huid,                             // Purchase.items[].huid
+      metalType:     item.metalType,                        // Purchase.items[].metalType
+      purity:        item.purity,                           // Purchase.items[].purity
+      grossWeight:   item.grossWeight,                      // Purchase.items[].grossWeight
+      netWeight:     item.netWeight,                        // Purchase.items[].netWeight
+      quantity:      item.quantity,                         // Purchase.items[].quantity
+      ratePerGram:   item.ratePerGram,                      // Purchase.items[].ratePerGram
+      gstPercentage: item.gstPercentage,                    // Purchase.items[].gstPercentage
+      itemTotal:     item.itemTotal,                        // Purchase.items[].itemTotal
+    })),
+
+    financials: {
+      subtotal:           purchase.financials.subtotal,           // Purchase.financials.subtotal
+      totalMetalValue:    purchase.financials.totalMetalValue,    // Purchase.financials.totalMetalValue
+      totalStoneValue:    purchase.financials.totalStoneValue,    // Purchase.financials.totalStoneValue
+      totalMakingCharges: purchase.financials.totalMakingCharges, // Purchase.financials.totalMakingCharges
+      totalOtherCharges:  purchase.financials.totalOtherCharges,  // Purchase.financials.totalOtherCharges
+      totalDiscount:      purchase.financials.totalDiscount,      // Purchase.financials.totalDiscount
+      totalGST:           purchase.financials.totalGST,           // Purchase.financials.totalGST
+      roundOff:           purchase.financials.roundOff,           // Purchase.financials.roundOff
+      grandTotal:         purchase.financials.grandTotal,         // Purchase.financials.grandTotal
+    },
+
+    payment: {
+      totalAmount:   purchase.payment.totalAmount,          // Purchase.payment.totalAmount
+      paidAmount:    purchase.payment.paidAmount,           // Purchase.payment.paidAmount
+      dueAmount:     purchase.payment.dueAmount,            // Purchase.payment.dueAmount
+      paymentStatus: purchase.payment.paymentStatus,        // Purchase.payment.paymentStatus
+      paymentMode:   purchase.payment.paymentMode,          // Purchase.payment.paymentMode
+      dueDate:       purchase.payment.dueDate,              // Purchase.payment.dueDate
+      paymentTerms:  purchase.payment.paymentTerms,         // Purchase.payment.paymentTerms
+    },
+
+    delivery: {
+      deliveryDate:    purchase.delivery?.deliveryDate,     // Purchase.delivery.deliveryDate
+      receivedDate:    purchase.delivery?.receivedDate,     // Purchase.delivery.receivedDate
+      receivedBy:      receivedByUser ? receivedByUser.firstName + " " + receivedByUser.lastName : null,
+      transporterName: purchase.delivery?.transportDetails?.transporterName,
+      vehicleNumber:   purchase.delivery?.transportDetails?.vehicleNumber,
+      lrNumber:        purchase.delivery?.transportDetails?.lrNumber,
+      ewayBillNumber:  purchase.delivery?.transportDetails?.ewayBillNumber,
+    },
+
+    supplierInvoice: {
+      invoiceNumber: purchase.supplierInvoice?.invoiceNumber,  // Purchase.supplierInvoice.invoiceNumber
+      invoiceDate:   purchase.supplierInvoice?.invoiceDate,    // Purchase.supplierInvoice.invoiceDate
+      invoiceAmount: purchase.supplierInvoice?.invoiceAmount,  // Purchase.supplierInvoice.invoiceAmount
+    },
+
+    notes:     purchase.notes,                              // Purchase.notes
+    createdBy: createdByUser ? createdByUser.firstName + " " + createdByUser.lastName : null,
+  },
+
+  supplier: {
+    businessName:  supplier.businessName,                   // Supplier.businessName
+    supplierCode:  supplier.supplierCode,                   // Supplier.supplierCode
+    phone:         supplier.contactPerson?.phone,           // Supplier.contactPerson.phone
+    email:         supplier.contactPerson?.email,           // Supplier.contactPerson.email
+    gstNumber:     supplier.gstNumber,                      // Supplier.gstNumber
+    address:       supplier.address
+                    ? `${supplier.address.street || ''}, ${supplier.address.city || ''}`
+                    : null,
+  }
+};
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+const fmt  = n => n != null ? "Rs." + Number(n).toLocaleString("en-IN") : "-";
+const fmtD = d => d ? new Date(d).toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" }) : "-";
+const v    = x => x != null && x !== "" ? x : "-";
+
+const purchaseTypeLabel = {
+  new_stock: "New Stock", old_gold: "Old Gold", exchange: "Exchange",
+  consignment: "Consignment", repair_return: "Repair Return", sample: "Sample"
+};
+const payStatusLabel = { paid:"Paid", partial:"Partial", unpaid:"Unpaid", overdue:"Overdue" };
+const modeLabel = {
+  cash:"Cash", upi:"UPI", card:"Card",
+  cheque:"Cheque", bank_transfer:"Bank Transfer", mixed:"Mixed", credit:"Credit"
+};
+const approvalLabel = { pending:"Pending", approved:"Approved", rejected:"Rejected" };
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = (text != null && text !== "") ? text : "-";
+}
+function show(id, visible) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = visible ? "" : "none";
+}
+
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+function render() {
+  const { shop, purchase, supplier } = DATA;
+
+  // Shop header
+  const nm = shop.displayName || shop.name || "";
+  const initials = nm.split(" ").filter(Boolean).map(w => w[0]).join("").substring(0,2).toUpperCase() || "JP";
+  setText("shopInitials", initials);
+  setText("shopName",    shop.displayName || shop.name);
+  setText("shopAddress", shop.address);
+  setText("shopGst",     shop.gst);
+  setText("shopPhone",   shop.phone);
+
+  // Bank
+  setText("bankName",   shop.bank?.name);
+  setText("bankHolder", shop.bank?.holder);
+  setText("bankAcc",    shop.bank?.accountNo);
+  setText("bankIfsc",   shop.bank?.ifsc);
+  setText("bankBranch", shop.bank?.branch);
+  setText("bankType",   shop.bank?.type ? shop.bank.type.charAt(0).toUpperCase() + shop.bank.type.slice(1) : "-");
+  setText("qrUpi",      shop.upi?.id);
+
+  setText("termsText", shop.terms || "Subject to local jurisdiction. E. & O.E.");
+
+  // Purchase header
+  setText("docNumber",      purchase.purchaseNumber);
+  setText("purchaseNumber", purchase.purchaseNumber);
+  setText("docDate",        fmtD(purchase.purchaseDate));
+  setText("receivedDate",   fmtD(purchase.delivery?.receivedDate));
+
+  // Supplier
+  setText("supplierName",  supplier.businessName);
+  setText("supplierCode",  supplier.supplierCode);
+  setText("supplierPhone", supplier.phone);
+  show("supplierEmailRow", !!supplier.email);
+  setText("supplierEmail", supplier.email);
+  show("supplierGstRow",   !!supplier.gstNumber);
+  setText("supplierGst",   supplier.gstNumber);
+  show("supplierAddrRow",  !!supplier.address);
+  setText("supplierAddr",  supplier.address);
+
+  // Purchase info badges
+  setText("purchaseType", purchaseTypeLabel[purchase.purchaseType] || v(purchase.purchaseType));
+
+  const sb = document.getElementById("purchaseStatus");
+  if (sb) { sb.className = "badge badge-" + (purchase.status || "draft"); sb.textContent = v(purchase.status)?.replace(/_/g," "); }
+
+  const ab = document.getElementById("approvalStatus");
+  if (ab) { ab.className = "badge badge-" + (purchase.approvalStatus || "pending"); ab.textContent = approvalLabel[purchase.approvalStatus] || v(purchase.approvalStatus); }
+
+  const pb = document.getElementById("paymentStatus");
+  if (pb) { pb.className = "badge badge-" + (purchase.payment?.paymentStatus || "unpaid"); pb.textContent = payStatusLabel[purchase.payment?.paymentStatus] || v(purchase.payment?.paymentStatus); }
+
+  show("supplierInvRow", !!purchase.supplierInvoice?.invoiceNumber);
+  setText("supplierInvNo", purchase.supplierInvoice?.invoiceNumber);
+
+  // Items
+  document.getElementById("itemsBody").innerHTML = (purchase.items || []).map(item => `
+    <tr>
+      <td>
+        <div class="td-name">${v(item.productName)}</div>
+        <div class="td-sub">${item.huid ? "HUID: " + item.huid + " | " : ""}${v(item.productCode)}</div>
+      </td>
+      <td class="c">${v(item.metalType)}</td>
+      <td class="c">${v(item.purity)}</td>
+      <td class="c">${v(item.grossWeight)}g</td>
+      <td class="c">${v(item.netWeight)}g</td>
+      <td class="c">${v(item.quantity)}</td>
+      <td class="c">${fmt(item.ratePerGram)}</td>
+      <td class="c">${item.gstPercentage != null ? item.gstPercentage + "%" : "-"}</td>
+      <td class="r td-total">${fmt(item.itemTotal)}</td>
+    </tr>`).join("");
+
+  // Financials
+  const f = purchase.financials;
+  let fin = `<tr><td>Metal Value</td><td>${fmt(f.totalMetalValue)}</td></tr>`;
+  if (f.totalStoneValue > 0)    fin += `<tr><td>Stone Value</td><td>${fmt(f.totalStoneValue)}</td></tr>`;
+  if (f.totalMakingCharges > 0) fin += `<tr><td>Making Charges</td><td>${fmt(f.totalMakingCharges)}</td></tr>`;
+  if (f.totalOtherCharges > 0)  fin += `<tr><td>Other Charges</td><td>${fmt(f.totalOtherCharges)}</td></tr>`;
+  if (f.totalDiscount > 0)      fin += `<tr><td>Discount</td><td class="fin-neg">- ${fmt(f.totalDiscount)}</td></tr>`;
+  fin += `<tr><td>Subtotal</td><td>${fmt(f.subtotal)}</td></tr>`;
+  fin += `<tr><td>GST</td><td>${fmt(f.totalGST)}</td></tr>`;
+  if (f.roundOff && f.roundOff !== 0) fin += `<tr><td>Round Off</td><td>${Number(f.roundOff).toFixed(2)}</td></tr>`;
+  document.getElementById("finTable").innerHTML = fin;
+  setText("grandTotal", fmt(f.grandTotal));
+
+  // Payment summary row
+  const pay = purchase.payment;
+  document.getElementById("paymentSummaryBody").innerHTML = `
+    <tr>
+      <td style="font-weight:600;">${fmt(pay?.totalAmount)}</td>
+      <td class="r fin-pos">${fmt(pay?.paidAmount)}</td>
+      <td class="r ${pay?.dueAmount > 0 ? 'fin-neg' : 'fin-pos'}">${fmt(pay?.dueAmount)}</td>
+      <td class="r"><span class="badge badge-${pay?.paymentMode || ''}">${modeLabel[pay?.paymentMode] || v(pay?.paymentMode)}</span></td>
+      <td class="r" style="color:#c0392b;">${pay?.dueDate ? fmtD(pay.dueDate) : "-"}</td>
+    </tr>`;
+
+  // Delivery details
+  setText("deliveryDate", fmtD(purchase.delivery?.deliveryDate));
+  setText("receivedBy",   v(purchase.delivery?.receivedBy));
+  setText("transporter",  v(purchase.delivery?.transporterName));
+  setText("vehicleNo",    v(purchase.delivery?.vehicleNumber));
+  setText("lrNumber",     v(purchase.delivery?.lrNumber));
+  setText("ewayBill",     v(purchase.delivery?.ewayBillNumber));
+
+  // Supplier invoice meta
+  setText("suppInvNo",   v(purchase.supplierInvoice?.invoiceNumber));
+  setText("suppInvDate", fmtD(purchase.supplierInvoice?.invoiceDate));
+  setText("suppInvAmt",  fmt(purchase.supplierInvoice?.invoiceAmount));
+  setText("payTerms",    v(purchase.payment?.paymentTerms));
+  setText("createdBy",   v(purchase.createdBy));
+  setText("purchaseNotes", v(purchase.notes));
+}
+
+render();
+</script>
+</body>
+</html>

@@ -1,290 +1,503 @@
-// FILE: routes/sales.routes.js
-// Complete Sales Module Routes - 42+ Endpoints
-
+// FILE: src/api/sales/sales.routes.js
 import express from 'express';
-import * as saleController from '../controllers/sales.controller.js';
-import * as saleValidation from '../validations/sales.validation.js';
-import { protect } from '../middlewares/auth.js';
-import { checkShopAccess, checkPermission } from '../middlewares/checkShopAccess.js';
-import { apiRateLimiter, createUpdateRateLimiter } from '../middlewares/rateLimiter.js';
+import * as saleController from './sales.controller.js';
+import * as saleValidation from './sales.validation.js';
+import { authenticate } from '../middlewares/auth.js';
+import { restrictTo } from '../middlewares/restrictTo.js';
+import {
+  checkShopAccess,
+  checkPermission,
+  checkAnyPermission,
+} from '../middlewares/checkShopAccess.js';
+import {
+  apiRateLimiter,
+  createUpdateRateLimiter,
+  deleteRateLimiter,
+} from '../middlewares/rateLimiter.js';
 
 const router = express.Router({ mergeParams: true });
+router.use(authenticate);
 
-// Apply global middleware
-router.use(protect);
-router.use(checkShopAccess);
-
-// IMPORTANT: Route Order Matters! Specific routes BEFORE parameterized routes
-
-// 8. ANALYTICS & REPORTS (Must be BEFORE /:saleId routes)
+  // GET /api/v1/shops/:shopId/sales/analytics
 
 router.get(
   '/analytics',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewAnalytics'),
+  apiRateLimiter,
   saleValidation.getAnalytics,
   saleController.getSalesAnalytics
 );
 
-router.get('/dashboard', checkPermission('canViewDashboard'), saleController.getSalesDashboard);
+//  GET /api/v1/shops/:shopId/sales/dashboard
 
-router.get('/today', checkPermission('canViewSales'), saleController.getTodaySales);
+router.get(
+  '/dashboard',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewDashboard'),
+  apiRateLimiter,
+  saleController.getSalesDashboard
+);
 
-router.get('/pending', checkPermission('canViewSales'), saleController.getPendingSales);
+//  GET /api/v1/shops/:shopId/sales/today
 
-router.get('/unpaid', checkPermission('canViewFinancials'), saleController.getUnpaidSales);
+router.get(
+  '/today',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewSales'),
+  apiRateLimiter,
+  saleController.getTodaySales
+);
 
-router.get('/overdue', checkPermission('canViewFinancials'), saleController.getOverdueSales);
+//  GET /api/v1/shops/:shopId/sales/pending
 
-// 12. SEARCH & FILTERS (Before /:saleId)
+router.get(
+  '/pending',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
+  checkPermission('canViewSales'),
+  apiRateLimiter,
+  saleController.getPendingSales
+);
+
+//  GET /api/v1/shops/:shopId/sales/unpaid
+
+router.get(
+  '/unpaid',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewFinancials'),
+  apiRateLimiter,
+  saleController.getUnpaidSales
+);
+
+//  GET /api/v1/shops/:shopId/sales/overdue
+
+router.get(
+  '/overdue',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewFinancials'),
+  apiRateLimiter,
+  saleController.getOverdueSales
+);
+//  GET /api/v1/shops/:shopId/sales/search
 
 router.get(
   '/search',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
+  apiRateLimiter,
   saleValidation.searchSales,
   saleController.searchSales
 );
 
+  // GET /api/v1/shops/:shopId/sales/by-date-range
+
 router.get(
   '/by-date-range',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
+  apiRateLimiter,
   saleValidation.dateRange,
   saleController.getSalesByDateRange
 );
 
+  // GET /api/v1/shops/:shopId/sales/by-amount-range
+
 router.get(
   '/by-amount-range',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
+  apiRateLimiter,
   saleValidation.amountRange,
   saleController.getSalesByAmountRange
 );
 
-// 6. CUSTOMER-SPECIFIC SALES (Before /:saleId)
+//  GET /api/v1/shops/:shopId/sales/customer/:customerId
 
 router.get(
   '/customer/:customerId',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
+  apiRateLimiter,
   saleController.getCustomerSales
 );
 
+  // GET /api/v1/shops/:shopId/sales/customer/:customerId/summary
+
 router.get(
   '/customer/:customerId/summary',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
+  apiRateLimiter,
   saleController.getCustomerSalesSummary
 );
 
-// 7. SALES PERSON PERFORMANCE (Before /:saleId)
+  // GET /api/v1/shops/:shopId/sales/sales-person/:userId
 
 router.get(
   '/sales-person/:userId',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
+  apiRateLimiter,
   saleController.getSalesPersonSales
 );
 
+//  GET /api/v1/shops/:shopId/sales/sales-person/:userId/performance
+
 router.get(
   '/sales-person/:userId/performance',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewAnalytics'),
+  apiRateLimiter,
   saleController.getSalesPersonPerformance
 );
-
-// 11. BULK OPERATIONS (Before /:saleId)
+  //  POST /api/v1/shops/:shopId/sales/bulk-delete
 
 router.post(
   '/bulk-delete',
+  restrictTo('super_admin', 'org_admin', 'shop_admin'),
+  checkShopAccess,
   checkPermission('canDeleteSales'),
+  deleteRateLimiter,
   saleValidation.bulkDelete,
   saleController.bulkDeleteSales
 );
 
+// POST /api/v1/shops/:shopId/sales/bulk-print
+
 router.post(
   '/bulk-print',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
+  apiRateLimiter,
   saleValidation.bulkPrint,
   saleController.bulkPrintInvoices
 );
+//  POST /api/v1/shops/:shopId/sales/bulk-send-reminders
 
 router.post(
   '/bulk-send-reminders',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canManageSales'),
+  createUpdateRateLimiter,
   saleValidation.bulkReminders,
   saleController.bulkSendReminders
 );
 
-// 1. SALE CRUD OPERATIONS
+//  POST /api/v1/shops/:shopId/sales
 
 router.post(
   '/',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
+  checkShopAccess,
   checkPermission('canCreateSales'),
   createUpdateRateLimiter,
   saleValidation.createSale,
   saleController.createSale
 );
 
+  // GET /api/v1/shops/:shopId/sales
 router.get(
   '/',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
   apiRateLimiter,
   saleValidation.getSales,
   saleController.getAllSales
 );
 
+  // GET /api/v1/shops/:shopId/sales/:saleId
+
 router.get(
   '/:saleId',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
+  apiRateLimiter,
   saleValidation.getSale,
   saleController.getSale
 );
 
+//  PUT /api/v1/shops/:shopId/sales/:saleId
+
 router.put(
   '/:saleId',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canEditSales'),
   createUpdateRateLimiter,
   saleValidation.updateSale,
   saleController.updateSale
 );
 
+// DELETE /api/v1/shops/:shopId/sales/:saleId
+
 router.delete(
   '/:saleId',
+  restrictTo('super_admin', 'org_admin', 'shop_admin'),
+  checkShopAccess,
   checkPermission('canDeleteSales'),
+  deleteRateLimiter,
   saleValidation.deleteSale,
   saleController.deleteSale
 );
 
-// 2. SALE STATUS MANAGEMENT
+
+
+// PATCH /api/v1/shops/:shopId/sales/:saleId/status
 
 router.patch(
   '/:saleId/status',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canEditSales'),
+  createUpdateRateLimiter,
   saleValidation.updateStatus,
   saleController.updateSaleStatus
 );
 
+  // PATCH /api/v1/shops/:shopId/sales/:saleId/confirm
+
 router.patch(
   '/:saleId/confirm',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
+  checkShopAccess,
   checkPermission('canEditSales'),
+  createUpdateRateLimiter,
   saleValidation.confirmSale,
   saleController.confirmSale
 );
 
+// PATCH /api/v1/shops/:shopId/sales/:saleId/deliver
+
 router.patch(
   '/:saleId/deliver',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
+  checkShopAccess,
   checkPermission('canEditSales'),
+  createUpdateRateLimiter,
   saleValidation.deliverSale,
   saleController.deliverSale
 );
 
+// PATCH /api/v1/shops/:shopId/sales/:saleId/complete
+
 router.patch(
   '/:saleId/complete',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canEditSales'),
+  createUpdateRateLimiter,
   saleValidation.completeSale,
   saleController.completeSale
 );
 
+  // PATCH /api/v1/shops/:shopId/sales/:saleId/cancel
+
 router.patch(
   '/:saleId/cancel',
+  restrictTo('super_admin', 'org_admin', 'shop_admin'),
+  checkShopAccess,
   checkPermission('canCancelInvoices'),
+  createUpdateRateLimiter,
   saleValidation.cancelSale,
   saleController.cancelSale
 );
 
-// 3. PAYMENT MANAGEMENT
-
+//  POST /api/v1/shops/:shopId/sales/:saleId/payments
 router.post(
   '/:saleId/payments',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
   checkPermission('canReceivePayments'),
+  createUpdateRateLimiter,
   saleValidation.addPayment,
   saleController.addPayment
 );
 
-router.get('/:saleId/payments', checkPermission('canViewSales'), saleController.getSalePayments);
+  // GET /api/v1/shops/:shopId/sales/:saleId/payments
 
-router.get('/:saleId/receipt', checkPermission('canViewSales'), saleController.generateReceipt);
+router.get(
+  '/:saleId/payments',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewSales'),
+  apiRateLimiter,
+  saleController.getSalePayments
+);
 
-// 4. RETURN & EXCHANGE
+//  GET /api/v1/shops/:shopId/sales/:saleId/receipt
+
+router.get(
+  '/:saleId/receipt',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewSales'),
+  apiRateLimiter,
+  saleController.generateReceipt
+);
+
+
+//  POST /api/v1/shops/:shopId/sales/:saleId/return
 
 router.post(
   '/:saleId/return',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canManageSales'),
+  createUpdateRateLimiter,
   saleValidation.returnSale,
   saleController.returnSale
 );
 
+//  GET /api/v1/shops/:shopId/sales/:saleId/return-details
+
 router.get(
   '/:saleId/return-details',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
+  apiRateLimiter,
   saleController.getReturnDetails
 );
 
-// 5. OLD GOLD EXCHANGE
+
+//  POST /api/v1/shops/:shopId/sales/:saleId/old-gold
 
 router.post(
   '/:saleId/old-gold',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canManageOldGold'),
+  createUpdateRateLimiter,
   saleValidation.addOldGold,
   saleController.addOldGold
 );
 
+// DELETE /api/v1/shops/:shopId/sales/:saleId/old-gold
+
 router.delete(
   '/:saleId/old-gold',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canManageOldGold'),
+  createUpdateRateLimiter,
   saleController.removeOldGold
 );
 
-// 9. INVOICE MANAGEMENT
 
-router.get('/:saleId/invoice', checkPermission('canViewSales'), saleController.generateInvoice);
+  // GET /api/v1/shops/:shopId/sales/:saleId/invoice
+
+router.get(
+  '/:saleId/invoice',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewSales'),
+  apiRateLimiter,
+  saleController.generateInvoice
+);
+
+//  POST /api/v1/shops/:shopId/sales/:saleId/invoice/send
 
 router.post(
   '/:saleId/invoice/send',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canGenerateInvoices'),
+  createUpdateRateLimiter,
   saleValidation.sendInvoice,
   saleController.sendInvoice
 );
+  // POST /api/v1/shops/:shopId/sales/:saleId/invoice/print
 
 router.post(
   '/:saleId/invoice/print',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
   checkPermission('canViewSales'),
+  createUpdateRateLimiter,
   saleValidation.printInvoice,
   saleController.printInvoice
 );
 
-// 10. DISCOUNT & OFFERS
-
+  // POST /api/v1/shops/:shopId/sales/:saleId/apply-discount
 router.post(
   '/:saleId/apply-discount',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canApplyDiscounts'),
+  createUpdateRateLimiter,
   saleValidation.applyDiscount,
   saleController.applyDiscount
 );
 
+// DELETE /api/v1/shops/:shopId/sales/:saleId/remove-discount
+
 router.delete(
   '/:saleId/remove-discount',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canApplyDiscounts'),
+  createUpdateRateLimiter,
   saleController.removeDiscount
 );
 
-// 13. DOCUMENTS
-
+//  POST /api/v1/shops/:shopId/sales/:saleId/documents
 router.post(
   '/:saleId/documents',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
   checkPermission('canEditSales'),
+  createUpdateRateLimiter,
   saleValidation.uploadDocument,
   saleController.uploadDocument
 );
 
-router.get('/:saleId/documents', checkPermission('canViewSales'), saleController.getDocuments);
+  // GET /api/v1/shops/:shopId/sales/:saleId/documents
+router.get(
+  '/:saleId/documents',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewSales'),
+  apiRateLimiter,
+  saleController.getDocuments
+);
 
-// 14. APPROVAL
+
+//  POST /api/v1/shops/:shopId/sales/:saleId/approve
 
 router.post(
   '/:saleId/approve',
+  restrictTo('super_admin', 'org_admin', 'shop_admin'),
+  checkShopAccess,
   checkPermission('canApproveSales'),
+  createUpdateRateLimiter,
   saleValidation.approveSale,
   saleController.approveSale
 );
 
+  // POST /api/v1/shops/:shopId/sales/:saleId/reject
 router.post(
   '/:saleId/reject',
+  restrictTo('super_admin', 'org_admin', 'shop_admin'),
+  checkShopAccess,
   checkPermission('canApproveSales'),
+  createUpdateRateLimiter,
   saleValidation.rejectSale,
   saleController.rejectSale
 );

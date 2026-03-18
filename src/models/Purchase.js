@@ -65,205 +65,67 @@ const purchaseSchema = new mongoose.Schema(
           ref: 'Product',
           default: null,
         },
-
-        // Product Details
-        productName: {
-          type: String,
-          required: true,
-        },
+        productName: { type: String, required: true },
         productCode: String,
         category: String,
-
-        // Metal Details
         metalType: {
           type: String,
           enum: ['gold', 'silver', 'platinum', 'diamond', 'mixed'],
           required: true,
         },
         purity: String,
-
-        // Weight
-        grossWeight: {
-          type: Number,
-          required: true,
-          min: 0,
-        },
-        stoneWeight: {
-          type: Number,
-          default: 0,
-          min: 0,
-        },
-        netWeight: {
-          type: Number,
-          required: true,
-          min: 0,
-        },
+        grossWeight: { type: Number, required: true, min: 0 },
+        stoneWeight: { type: Number, default: 0, min: 0 },
+        netWeight: { type: Number, required: true, min: 0 },
         weightUnit: {
           type: String,
           enum: ['gram', 'kg', 'tola'],
           default: 'gram',
         },
-
-        // Pricing
-        ratePerGram: {
-          type: Number,
-          default: 0,
-          min: 0,
-        },
-        metalValue: {
-          type: Number,
-          default: 0,
-          min: 0,
-        },
-        stoneValue: {
-          type: Number,
-          default: 0,
-          min: 0,
-        },
-        makingCharges: {
-          type: Number,
-          default: 0,
-          min: 0,
-        },
-        otherCharges: {
-          type: Number,
-          default: 0,
-          min: 0,
-        },
-
-        // Tax
-        taxableAmount: {
-          type: Number,
-          default: 0,
-          min: 0,
-        },
-        gstPercentage: {
-          type: Number,
-          default: 3,
-          min: 0,
-        },
-        gstAmount: {
-          type: Number,
-          default: 0,
-          min: 0,
-        },
-
-        // Discount
+        ratePerGram: { type: Number, default: 0, min: 0 },
+        metalValue: { type: Number, default: 0, min: 0 },
+        stoneValue: { type: Number, default: 0, min: 0 },
+        makingCharges: { type: Number, default: 0, min: 0 },
+        otherCharges: { type: Number, default: 0, min: 0 },
+        taxableAmount: { type: Number, default: 0, min: 0 },
+        gstPercentage: { type: Number, default: 3, min: 0 },
+        gstAmount: { type: Number, default: 0, min: 0 },
         discount: {
           type: {
             type: String,
             enum: ['percentage', 'flat', 'none'],
             default: 'none',
           },
-          value: {
-            type: Number,
-            default: 0,
-            min: 0,
-          },
-          amount: {
-            type: Number,
-            default: 0,
-            min: 0,
-          },
+          value: { type: Number, default: 0, min: 0 },
+          amount: { type: Number, default: 0, min: 0 },
         },
-
-        // Total
-        itemTotal: {
-          type: Number,
-          required: true,
-          min: 0,
-        },
-
-        // Quantity
-        quantity: {
-          type: Number,
-          default: 1,
-          min: 1,
-        },
-
-        // Hallmarking
+        itemTotal: { type: Number, required: true, min: 0 },
+        quantity: { type: Number, default: 1, min: 1 },
         huid: String,
-        isHallmarked: {
-          type: Boolean,
-          default: false,
-        },
-
-        // Notes
+        isHallmarked: { type: Boolean, default: false },
         notes: String,
       },
     ],
 
     // Financial Summary
     financials: {
-      subtotal: {
-        type: Number,
-        required: true,
-        default: 0,
-        min: 0,
-      },
-      totalMetalValue: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      totalStoneValue: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      totalMakingCharges: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      totalOtherCharges: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      totalDiscount: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      totalTaxableAmount: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      totalGST: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      roundOff: {
-        type: Number,
-        default: 0,
-      },
-      grandTotal: {
-        type: Number,
-        required: true,
-        min: 0,
-      },
+      subtotal: { type: Number, required: true, default: 0, min: 0 },
+      totalMetalValue: { type: Number, default: 0, min: 0 },
+      totalStoneValue: { type: Number, default: 0, min: 0 },
+      totalMakingCharges: { type: Number, default: 0, min: 0 },
+      totalOtherCharges: { type: Number, default: 0, min: 0 },
+      totalDiscount: { type: Number, default: 0, min: 0 },
+      totalTaxableAmount: { type: Number, default: 0, min: 0 },
+      totalGST: { type: Number, default: 0, min: 0 },
+      roundOff: { type: Number, default: 0 },
+      grandTotal: { type: Number, required: true, min: 0 },
     },
 
     // Payment Details
     payment: {
-      totalAmount: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      paidAmount: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      dueAmount: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
+      totalAmount: { type: Number, default: 0, min: 0 },
+      paidAmount: { type: Number, default: 0, min: 0 },
+      dueAmount: { type: Number, default: 0, min: 0 },
       paymentStatus: {
         type: String,
         enum: ['paid', 'partial', 'unpaid', 'overdue'],
@@ -344,18 +206,12 @@ const purchaseSchema = new mongoose.Schema(
         },
         documentUrl: String,
         documentNumber: String,
-        uploadedAt: {
-          type: Date,
-          default: Date.now,
-        },
+        uploadedAt: { type: Date, default: Date.now },
       },
     ],
 
     // Notes & Terms
-    notes: {
-      type: String,
-      maxlength: 1000,
-    },
+    notes: { type: String, maxlength: 1000 },
     internalNotes: String,
     termsAndConditions: String,
     tags: [String],
@@ -379,7 +235,6 @@ const purchaseSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
 purchaseSchema.index({ organizationId: 1, shopId: 1, purchaseNumber: 1 }, { unique: true });
 purchaseSchema.index({ shopId: 1, status: 1 });
 purchaseSchema.index({ supplierId: 1, status: 1 });
@@ -387,7 +242,6 @@ purchaseSchema.index({ purchaseDate: -1 });
 purchaseSchema.index({ 'payment.paymentStatus': 1 });
 purchaseSchema.index({ approvalStatus: 1 });
 
-// Virtuals
 purchaseSchema.virtual('totalItems').get(function () {
   return this.items.length;
 });
@@ -396,22 +250,14 @@ purchaseSchema.virtual('totalQuantity').get(function () {
   return this.items.reduce((sum, item) => sum + item.quantity, 0);
 });
 
-// Pre-save middleware - Calculate financials
+
 purchaseSchema.pre('save', function (next) {
   if (this.items && this.items.length > 0) {
-    // Calculate item totals
     this.items.forEach(item => {
-      // Calculate net weight
       item.netWeight = item.grossWeight - item.stoneWeight;
-
-      // Calculate metal value
       item.metalValue = item.netWeight * item.ratePerGram;
+      item.taxableAmount = item.metalValue + item.stoneValue + item.makingCharges + item.otherCharges;
 
-      // Calculate taxable amount
-      item.taxableAmount =
-        item.metalValue + item.stoneValue + item.makingCharges + item.otherCharges;
-
-      // Apply discount
       if (item.discount.type === 'percentage') {
         item.discount.amount = (item.taxableAmount * item.discount.value) / 100;
       } else if (item.discount.type === 'flat') {
@@ -419,55 +265,26 @@ purchaseSchema.pre('save', function (next) {
       }
 
       item.taxableAmount -= item.discount.amount;
-
-      // Calculate GST
       item.gstAmount = (item.taxableAmount * item.gstPercentage) / 100;
-
-      // Calculate item total
       item.itemTotal = (item.taxableAmount + item.gstAmount) * item.quantity;
     });
 
-    // Calculate financial summary
-    this.financials.subtotal = this.items.reduce(
-      (sum, item) => sum + item.taxableAmount * item.quantity,
-      0
-    );
-    this.financials.totalMetalValue = this.items.reduce(
-      (sum, item) => sum + item.metalValue * item.quantity,
-      0
-    );
-    this.financials.totalStoneValue = this.items.reduce(
-      (sum, item) => sum + item.stoneValue * item.quantity,
-      0
-    );
-    this.financials.totalMakingCharges = this.items.reduce(
-      (sum, item) => sum + item.makingCharges * item.quantity,
-      0
-    );
-    this.financials.totalOtherCharges = this.items.reduce(
-      (sum, item) => sum + item.otherCharges * item.quantity,
-      0
-    );
-    this.financials.totalDiscount = this.items.reduce(
-      (sum, item) => sum + item.discount.amount * item.quantity,
-      0
-    );
-    this.financials.totalGST = this.items.reduce(
-      (sum, item) => sum + item.gstAmount * item.quantity,
-      0
-    );
+    this.financials.subtotal = this.items.reduce((sum, item) => sum + item.taxableAmount * item.quantity, 0);
+    this.financials.totalMetalValue = this.items.reduce((sum, item) => sum + item.metalValue * item.quantity, 0);
+    this.financials.totalStoneValue = this.items.reduce((sum, item) => sum + item.stoneValue * item.quantity, 0);
+    this.financials.totalMakingCharges = this.items.reduce((sum, item) => sum + item.makingCharges * item.quantity, 0);
+    this.financials.totalOtherCharges = this.items.reduce((sum, item) => sum + item.otherCharges * item.quantity, 0);
+    this.financials.totalDiscount = this.items.reduce((sum, item) => sum + item.discount.amount * item.quantity, 0);
+    this.financials.totalGST = this.items.reduce((sum, item) => sum + item.gstAmount * item.quantity, 0);
     this.financials.totalTaxableAmount = this.financials.subtotal;
 
-    // Calculate grand total with round off
     const rawTotal = this.financials.subtotal + this.financials.totalGST;
     this.financials.grandTotal = Math.round(rawTotal);
     this.financials.roundOff = this.financials.grandTotal - rawTotal;
 
-    // Update payment amounts
     this.payment.totalAmount = this.financials.grandTotal;
     this.payment.dueAmount = this.payment.totalAmount - this.payment.paidAmount;
 
-    // Update payment status
     if (this.payment.paidAmount === 0) {
       this.payment.paymentStatus = 'unpaid';
     } else if (this.payment.paidAmount >= this.payment.totalAmount) {
@@ -481,7 +298,6 @@ purchaseSchema.pre('save', function (next) {
   next();
 });
 
-// Soft delete middleware
 purchaseSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null });
@@ -489,7 +305,6 @@ purchaseSchema.pre(/^find/, function (next) {
   next();
 });
 
-// Instance Methods
 purchaseSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   return this.save();
@@ -530,7 +345,6 @@ purchaseSchema.methods.cancel = function () {
   return this.save();
 };
 
-// Static Methods
 purchaseSchema.statics.generatePurchaseNumber = async function (shopId, prefix = 'PUR') {
   const currentYear = new Date().getFullYear().toString().slice(-2);
 
@@ -543,42 +357,46 @@ purchaseSchema.statics.generatePurchaseNumber = async function (shopId, prefix =
   return `${prefix}-${currentYear}-${String(counter.seq).padStart(5, '0')}`;
 };
 
-purchaseSchema.statics.findByShop = function (shopId, options = {}) {
-  return this.find({ shopId, deletedAt: null, ...options });
+purchaseSchema.statics.findByShop = function (shopId, organizationId, options = {}) {
+  return this.find({ shopId, organizationId, deletedAt: null, ...options }); // ← fix
 };
 
-purchaseSchema.statics.findBySupplier = function (supplierId, options = {}) {
-  return this.find({ supplierId, deletedAt: null, ...options });
+purchaseSchema.statics.findBySupplier = function (supplierId, organizationId, options = {}) {
+  return this.find({ supplierId, organizationId, deletedAt: null, ...options }); // ← fix
 };
 
-purchaseSchema.statics.findByStatus = function (shopId, status) {
-  return this.find({ shopId, status, deletedAt: null });
+purchaseSchema.statics.findByStatus = function (shopId, organizationId, status) {
+  return this.find({ shopId, organizationId, status, deletedAt: null }); // ← fix
 };
 
-purchaseSchema.statics.findPending = function (shopId) {
+purchaseSchema.statics.findPending = function (shopId, organizationId) {
   return this.find({
     shopId,
+    organizationId, 
     status: { $in: ['draft', 'pending', 'ordered'] },
     deletedAt: null,
   });
 };
 
-purchaseSchema.statics.findByDateRange = function (shopId, startDate, endDate) {
+purchaseSchema.statics.findByDateRange = function (shopId, organizationId, startDate, endDate) {
   return this.find({
     shopId,
+    organizationId, 
     purchaseDate: { $gte: startDate, $lte: endDate },
     deletedAt: null,
   });
 };
 
-purchaseSchema.statics.findUnpaid = function (shopId) {
+purchaseSchema.statics.findUnpaid = function (shopId, organizationId) {
   return this.find({
     shopId,
+    organizationId, 
     'payment.paymentStatus': { $in: ['unpaid', 'partial'] },
     status: { $ne: 'cancelled' },
     deletedAt: null,
   });
 };
+
 purchaseSchema.statics.applyPayment = async function (purchaseId, amount) {
   const purchase = await this.findById(purchaseId);
   if (!purchase) return;
