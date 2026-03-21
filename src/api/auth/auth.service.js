@@ -6,6 +6,9 @@ import UserShopAccess from '../../models/UserShopAccess.js';
 import tokenManager from '../../utils/tokenManager.js';
 import eventLogger from '../../utils/eventLogger.js';
 import cache from '../../utils/cache.js';
+import RefreshToken from '../../models/RefreshToken.js';
+import ActivityLog  from '../../models/ActivityLog.js';
+
 import {
   sendVerificationEmail,
   sendPasswordResetEmail,
@@ -24,6 +27,7 @@ import {
   UserNotFoundError,
   InvalidCredentialsError,
   ValidationError,
+  TokenExpiredError,
   InternalServerError,
 } from '../../utils/AppError.js';
 import logger from '../../utils/logger.js';
@@ -467,11 +471,13 @@ export const verifyEmail = async (token, ipAddress) => {
     return { alreadyVerified: true };
   }
 
+
   user.isEmailVerified          = true;
   user.emailVerificationToken   = undefined;
   user.emailVerificationExpires = undefined;
-  await user.save();
-
+  
+  const saved = await user.save();
+  logger.debug(`Email verified and saved for user: ${saved._id}, isEmailVerified: ${saved.isEmailVerified}`);
   cache.del(cache.userKey(user._id));
 
   await eventLogger.logAuth(
@@ -524,7 +530,13 @@ export const getActiveSessions = async (userId, currentTokenId) => {
 };
 
 export const revokeSession = async (userId, organizationId, tokenId, ipAddress) => {
-  await tokenManager.revokeRefreshToken(tokenId);
+  const storedToken = await RefreshToken.findOne({ tokenId, userId });
+
+  if (!storedToken) {
+    throw new InvalidTokenError('Session not found');
+  }
+
+  await storedToken.revoke();
 
   await eventLogger.logAuth(userId, organizationId, 'session_revoked', 'success', ipAddress, {
     tokenId,
@@ -600,16 +612,23 @@ export const disable2FA = async (userId, password, token, ipAddress) => {
 
   const user = await User.findById(userId).select('+password +twoFactorSecret');
   if (!user) throw new UserNotFoundError();
-
+  // 👇 ADD THIS
+  console.log('disable2FA debug:', {
+    userId,
+    token,
+    tokenType: typeof token,
+    secret: user.twoFactorSecret ? 'exists' : 'MISSING', // ⚠️ Key check
+    twoFactorEnabled: user.twoFactorEnabled,
+  });
   const isMatch = await user.comparePassword(password);
   if (!isMatch) throw new InvalidCredentialsError('Incorrect password');
 
-  const verified = speakeasy.totp.verify({
+const verified = speakeasy.totp.verify({
     secret:   user.twoFactorSecret,
     encoding: 'base32',
-    token,
-    window:   2,
-  });
+    token:    token.toString().replace(/\s/g, '').trim(),
+    window:   4,
+});
 
   if (!verified) throw new ValidationError('Invalid 2FA code');
 
@@ -632,12 +651,12 @@ export const verify2FALogin = async (tempToken, token, ipAddress, userAgent) => 
   const user = await User.findById(decoded.userId).select('+twoFactorSecret');
   if (!user || !user.isActive) throw new UnauthorizedError('Invalid session');
 
-  const verified = speakeasy.totp.verify({
+const verified = speakeasy.totp.verify({
     secret:   user.twoFactorSecret,
     encoding: 'base32',
-    token,
-    window:   2,
-  });
+    token:    token.toString().replace(/\s/g, '').trim(),
+    window:   4,
+});
 
   if (!verified) throw new ValidationError('Invalid 2FA code');
 
@@ -719,3 +738,16 @@ export const verifyBackupCode = async (tempToken, backupCode, ipAddress, userAge
     effectivePermissions,
   };
 };
+export const getUserActivityLogs = async (userId, options = {}) => {
+  
+  const { action, startDate, endDate, limit = 50 } = options
+
+  const logs = await ActivityLog.findByUser(userId, {
+    limit,
+    action: action !== 'all' ? action : undefined,
+    startDate,
+    endDate,
+  })
+
+  return logs
+}

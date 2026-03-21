@@ -128,5 +128,10 @@ router.post(
   rateLimiter({ max: 5, windowMs: 15 * 60 * 1000 }),
   authController.verifyBackupCode
 );
-
+router.get(
+  '/activity-logs',
+  authenticate,
+  rateLimiter({ max: 30, windowMs: 15 * 60 * 1000 }),
+  authController.getActivityLogs
+)
 export default router;

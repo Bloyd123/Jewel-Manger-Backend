@@ -1,5 +1,4 @@
 // FILE: models/User.js
-// User Model - Activity Logs Removed (Now separate model)
 
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';

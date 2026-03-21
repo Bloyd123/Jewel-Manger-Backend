@@ -305,7 +305,29 @@ export const verifyBackupCode = catchAsync(async (req, res) => {
   );
   return sendSuccess(res, 200, 'Login successful', result);
 });
+export const getActivityLogs = catchAsync(async (req, res) => {
+  const { action, dateRange } = req.query
 
+  // Date range calculate karo
+  let startDate
+  const now = new Date()
+  
+  if (dateRange === 'today') {
+    startDate = new Date(now.setHours(0, 0, 0, 0))
+  } else if (dateRange === '7days') {
+    startDate = new Date(now.setDate(now.getDate() - 7))
+  } else if (dateRange === '30days') {
+    startDate = new Date(now.setDate(now.getDate() - 30))
+  }
+
+  const logs = await authService.getUserActivityLogs(req.user._id, {
+    action,
+    startDate,
+    limit: 50,
+  })
+
+  return sendSuccess(res, 200, 'Activity logs retrieved successfully', logs)
+})
 export default {
   register,
   login,
@@ -326,4 +348,5 @@ export default {
   disable2FA,
   verify2FALogin,
   verifyBackupCode,
+  getActivityLogs
 };
