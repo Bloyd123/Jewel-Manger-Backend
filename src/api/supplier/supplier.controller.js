@@ -64,7 +64,7 @@ export const getSupplierById = catchAsync(async (req, res) => {
  * @access  Private (Shop Admin, Manager)
  */
 export const updateSupplier = catchAsync(async (req, res) => {
-  const shopId = req.body.shopId || req.user.primaryShop;
+  const shopId = req.body?.shopId || req.query?.shopId || req.user.primaryShop
 
   const supplier = await supplierService.updateSupplier(
     req.params.id,
@@ -101,7 +101,7 @@ export const deleteSupplier = catchAsync(async (req, res) => {
  * @access  Private (Shop Admin, Manager)
  */
 export const restoreSupplier = catchAsync(async (req, res) => {
-  const shopId = req.body.shopId || req.user.primaryShop;
+  const shopId = req.body?.shopId || req.query?.shopId || req.user.primaryShop
 
   const supplier = await supplierService.restoreSupplier(
     req.params.id,
@@ -119,7 +119,7 @@ export const restoreSupplier = catchAsync(async (req, res) => {
  * @access  Private (Shop Admin, Manager)
  */
 export const updateRating = catchAsync(async (req, res) => {
-  const shopId = req.body.shopId || req.user.primaryShop;
+  const shopId = req.body?.shopId || req.query?.shopId || req.user.primaryShop
 
   const supplier = await supplierService.updateRating(
     req.params.id,
@@ -142,7 +142,7 @@ export const updateRating = catchAsync(async (req, res) => {
  * @access  Private (Shop Admin)
  */
 export const blacklistSupplier = catchAsync(async (req, res) => {
-  const shopId = req.body.shopId || req.user.primaryShop;
+  const shopId = req.body?.shopId || req.query?.shopId || req.user.primaryShop
 
   const supplier = await supplierService.blacklistSupplier(
     req.params.id,
@@ -161,7 +161,7 @@ export const blacklistSupplier = catchAsync(async (req, res) => {
  * @access  Private (Shop Admin)
  */
 export const removeBlacklist = catchAsync(async (req, res) => {
-  const shopId = req.body.shopId || req.user.primaryShop;
+  const shopId = req.body?.shopId || req.query?.shopId || req.user.primaryShop
 
   const supplier = await supplierService.removeBlacklist(
     req.params.id,
@@ -179,7 +179,7 @@ export const removeBlacklist = catchAsync(async (req, res) => {
  * @access  Private (Shop Admin, Manager)
  */
 export const markAsPreferred = catchAsync(async (req, res) => {
-  const shopId = req.body.shopId || req.user.primaryShop;
+  const shopId = req.body?.shopId || req.query?.shopId || req.user.primaryShop
 
   const supplier = await supplierService.markAsPreferred(
     req.params.id,
@@ -197,7 +197,7 @@ export const markAsPreferred = catchAsync(async (req, res) => {
  * @access  Private (Shop Admin, Manager)
  */
 export const removePreferred = catchAsync(async (req, res) => {
-  const shopId = req.body.shopId || req.user.primaryShop;
+  const shopId = req.body?.shopId || req.query?.shopId || req.user.primaryShop
 
   const supplier = await supplierService.removePreferred(
     req.params.id,
@@ -215,7 +215,7 @@ export const removePreferred = catchAsync(async (req, res) => {
  * @access  Private (Shop Admin, Manager, Accountant)
  */
 export const updateBalance = catchAsync(async (req, res) => {
-  const shopId = req.body.shopId || req.user.primaryShop;
+  const shopId = req.body?.shopId || req.query?.shopId || req.user.primaryShop
 
   const supplier = await supplierService.updateBalance(
     req.params.id,
