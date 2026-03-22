@@ -38,6 +38,14 @@ export const createPurchase = [
   body('items')
     .isArray({ min: 1 }).withMessage('At least one item is required'),
 
+  body('items.*.category')
+    .notEmpty().withMessage('Category is required')
+    .isMongoId().withMessage('Invalid category ID'),
+
+  body('items.*.subCategory')
+    .optional()
+    .isMongoId().withMessage('Invalid subcategory ID'),
+
   body('items.*.productName')
     .notEmpty().withMessage('Product name is required'),
 

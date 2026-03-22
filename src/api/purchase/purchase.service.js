@@ -52,7 +52,6 @@ export const createPurchase = async (shopId, organizationId, data, userId) => {
     throw new NotFoundError('Supplier not found');
   }
 
-  const purchaseNumber  = await Purchase.generatePurchaseNumber(shopId);
   const supplierDetails = {
     supplierName:  supplier.businessName,
     supplierCode:  supplier.supplierCode,
@@ -65,14 +64,32 @@ export const createPurchase = async (shopId, organizationId, data, userId) => {
     gstNumber: supplier.gstNumber || '',
   };
 
-  const purchase = await Purchase.create({
-    ...data,
-    shopId,
-    organizationId,
-    purchaseNumber,
-    supplierDetails,
-    createdBy: userId,
-  });
+  let purchase;
+  let attempts = 0;
+
+  while (attempts < 3) {
+    try {
+      const purchaseNumber = await Purchase.generatePurchaseNumber(shopId);
+
+      purchase = await Purchase.create({
+        ...data,
+        shopId,
+        organizationId,
+        purchaseNumber,
+        supplierDetails,
+        createdBy: userId,
+      });
+
+      break; // ✅ success
+
+    } catch (err) {
+      if (err.code === 11000 && attempts < 2) {
+        attempts++;
+        continue; // duplicate number tha — retry
+      }
+      throw err;
+    }
+  }
 
   await eventLogger.logPurchase(
     userId,
@@ -80,21 +97,20 @@ export const createPurchase = async (shopId, organizationId, data, userId) => {
     shopId,
     'create',
     purchase._id,
-    `Created purchase ${purchaseNumber}`,
-    { purchaseNumber, supplierId: supplier._id, totalAmount: purchase.financials.grandTotal }
+    `Created purchase ${purchase.purchaseNumber}`,
+    { purchaseNumber: purchase.purchaseNumber, supplierId: supplier._id, totalAmount: purchase.financials.grandTotal }
   );
 
   businessLogger.logPurchase({
     userId,
     shopId,
-    purchaseNumber,
-    amount:     purchase.financials.grandTotal,
-    supplierId: supplier._id,
+    purchaseNumber: purchase.purchaseNumber,
+    amount:         purchase.financials.grandTotal,
+    supplierId:     supplier._id,
   });
 
   return purchase.populate('supplierId', 'businessName supplierCode contactPerson');
 };
-
 // ─────────────────────────────────────────────
 // GET ALL
 // ─────────────────────────────────────────────

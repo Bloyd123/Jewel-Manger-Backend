@@ -2,7 +2,7 @@
 
 import { catchAsync } from '../middlewares/errorHandler.js';
 import * as purchaseService from './purchase.service.js';
-import { sendSuccess, sendCreated, sendPaginated } from '../../utils/sendResponse.js';
+import { sendSuccess, sendCreated, sendPaginated,sendUnauthorized } from '../../utils/sendResponse.js';
 
 /**
  POST /api/v1/shops/:shopId/purchases
@@ -10,7 +10,11 @@ import { sendSuccess, sendCreated, sendPaginated } from '../../utils/sendRespons
 export const createPurchase = catchAsync(async (req, res) => {
   const { shopId } = req.params;
   const userId = req.user._id;
-  const organizationId = req.user.organizationId; 
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
 
   const purchase = await purchaseService.createPurchase(
     shopId,
@@ -27,7 +31,11 @@ export const createPurchase = catchAsync(async (req, res) => {
  */
 export const getAllPurchases = catchAsync(async (req, res) => {
   const { shopId } = req.params;
-  const organizationId = req.user.organizationId; // ← add
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}// ← add
   const filters = req.query;
 
   const result = await purchaseService.getAllPurchases(
@@ -51,7 +59,11 @@ export const getAllPurchases = catchAsync(async (req, res) => {
  */
 export const getPurchaseById = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; 
-  const organizationId = req.user.organizationId; 
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
 
   const purchase = await purchaseService.getPurchaseById(
     purchaseId,
@@ -68,7 +80,11 @@ PUT /api/v1/shops/:shopId/purchases/:purchaseId
 export const updatePurchase = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; 
   const userId = req.user._id;
-  const organizationId = req.user.organizationId; 
+ const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
 
   const purchase = await purchaseService.updatePurchase(
     purchaseId,
@@ -86,7 +102,11 @@ export const updatePurchase = catchAsync(async (req, res) => {
  */
 export const deletePurchase = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; // ← shopId add
-  const organizationId = req.user.organizationId; // ← add
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
 
   await purchaseService.deletePurchase(
     purchaseId,
@@ -103,7 +123,11 @@ export const updatePurchaseStatus = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; 
   const { status } = req.body;
   const userId = req.user._id;
-  const organizationId = req.user.organizationId; 
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
 
   const purchase = await purchaseService.updatePurchaseStatus(
     purchaseId,
@@ -122,7 +146,11 @@ export const updatePurchaseStatus = catchAsync(async (req, res) => {
 export const receivePurchase = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; 
   const userId = req.user._id;
-  const organizationId = req.user.organizationId; 
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const { receivedBy, receivedDate, notes } = req.body;
 
   const purchase = await purchaseService.receivePurchase(
@@ -143,7 +171,11 @@ export const cancelPurchase = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; 
   const { reason } = req.body;
   const userId = req.user._id;
-  const organizationId = req.user.organizationId; 
+ const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
 
   const purchase = await purchaseService.cancelPurchase(
     purchaseId,
@@ -162,7 +194,11 @@ export const returnPurchase = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; 
   const { reason } = req.body;
   const userId = req.user._id;
-  const organizationId = req.user.organizationId; 
+ const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
 
   const purchase = await purchaseService.returnPurchase(
     purchaseId,
@@ -180,7 +216,11 @@ export const returnPurchase = catchAsync(async (req, res) => {
 export const approvePurchase = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; 
   const userId = req.user._id;
-  const organizationId = req.user.organizationId; 
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const { notes } = req.body;
 
   const purchase = await purchaseService.approvePurchase(
@@ -200,7 +240,11 @@ POST /api/v1/shops/:shopId/purchases/:purchaseId/reject
 export const rejectPurchase = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; 
   const userId = req.user._id;
-  const organizationId = req.user.organizationId; 
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const { reason } = req.body;
 
   const purchase = await purchaseService.rejectPurchase(
@@ -221,7 +265,11 @@ export const rejectPurchase = catchAsync(async (req, res) => {
 export const addPayment = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; // ← shopId add
   const userId = req.user._id;
-  const organizationId = req.user.organizationId; // ← add
+ const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
 
   const result = await purchaseService.addPayment(
     purchaseId,
@@ -239,7 +287,11 @@ GET /api/v1/shops/:shopId/purchases/:purchaseId/payments
  */
 export const getPayments = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; 
-  const organizationId = req.user.organizationId; 
+ const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
 
   const payments = await purchaseService.getPayments(
     purchaseId,
@@ -254,7 +306,11 @@ export const getPayments = catchAsync(async (req, res) => {
  */
 export const getPurchasesBySupplier = catchAsync(async (req, res) => {
   const { shopId, supplierId } = req.params;
-  const organizationId = req.user.organizationId; 
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const filters = req.query;
 
   const result = await purchaseService.getPurchasesBySupplier(
@@ -279,7 +335,11 @@ export const getPurchasesBySupplier = catchAsync(async (req, res) => {
  */
 export const getPurchaseAnalytics = catchAsync(async (req, res) => {
   const { shopId } = req.params;
-  const organizationId = req.user.organizationId; 
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const filters = req.query;
 
   const analytics = await purchaseService.getPurchaseAnalytics(
@@ -296,7 +356,11 @@ export const getPurchaseAnalytics = catchAsync(async (req, res) => {
  */
 export const getPendingPurchases = catchAsync(async (req, res) => {
   const { shopId } = req.params;
-  const organizationId = req.user.organizationId; 
+ const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const { page, limit } = req.query; 
 
   const result = await purchaseService.getPendingPurchases(
@@ -321,7 +385,11 @@ export const getPendingPurchases = catchAsync(async (req, res) => {
  */
 export const getUnpaidPurchases = catchAsync(async (req, res) => {
   const { shopId } = req.params;
-  const organizationId = req.user.organizationId; // ← add
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const { page, limit } = req.query; // ← pagination add
 
   const result = await purchaseService.getUnpaidPurchases(
@@ -346,7 +414,11 @@ POST /api/v1/shops/:shopId/purchases/bulk-delete
  */
 export const bulkDeletePurchases = catchAsync(async (req, res) => {
   const { shopId } = req.params;
-  const organizationId = req.user.organizationId; // ← add
+ const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const { purchaseIds } = req.body;
 
   const result = await purchaseService.bulkDeletePurchases(
@@ -363,7 +435,11 @@ POST /api/v1/shops/:shopId/purchases/bulk-approve
  */
 export const bulkApprovePurchases = catchAsync(async (req, res) => {
   const { shopId } = req.params;
-  const organizationId = req.user.organizationId; // ← add
+ const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const userId = req.user._id;
   const { purchaseIds } = req.body;
 
@@ -382,7 +458,11 @@ export const bulkApprovePurchases = catchAsync(async (req, res) => {
  */
 export const uploadDocument = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; // ← shopId add
-  const organizationId = req.user.organizationId; // ← add
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const { documentType, documentUrl, documentNumber } = req.body;
 
   const purchase = await purchaseService.uploadDocument(
@@ -400,7 +480,11 @@ GET /api/v1/shops/:shopId/purchases/:purchaseId/documents
  */
 export const getDocuments = catchAsync(async (req, res) => {
   const { purchaseId, shopId } = req.params; // ← shopId add
-  const organizationId = req.user.organizationId; // ← add
+  const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
 
   const documents = await purchaseService.getDocuments(
     purchaseId,
@@ -416,7 +500,11 @@ export const getDocuments = catchAsync(async (req, res) => {
 
 export const searchPurchases = catchAsync(async (req, res) => {
   const { shopId } = req.params;
-  const organizationId = req.user.organizationId; 
+const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const { q, limit = 20 } = req.query;
 
   const purchases = await purchaseService.searchPurchases(
@@ -431,7 +519,11 @@ export const searchPurchases = catchAsync(async (req, res) => {
 //  GET /api/v1/shops/:shopId/purchases/by-date-range
 export const getPurchasesByDateRange = catchAsync(async (req, res) => {
   const { shopId } = req.params;
-  const organizationId = req.user.organizationId; 
+const organizationId = req.user?.organizationId;
+
+if (!organizationId) {
+  return sendUnauthorized(res, 'User organization not found');
+}
   const { startDate, endDate, page = 1, limit = 20 } = req.query;
 
   const result = await purchaseService.getPurchasesByDateRange(

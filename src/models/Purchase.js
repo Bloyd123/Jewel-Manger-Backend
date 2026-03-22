@@ -67,7 +67,16 @@ const purchaseSchema = new mongoose.Schema(
         },
         productName: { type: String, required: true },
         productCode: String,
-        category: String,
+        category: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Category',
+          required: true
+        },
+        subCategory: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Category',
+          default: null
+        },
         metalType: {
           type: String,
           enum: ['gold', 'silver', 'platinum', 'diamond', 'mixed'],

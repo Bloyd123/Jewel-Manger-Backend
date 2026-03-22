@@ -58,7 +58,7 @@ router.post(
   createSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess, //   Add shop access check
-  checkPermission('canCreateSuppliers'), //   Correct permission
+  checkPermission('canCreateSupplier'), //   Correct permission
 
   supplierController.createSupplier
 );
@@ -78,7 +78,8 @@ router.patch(
   '/:id',
   updateSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
-  checkPermission('canEditSuppliers'), //   Correct permission
+  checkShopAccess,
+  checkPermission('canEditSupplier'), //   Correct permission
 
   supplierController.updateSupplier
 );
@@ -89,7 +90,7 @@ router.delete(
   deleteSupplierValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess, //   Add shop access check
-  checkPermission('canDeleteSuppliers'), //   Correct permission
+  checkPermission('canDeleteSupplier'), //   Correct permission
   supplierController.deleteSupplier
 );
 

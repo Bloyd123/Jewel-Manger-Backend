@@ -240,7 +240,8 @@ export const createProductFromPurchase = async ({
         shopId,
         name:        item.productName,
         productCode,
-        category:    item.category || 'other',
+        categoryId:    item.category,       // ✅ category → categoryId
+      subCategoryId: item.subCategory,
         metal: {
           type:   item.metalType,
           purity: item.purity,

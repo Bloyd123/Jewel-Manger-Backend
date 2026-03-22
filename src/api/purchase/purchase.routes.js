@@ -22,7 +22,8 @@ router.get(
   '/analytics',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewAnalytics'),
+  // checkPermission('canViewAnalytics'),
+  checkPermission('canViewPurchaseAnalytics'),
   apiRateLimiter,
   purchaseValidation.analyticsValidation, // optional dates
   purchaseController.getPurchaseAnalytics
@@ -44,7 +45,8 @@ router.get(
   '/unpaid',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewFinancials'),
+  // checkPermission('canViewFinancials'),
+  checkPermission('canViewUnpaidPurchases') ,
   apiRateLimiter,
   purchaseController.getUnpaidPurchases
 );
@@ -119,7 +121,7 @@ router.post(
   '/',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canCreatePurchases'),
+  checkPermission('canCreatePurchase'),
   createUpdateRateLimiter,
   purchaseValidation.createPurchase,
   purchaseController.createPurchase
@@ -152,7 +154,8 @@ router.put(
   '/:purchaseId',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditPurchases'),
+  checkPermission('canUpdatePurchase') ,
+  // checkPermission('canEditPurchases')  , 
   createUpdateRateLimiter,
   purchaseValidation.updatePurchase,
   purchaseController.updatePurchase
@@ -175,7 +178,7 @@ router.patch(
   '/:purchaseId/status',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditPurchases'),
+  checkPermission('canUpdatePurchase'),
   createUpdateRateLimiter,
   purchaseValidation.updateStatus,
   purchaseController.updatePurchaseStatus
@@ -187,7 +190,7 @@ router.patch(
   '/:purchaseId/receive',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditPurchases'),
+  checkPermission('canUpdatePurchase'),
   createUpdateRateLimiter,
   purchaseValidation.receivePurchase,
   purchaseController.receivePurchase
@@ -271,7 +274,7 @@ router.post(
   '/:purchaseId/documents',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditPurchases'),
+  checkPermission('canUploadPurchaseDocuments'),
   createUpdateRateLimiter,
   purchaseValidation.uploadDocument,
   purchaseController.uploadDocument
