@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-
+import Counter from './Counter.js'
 const purchaseSchema = new mongoose.Schema(
   {
     // Multi-tenant
@@ -348,7 +348,7 @@ purchaseSchema.methods.cancel = function () {
 purchaseSchema.statics.generatePurchaseNumber = async function (shopId, prefix = 'PUR') {
   const currentYear = new Date().getFullYear().toString().slice(-2);
 
-  const counter = await mongoose.model('Counter').findOneAndUpdate(
+  const counter = await Counter.findOneAndUpdate(
     { name: `purchase_${shopId}` },
     { $inc: { seq: 1 } },
     { new: true, upsert: true }

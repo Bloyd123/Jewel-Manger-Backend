@@ -12,6 +12,7 @@ import Supplier from '../../models/Supplier.js';
 import User from '../../models/User.js';
 import JewelryShop from '../../models/Shop.js';
 import LedgerEntry from '../ledger/ledger.model.js';
+import Product from '../../models/Product.js'; // ✅ BUG 3 & 4 FIX: Product import add kiya
 import {
   createDebitEntry,
   createCreditEntry,
@@ -341,6 +342,7 @@ export const cancelPurchase = async (purchaseId, shopId, organizationId, reason,
     throw new BadRequestError('Cannot cancel completed purchase');
   }
 
+  // ✅ BUG 3 FIX: Product ab import hai file ke top pe, yeh ab kaam karega
   if (['received', 'partial_received'].includes(purchase.status)) {
     for (const item of purchase.items) {
       if (item.productId) {
@@ -402,6 +404,7 @@ export const returnPurchase = async (purchaseId, shopId, organizationId, reason,
     throw new BadRequestError('Only completed purchases can be returned');
   }
 
+  // ✅ BUG 4 FIX: Product ab import hai file ke top pe, yeh ab kaam karega
   for (const item of purchase.items) {
     if (item.productId) {
       const product = await Product.findById(item.productId);
@@ -502,7 +505,7 @@ export const rejectPurchase = async (purchaseId, shopId, organizationId, userId,
 };
 
 // ─────────────────────────────────────────────
-// ADD PAYMENT  ← email calls yahan hain
+// ADD PAYMENT
 // ─────────────────────────────────────────────
 export const addPayment = async (purchaseId, paymentData, userId, shopId, organizationId) => {
   const purchase = await findPurchase(purchaseId, shopId, organizationId);
@@ -532,9 +535,26 @@ export const addPayment = async (purchaseId, paymentData, userId, shopId, organi
     },
   });
 
+  // ✅ BUG 1 FIX: Purchase ka paidAmount aur dueAmount update karo
+  await Purchase.applyPayment(purchaseId, paymentData.amount);
+
+  // ✅ BUG 2 FIX: Ledger mein credit entry likho — "itna paisa de diya supplier ko"
+  await createCreditEntry({
+    organizationId:  purchase.organizationId,
+    shopId:          purchase.shopId,
+    partyType:       'supplier',
+    partyId:         purchase.supplierId,
+    partyModel:      'Supplier',
+    partyName:       purchase.supplierDetails.supplierName,
+    amount:          paymentData.amount,
+    referenceType:   'payment',
+    referenceId:     result.payment._id,
+    referenceNumber: result.payment.paymentNumber,
+    description:     `Payment made for purchase - ${purchase.purchaseNumber}`,
+    createdBy:       userId,
+  });
+
   // ── EMAILS ────────────────────────────────
-  // Supplier aur shop admins ko concurrently fetch karo
-  // taaki 2 separate queries na rahe serial mein
   const [supplier, shop, shopAdmins] = await Promise.all([
     Supplier.findById(purchase.supplierId).lean(),
     JewelryShop.findById(shopId).lean(),
@@ -547,15 +567,12 @@ export const addPayment = async (purchaseId, paymentData, userId, shopId, organi
       .lean(),
   ]);
 
-  // 1. Supplier ko payment voucher email
   if (supplier?.contactPerson?.email || supplier?.businessEmail) {
     sendPurchasePaymentVoucherEmail(result.payment, purchase, supplier, shop).catch(err => {
       logger.error(`Purchase payment voucher email failed for ${purchase.purchaseNumber}:`, err);
     });
   }
 
-  // 2. Org admin / shop admin ko internal notification
-  // Har admin ko alag email — Promise.all se parallel
   if (shopAdmins.length > 0) {
     Promise.all(
       shopAdmins.map(admin =>
@@ -753,6 +770,21 @@ export const bulkDeletePurchases = async (purchaseIds, shopId, organizationId) =
     { $set: { deletedAt: new Date() } }
   );
 
+  // ✅ BUG 5 FIX: Har deleted purchase ke liye event log karo
+  await Promise.all(
+    purchases.map(purchase =>
+      eventLogger.logPurchase(
+        purchase.createdBy,
+        purchase.organizationId,
+        purchase.shopId,
+        'delete',
+        purchase._id,
+        `Bulk deleted purchase ${purchase.purchaseNumber}`,
+        { purchaseNumber: purchase.purchaseNumber }
+      )
+    )
+  );
+
   return { deletedCount: purchases.length };
 };
 
@@ -786,6 +818,21 @@ export const bulkApprovePurchases = async (purchaseIds, userId, shopId, organiza
         },
       },
     ]
+  );
+
+  // ✅ BUG 6 FIX: Har approved purchase ke liye event log karo
+  await Promise.all(
+    purchases.map(purchase =>
+      eventLogger.logPurchase(
+        userId,
+        purchase.organizationId,
+        purchase.shopId,
+        'approve',
+        purchase._id,
+        `Bulk approved purchase ${purchase.purchaseNumber}`,
+        { purchaseNumber: purchase.purchaseNumber }
+      )
+    )
   );
 
   return { approvedCount: purchases.length };
