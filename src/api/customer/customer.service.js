@@ -12,20 +12,21 @@ import {
 } from '../../utils/AppError.js';
 
 export const generateCustomerCode = async (shopId, prefix = 'CUST') => {
-  const lastCustomer = await Customer.findOne({ shopId })
-    .sort({ customerCode: -1 })
-    .select('customerCode')
-    .lean();
-
   let number = 1;
-  if (lastCustomer && lastCustomer.customerCode) {
-    const lastNumber = parseInt(lastCustomer.customerCode.replace(prefix, ''));
-    if (!isNaN(lastNumber)) {
-      number = lastNumber + 1;
-    }
-  }
+  let customerCode;
+  
+  do {
+    customerCode = `${prefix}${String(number).padStart(5, '0')}`;
+    const existing = await Customer.findOne({ 
+      shopId, 
+      customerCode 
+    }).setOptions({ includeDeleted: true }) // deleted bhi check karo
+    
+    if (!existing) break;
+    number++;
+  } while (true);
 
-  return `${prefix}${String(number).padStart(5, '0')}`;
+  return customerCode;
 };
 
 
