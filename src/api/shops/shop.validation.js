@@ -1,10 +1,7 @@
 // FILE: src/api/shops/shop.validation.js
-// Shop Validation - Request validation for shop operations
 
 import { body, param, query } from 'express-validator';
 import mongoose from 'mongoose';
-
-// HELPER VALIDATORS
 
 const isValidObjectId = value => {
   return mongoose.Types.ObjectId.isValid(value);
@@ -23,10 +20,7 @@ const isValidCoordinates = value => {
   );
 };
 
-// CREATE SHOP VALIDATION
-
 export const createShopValidation = [
-  // Basic Information
   body('name')
     .trim()
     .notEmpty()
@@ -36,7 +30,6 @@ export const createShopValidation = [
 
   body('displayName').optional().trim().isLength({ max: 100 }),
 
-  // Contact Information
   body('email')
     .optional()
     .trim()
@@ -63,7 +56,6 @@ export const createShopValidation = [
     .matches(/^[0-9]{10}$/)
     .withMessage('Please provide a valid 10-digit WhatsApp number'),
 
-  // Address Validation
   body('address.street').trim().notEmpty().withMessage('Street address is required'),
 
   body('address.city').trim().notEmpty().withMessage('City is required'),
@@ -84,7 +76,6 @@ export const createShopValidation = [
     .custom(isValidCoordinates)
     .withMessage('Invalid coordinates. Format: [longitude, latitude]'),
 
-  // Business Registration
   body('gstNumber')
     .optional()
     .trim()
@@ -99,7 +90,6 @@ export const createShopValidation = [
     .matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/)
     .withMessage('Invalid PAN number'),
 
-  // Shop Type & Category
   body('shopType')
     .optional()
     .isIn(['retail', 'wholesale', 'manufacturing', 'showroom', 'workshop', 'warehouse', 'online'])
@@ -115,16 +105,13 @@ export const createShopValidation = [
     .isInt({ min: 1900, max: new Date().getFullYear() })
     .withMessage('Invalid established year'),
 
-  // Manager ID (optional - will default to logged-in user)
   body('managerId').optional().custom(isValidObjectId).withMessage('Invalid manager ID'),
 
-  // Copy Settings From
   body('copySettingsFromShopId')
     .optional()
     .custom(isValidObjectId)
     .withMessage('Invalid shop ID to copy settings from'),
 
-  // Bank Details Validation
   body('bankDetails').optional().isArray().withMessage('Bank details must be an array'),
 
   body('bankDetails.*.bankName').optional().trim().notEmpty().withMessage('Bank name is required'),
@@ -148,7 +135,6 @@ export const createShopValidation = [
     .notEmpty()
     .withMessage('Account holder name is required'),
 
-  // UPI Details Validation
   body('upiDetails').optional().isArray().withMessage('UPI details must be an array'),
 
   body('upiDetails.*.upiId')
@@ -158,12 +144,10 @@ export const createShopValidation = [
     .withMessage('Invalid UPI ID'),
 ];
 
-// UPDATE SHOP VALIDATION
 
 export const updateShopValidation = [
   param('id').custom(isValidObjectId).withMessage('Invalid shop ID'),
 
-  // All fields are optional for update
   body('name')
     .optional()
     .trim()
@@ -224,8 +208,6 @@ export const updateShopValidation = [
     .isIn(['jewelry', 'gold', 'silver', 'diamond', 'gemstone', 'pearls', 'platinum', 'mixed']),
 
   body('managerId').optional().custom(isValidObjectId).withMessage('Invalid manager ID'),
-
-  // Prevent updating verified shop's GST/PAN without super_admin
   body('gstNumber').custom((value, { req }) => {
     if (value && req.shop?.isVerified && req.user?.role !== 'super_admin') {
       throw new Error('Only super admin can update GST number of verified shop');
@@ -241,7 +223,6 @@ export const updateShopValidation = [
   }),
 ];
 
-// GET SHOPS VALIDATION (Query Params)
 
 export const getShopsValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
@@ -276,8 +257,6 @@ export const getShopsValidation = [
   query('organizationId').optional().custom(isValidObjectId).withMessage('Invalid organization ID'),
 ];
 
-// GET SINGLE SHOP VALIDATION
-
 export const getShopValidation = [
   param('id').custom(isValidObjectId).withMessage('Invalid shop ID'),
 
@@ -286,13 +265,10 @@ export const getShopValidation = [
   query('populate').optional().trim(),
 ];
 
-// DELETE SHOP VALIDATION
-
 export const deleteShopValidation = [
   param('id').custom(isValidObjectId).withMessage('Invalid shop ID'),
 ];
 
-// UPDATE SHOP SETTINGS VALIDATION
 
 export const updateShopSettingsValidation = [
   param('id').custom(isValidObjectId).withMessage('Invalid shop ID'),
@@ -328,10 +304,63 @@ export const updateShopSettingsValidation = [
     .isFloat({ min: 0, max: 100 })
     .withMessage('Invalid GST rate for silver'),
 ];
+export const getActivityLogsValidation = [
+  param('id')
+    .custom(isValidObjectId)
+    .withMessage('Invalid shop ID'),
 
-// UPDATE METAL RATES VALIDATION
+  query('page')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Page must be a positive integer'),
 
-// EXPORT ALL VALIDATIONS
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limit must be between 1 and 100'),
+
+  query('search')
+    .optional()
+    .trim(),
+
+  query('action')
+    .optional()
+    .isIn(['create', 'update', 'delete', 'login', 'logout', 'view', 'export', 'update_settings'])
+    .withMessage('Invalid action'),
+
+  query('module')
+    .optional()
+    .trim(),
+
+  query('status')
+    .optional()
+    .isIn(['success', 'failed', 'pending', 'cancelled'])
+    .withMessage('Invalid status'),
+
+  query('level')
+    .optional()
+    .isIn(['info', 'warn', 'error', 'success', 'debug'])
+    .withMessage('Invalid level'),
+
+  query('userId')
+    .optional()
+    .custom(isValidObjectId)
+    .withMessage('Invalid user ID'),
+
+  query('startDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Invalid start date format'),
+
+  query('endDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Invalid end date format'),
+
+  query('sort')
+    .optional()
+    .trim(),
+]
 
 export default {
   createShopValidation,
@@ -340,4 +369,5 @@ export default {
   getShopValidation,
   deleteShopValidation,
   updateShopSettingsValidation,
+  getActivityLogsValidation,
 };

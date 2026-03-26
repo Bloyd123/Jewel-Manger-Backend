@@ -1,138 +1,20 @@
 // FILE: src/api/payment/payment.service.js
+// Payment Service - EDA Implemented
 
 import mongoose from 'mongoose';
 import Payment from '../../models/Payment.js';
-import Sale from '../../models/Sale.js';
-import Purchase from '../../models/Purchase.js';
-import LedgerEntry from '../ledger/ledger.model.js';
 import { NotFoundError, ValidationError, BadRequestError } from '../../utils/AppError.js';
 import eventLogger from '../../utils/eventLogger.js';
 import logger from '../../utils/logger.js';
-import Order from '../../models/Order.js';
 import { paginate } from '../../utils/pagination.js';
-import {
-  createCreditEntry,
-  createDebitEntry,
-  reverseEntry,
-} from '../ledger/ledger.service.js';
+import eventBus from '../../eventBus.js';
 
-
-const getAccountType = (paymentMode) => {
-  switch (paymentMode) {
-    case 'cash':
-      return 'cash';
-    case 'cheque':
-      return 'cheque_clearing'; 
-    case 'upi':
-    case 'card':
-    case 'bank_transfer':
-    case 'wallet':
-      return 'bank';
-    default:
-      return 'bank';
-  }
-};
-
-
-
-const updatePartyBalance = async (payment) => {
-  const { partyType, partyId } = payment.party;
-
-  const partyEntryFn = payment.transactionType === 'receipt'
-    ? createCreditEntry
-    : createDebitEntry;
-
-  await partyEntryFn({
-    organizationId: payment.organizationId,
-    shopId: payment.shopId,
-    partyType,
-    partyId,
-    partyModel: partyType === 'customer' ? 'Customer' : 'Supplier',
-    partyName: payment.party.partyName,
-    amount: payment.amount,
-    referenceType: 'payment',
-    referenceId: payment._id,
-    referenceNumber: payment.paymentNumber,
-    description: `Payment - ${payment.paymentNumber}`,
-    createdBy: payment.processedBy,
-  });
-
-  // Cash/Bank ki doosri side (double entry):
-  // receipt = cash/bank mein paisa aaya = DEBIT
-  // payment = cash/bank se paisa gaya = CREDIT
-  const accountType = getAccountType(payment.paymentMode);
-  const cashBankEntryFn = payment.transactionType === 'receipt'
-    ? createDebitEntry
-    : createCreditEntry;
-
-  await cashBankEntryFn({
-    organizationId: payment.organizationId,
-    shopId: payment.shopId,
-    partyType: accountType,
-    partyId: payment.shopId,  
-    partyModel: 'JewelryShop',
-    partyName: accountType.toUpperCase(),
-    amount: payment.amount,
-    referenceType: 'payment',
-    referenceId: payment._id,
-    referenceNumber: payment.paymentNumber,
-    description: `${accountType.toUpperCase()} - ${payment.paymentNumber}`,
-    createdBy: payment.processedBy,
-  });
-};
-
-const reversePartyBalance = async (payment) => {
-  const entries = await LedgerEntry.find({
-    referenceId: payment._id,
-    referenceType: 'payment',
-    status: 'active',
-  });
-
-  for (const entry of entries) {
-    await reverseEntry({
-      entryId: entry._id,
-      createdBy: payment.processedBy,
-      description: `Payment reversed - ${payment.paymentNumber}`,
-    });
-  }
-};
-
-
-const updateReferencePaymentStatus = async (payment) => {
-  try {
-    const { referenceType, referenceId } = payment.reference;
-
-if (referenceType === 'sale') {
-    await Sale.applyPayment(referenceId, payment.amount);
-} else if (referenceType === 'purchase') {
-    await Purchase.applyPayment(referenceId, payment.amount);
-} else if (referenceType === 'order') {       // ← naya
-    await Order.applyPayment(referenceId, payment.amount);
-}
-  } catch (error) {
-    logger.error('Update reference payment status error:', error);
-  }
-};
-
-const reverseReferencePaymentStatus = async (payment) => {
-  try {
-    const { referenceType, referenceId } = payment.reference;
-
-if (referenceType === 'sale') {
-    await Sale.reversePayment(referenceId, payment.amount);
-} else if (referenceType === 'purchase') {
-    await Purchase.reversePayment(referenceId, payment.amount);
-} else if (referenceType === 'order') {       // ← naya
-    await Order.reversePayment(referenceId, payment.amount);
-}
-  } catch (error) {
-    logger.error('Reverse reference payment status error:', error);
-  }
-};
-
-
+// ─────────────────────────────────────────────
+// CREATE PAYMENT
+// ─────────────────────────────────────────────
 export const createPayment = async (shopId, organizationId, userId, paymentData) => {
   try {
+    // Idempotency check
     if (paymentData.idempotencyKey) {
       const existing = await Payment.findOne({
         shopId,
@@ -156,9 +38,10 @@ export const createPayment = async (shopId, organizationId, userId, paymentData)
       paymentDate: new Date(),
       ...paymentData,
       processedBy: userId,
-      createdBy: userId,
+      createdBy:   userId,
     });
 
+    // Status set karo mode ke hisaab se
     if (
       payment.paymentMode === 'cash' ||
       (payment.paymentMode === 'upi' && payment.transactionId)
@@ -173,13 +56,15 @@ export const createPayment = async (shopId, organizationId, userId, paymentData)
 
     await payment.save();
 
-    if (payment.reference.referenceId && payment.reference.referenceType !== 'none') {
-      await updateReferencePaymentStatus(payment);
+    // ── EVENT EMIT ──────────────────────────
+    // Sirf completed payments ke liye emit karo
+    // cheque pending hai toh emit mat karo — clearCheque pe emit hoga
+    if (payment.status === 'completed') {
+      // reference.listener → sale/purchase paidAmount update
+      // ledger.listener    → party + cash/bank entry
+      eventBus.emit('PAYMENT_COMPLETED', { payment });
     }
-
-    if (payment.paymentMode !== 'cheque') {
-      await updatePartyBalance(payment);
-    }
+    // ─────────────────────────────────────────
 
     await eventLogger.logFinancial(
       userId,
@@ -188,17 +73,17 @@ export const createPayment = async (shopId, organizationId, userId, paymentData)
       'create',
       `Payment ${paymentNumber} created - ${payment.transactionType} ₹${payment.amount}`,
       {
-        paymentId: payment._id,
+        paymentId:   payment._id,
         paymentNumber,
-        amount: payment.amount,
-        partyId: payment.party.partyId,
+        amount:      payment.amount,
+        partyId:     payment.party.partyId,
         paymentMode: payment.paymentMode,
       }
     );
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Payment recorded successfully',
     };
   } catch (error) {
@@ -207,6 +92,9 @@ export const createPayment = async (shopId, organizationId, userId, paymentData)
   }
 };
 
+// ─────────────────────────────────────────────
+// GET ALL PAYMENTS
+// ─────────────────────────────────────────────
 export const getAllPayments = async (shopId, queryParams) => {
   try {
     const {
@@ -230,14 +118,14 @@ export const getAllPayments = async (shopId, queryParams) => {
 
     const query = { shopId, deletedAt: null };
 
-    if (paymentType) query.paymentType = paymentType;
-    if (transactionType) query.transactionType = transactionType;
-    if (paymentMode) query.paymentMode = paymentMode;
-    if (status) query.status = status;
-    if (partyId) query['party.partyId'] = partyId;
-    if (partyType) query['party.partyType'] = partyType;
-    if (referenceType) query['reference.referenceType'] = referenceType;
-    if (referenceId) query['reference.referenceId'] = referenceId;
+    if (paymentType)     query.paymentType                    = paymentType;
+    if (transactionType) query.transactionType                = transactionType;
+    if (paymentMode)     query.paymentMode                    = paymentMode;
+    if (status)          query.status                         = status;
+    if (partyId)         query['party.partyId']               = partyId;
+    if (partyType)       query['party.partyType']             = partyType;
+    if (referenceType)   query['reference.referenceType']     = referenceType;
+    if (referenceId)     query['reference.referenceId']       = referenceId;
 
     if (startDate || endDate) {
       query.paymentDate = {};
@@ -275,10 +163,10 @@ export const getAllPayments = async (shopId, queryParams) => {
     });
 
     return {
-      success: true,
-      data: result.data,
+      success:    true,
+      data:       result.data,
       pagination: result.pagination,
-      message: 'Payments fetched successfully',
+      message:    'Payments fetched successfully',
     };
   } catch (error) {
     logger.error('Get all payments error:', error);
@@ -286,7 +174,9 @@ export const getAllPayments = async (shopId, queryParams) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET PAYMENT BY ID
+// ─────────────────────────────────────────────
 export const getPaymentById = async (paymentId, shopId) => {
   try {
     const payment = await Payment.findOne({
@@ -299,13 +189,11 @@ export const getPaymentById = async (paymentId, shopId) => {
       .populate('processedBy', 'firstName lastName email')
       .populate('reconciliation.reconciledBy', 'firstName lastName');
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Payment fetched successfully',
     };
   } catch (error) {
@@ -314,7 +202,9 @@ export const getPaymentById = async (paymentId, shopId) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// UPDATE PAYMENT
+// ─────────────────────────────────────────────
 export const updatePayment = async (paymentId, shopId, userId, updateData) => {
   try {
     const payment = await Payment.findOne({
@@ -323,9 +213,7 @@ export const updatePayment = async (paymentId, shopId, userId, updateData) => {
       deletedAt: null,
     });
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
     if (payment.status !== 'pending') {
       throw new BadRequestError('Cannot edit completed or reconciled payments');
@@ -333,7 +221,6 @@ export const updatePayment = async (paymentId, shopId, userId, updateData) => {
 
     Object.assign(payment, updateData);
     payment.updatedBy = userId;
-
     await payment.save();
 
     await eventLogger.logFinancial(
@@ -347,7 +234,7 @@ export const updatePayment = async (paymentId, shopId, userId, updateData) => {
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Payment updated successfully',
     };
   } catch (error) {
@@ -356,6 +243,9 @@ export const updatePayment = async (paymentId, shopId, userId, updateData) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// DELETE PAYMENT
+// ─────────────────────────────────────────────
 export const deletePayment = async (paymentId, shopId, userId, organizationId) => {
   try {
     const payment = await Payment.findOne({
@@ -364,9 +254,7 @@ export const deletePayment = async (paymentId, shopId, userId, organizationId) =
       deletedAt: null,
     });
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
     if (payment.status !== 'pending') {
       throw new BadRequestError('Cannot delete completed or reconciled payments');
@@ -374,11 +262,16 @@ export const deletePayment = async (paymentId, shopId, userId, organizationId) =
 
     await payment.softDelete();
 
-    if (payment.reference.referenceId) {
-      await reverseReferencePaymentStatus(payment);
-    }
-
-    await reversePartyBalance(payment);
+    // ── EVENT EMIT ──────────────────────────
+    // reference.listener → sale/purchase reverse
+    // ledger.listener    → ledger entries reverse
+    // payment.listener   → status cancelled
+    eventBus.emit('PAYMENT_CANCELLED', {
+      payment,
+      reason: 'Soft delete',
+      userId,
+    });
+    // ─────────────────────────────────────────
 
     await eventLogger.logFinancial(
       userId,
@@ -399,7 +292,9 @@ export const deletePayment = async (paymentId, shopId, userId, organizationId) =
   }
 };
 
-
+// ─────────────────────────────────────────────
+// UPDATE PAYMENT STATUS
+// ─────────────────────────────────────────────
 export const updatePaymentStatus = async (paymentId, shopId, userId, status, reason = null) => {
   try {
     const payment = await Payment.findOne({
@@ -408,12 +303,10 @@ export const updatePaymentStatus = async (paymentId, shopId, userId, status, rea
       deletedAt: null,
     });
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
-    const oldStatus = payment.status;
-    payment.status = status;
+    const oldStatus   = payment.status;
+    payment.status    = status;
     payment.updatedBy = userId;
 
     if (reason) {
@@ -433,7 +326,7 @@ export const updatePaymentStatus = async (paymentId, shopId, userId, status, rea
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Payment status updated successfully',
     };
   } catch (error) {
@@ -442,6 +335,9 @@ export const updatePaymentStatus = async (paymentId, shopId, userId, status, rea
   }
 };
 
+// ─────────────────────────────────────────────
+// MARK AS COMPLETED
+// ─────────────────────────────────────────────
 export const markAsCompleted = async (paymentId, shopId, userId) => {
   try {
     return await updatePaymentStatus(
@@ -457,6 +353,9 @@ export const markAsCompleted = async (paymentId, shopId, userId) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// CANCEL PAYMENT
+// ─────────────────────────────────────────────
 export const cancelPayment = async (paymentId, shopId, userId, reason) => {
   try {
     const payment = await Payment.findOne({
@@ -465,27 +364,32 @@ export const cancelPayment = async (paymentId, shopId, userId, reason) => {
       deletedAt: null,
     });
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
     if (payment.status === 'cancelled') {
       throw new BadRequestError('Payment is already cancelled');
     }
 
-    payment.status = 'cancelled';
-    payment.notes = payment.notes
+    // Save original data before update
+    const paymentSnapshot = payment.toObject();
+
+    payment.status    = 'cancelled';
+    payment.notes     = payment.notes
       ? `${payment.notes}\nCancellation reason: ${reason}`
       : `Cancellation reason: ${reason}`;
     payment.updatedBy = userId;
-
     await payment.save();
 
-    if (payment.reference.referenceId) {
-      await reverseReferencePaymentStatus(payment);
-    }
-
-    await reversePartyBalance(payment);
+    // ── EVENT EMIT ──────────────────────────
+    // payment.listener   → status + cheque update
+    // reference.listener → sale/purchase reverse
+    // ledger.listener    → ledger entries reverse
+    eventBus.emit('PAYMENT_CANCELLED', {
+      payment: paymentSnapshot,
+      reason,
+      userId,
+    });
+    // ─────────────────────────────────────────
 
     await eventLogger.logFinancial(
       userId,
@@ -498,7 +402,7 @@ export const cancelPayment = async (paymentId, shopId, userId, reason) => {
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Payment cancelled successfully',
     };
   } catch (error) {
@@ -507,7 +411,9 @@ export const cancelPayment = async (paymentId, shopId, userId, reason) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET PENDING CHEQUES
+// ─────────────────────────────────────────────
 export const getPendingCheques = async (shopId) => {
   try {
     const payments = await Payment.find({
@@ -522,8 +428,8 @@ export const getPendingCheques = async (shopId) => {
 
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       message: 'Pending cheques fetched successfully',
     };
   } catch (error) {
@@ -532,7 +438,9 @@ export const getPendingCheques = async (shopId) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// CLEAR CHEQUE
+// ─────────────────────────────────────────────
 export const clearCheque = async (paymentId, shopId, userId, clearanceDate, notes) => {
   try {
     const payment = await Payment.findOne({
@@ -542,28 +450,25 @@ export const clearCheque = async (paymentId, shopId, userId, clearanceDate, note
       deletedAt: null,
     });
 
-    if (!payment) {
-      throw new NotFoundError('Cheque payment not found');
-    }
+    if (!payment) throw new NotFoundError('Cheque payment not found');
 
     if (payment.paymentDetails.chequeDetails.chequeStatus === 'cleared') {
       throw new BadRequestError('Cheque is already cleared');
     }
 
-    payment.paymentDetails.chequeDetails.chequeStatus = 'cleared';
-    payment.paymentDetails.chequeDetails.clearanceDate = clearanceDate || new Date();
-    payment.status = 'completed';
-    payment.updatedBy = userId;
-
-    if (notes) {
-      payment.notes = payment.notes ? `${payment.notes}\n${notes}` : notes;
-    }
-
     await payment.save();
 
-    // Ab cheque clear hua — double entry banao
-    // Party side + Bank side
-    await updatePartyBalance(payment);
+    // ── EVENT EMIT ──────────────────────────
+    // payment.listener   → status completed, chequeStatus cleared
+    // ledger.listener    → party + bank entry
+    // reference.listener → sale/purchase paidAmount update
+    eventBus.emit('CHEQUE_CLEARED', {
+      payment,
+      clearanceDate,
+      notes,
+      userId,
+    });
+    // ─────────────────────────────────────────
 
     await eventLogger.logFinancial(
       userId,
@@ -576,7 +481,7 @@ export const clearCheque = async (paymentId, shopId, userId, clearanceDate, note
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Cheque cleared successfully',
     };
   } catch (error) {
@@ -585,6 +490,9 @@ export const clearCheque = async (paymentId, shopId, userId, clearanceDate, note
   }
 };
 
+// ─────────────────────────────────────────────
+// BOUNCE CHEQUE
+// ─────────────────────────────────────────────
 export const bounceCheque = async (paymentId, shopId, userId, bounceReason, notes) => {
   try {
     const payment = await Payment.findOne({
@@ -594,26 +502,21 @@ export const bounceCheque = async (paymentId, shopId, userId, bounceReason, note
       deletedAt: null,
     });
 
-    if (!payment) {
-      throw new NotFoundError('Cheque payment not found');
-    }
-
-    payment.paymentDetails.chequeDetails.chequeStatus = 'bounced';
-    payment.paymentDetails.chequeDetails.bounceReason = bounceReason;
-    payment.status = 'failed';
-    payment.updatedBy = userId;
-
-    if (notes) {
-      payment.notes = payment.notes ? `${payment.notes}\n${notes}` : notes;
-    }
+    if (!payment) throw new NotFoundError('Cheque payment not found');
 
     await payment.save();
 
-    await reversePartyBalance(payment);
-
-    if (payment.reference.referenceId) {
-      await reverseReferencePaymentStatus(payment);
-    }
+    // ── EVENT EMIT ──────────────────────────
+    // payment.listener   → status failed, chequeStatus bounced
+    // ledger.listener    → reverse entries
+    // reference.listener → sale/purchase reverse
+    eventBus.emit('CHEQUE_BOUNCED', {
+      payment,
+      bounceReason,
+      notes,
+      userId,
+    });
+    // ─────────────────────────────────────────
 
     await eventLogger.logFinancial(
       userId,
@@ -626,7 +529,7 @@ export const bounceCheque = async (paymentId, shopId, userId, bounceReason, note
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Cheque marked as bounced',
     };
   } catch (error) {
@@ -635,7 +538,9 @@ export const bounceCheque = async (paymentId, shopId, userId, bounceReason, note
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET BOUNCED CHEQUES
+// ─────────────────────────────────────────────
 export const getBouncedCheques = async (shopId) => {
   try {
     const payments = await Payment.find({
@@ -650,8 +555,8 @@ export const getBouncedCheques = async (shopId) => {
 
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       message: 'Bounced cheques fetched successfully',
     };
   } catch (error) {
@@ -660,7 +565,9 @@ export const getBouncedCheques = async (shopId) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET CLEARED CHEQUES
+// ─────────────────────────────────────────────
 export const getClearedCheques = async (shopId, startDate, endDate) => {
   try {
     const query = {
@@ -687,8 +594,8 @@ export const getClearedCheques = async (shopId, startDate, endDate) => {
 
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       message: 'Cleared cheques fetched successfully',
     };
   } catch (error) {
@@ -697,7 +604,9 @@ export const getClearedCheques = async (shopId, startDate, endDate) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET UNRECONCILED PAYMENTS
+// ─────────────────────────────────────────────
 export const getUnreconciledPayments = async (shopId) => {
   try {
     const payments = await Payment.find({
@@ -712,8 +621,8 @@ export const getUnreconciledPayments = async (shopId) => {
 
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       message: 'Unreconciled payments fetched successfully',
     };
   } catch (error) {
@@ -722,7 +631,9 @@ export const getUnreconciledPayments = async (shopId) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// RECONCILE PAYMENT
+// ─────────────────────────────────────────────
 export const reconcilePayment = async (paymentId, shopId, userId, reconciledWith, discrepancy = 0, notes) => {
   try {
     const payment = await Payment.findOne({
@@ -731,22 +642,19 @@ export const reconcilePayment = async (paymentId, shopId, userId, reconciledWith
       deletedAt: null,
     });
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
     if (payment.reconciliation.isReconciled) {
       throw new BadRequestError('Payment is already reconciled');
     }
 
-    payment.reconciliation.isReconciled = true;
-    payment.reconciliation.reconciledAt = new Date();
-    payment.reconciliation.reconciledBy = userId;
+    payment.reconciliation.isReconciled  = true;
+    payment.reconciliation.reconciledAt  = new Date();
+    payment.reconciliation.reconciledBy  = userId;
     payment.reconciliation.reconciledWith = reconciledWith;
-    payment.reconciliation.discrepancy = discrepancy;
-    payment.reconciliation.notes = notes;
+    payment.reconciliation.discrepancy   = discrepancy;
+    payment.reconciliation.notes         = notes;
     payment.updatedBy = userId;
-
     await payment.save();
 
     await eventLogger.logFinancial(
@@ -760,7 +668,7 @@ export const reconcilePayment = async (paymentId, shopId, userId, reconciledWith
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Payment reconciled successfully',
     };
   } catch (error) {
@@ -769,7 +677,9 @@ export const reconcilePayment = async (paymentId, shopId, userId, reconciledWith
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET RECONCILIATION SUMMARY
+// ─────────────────────────────────────────────
 export const getReconciliationSummary = async (shopId, startDate, endDate) => {
   try {
     const query = { shopId, deletedAt: null };
@@ -814,11 +724,11 @@ export const getReconciliationSummary = async (shopId, startDate, endDate) => {
       data: {
         totalPayments,
         reconciled: {
-          count: reconciledPayments,
+          count:  reconciledPayments,
           amount: reconciledAmount[0]?.total || 0,
         },
         unreconciled: {
-          count: unreconciledPayments,
+          count:  unreconciledPayments,
           amount: unreconciledAmount[0]?.total || 0,
         },
         totalDiscrepancy: totalDiscrepancy[0]?.total || 0,
@@ -831,7 +741,9 @@ export const getReconciliationSummary = async (shopId, startDate, endDate) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET RECEIPT
+// ─────────────────────────────────────────────
 export const getReceipt = async (paymentId, shopId) => {
   try {
     const payment = await Payment.findOne({
@@ -843,19 +755,17 @@ export const getReceipt = async (paymentId, shopId) => {
       .populate('reference.referenceId')
       .populate('processedBy', 'firstName lastName');
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
     if (!payment.receipt.receiptGenerated) {
       payment.receipt.receiptGenerated = true;
-      payment.receipt.receiptNumber = payment.paymentNumber;
+      payment.receipt.receiptNumber    = payment.paymentNumber;
       await payment.save();
     }
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Receipt fetched successfully',
     };
   } catch (error) {
@@ -864,7 +774,9 @@ export const getReceipt = async (paymentId, shopId) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// SEND RECEIPT
+// ─────────────────────────────────────────────
 export const sendReceipt = async (paymentId, shopId, userId, method, recipient) => {
   try {
     const payment = await Payment.findOne({
@@ -875,14 +787,11 @@ export const sendReceipt = async (paymentId, shopId, userId, method, recipient) 
       .populate('party.partyId')
       .populate('processedBy', 'firstName lastName');
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
     payment.receipt.receiptSentAt = new Date();
     payment.receipt.receiptSentTo = recipient;
     await payment.save();
-
 
     await eventLogger.logFinancial(
       userId,
@@ -903,6 +812,9 @@ export const sendReceipt = async (paymentId, shopId, userId, method, recipient) 
   }
 };
 
+// ─────────────────────────────────────────────
+// REGENERATE RECEIPT
+// ─────────────────────────────────────────────
 export const regenerateReceipt = async (paymentId, shopId, userId) => {
   try {
     const payment = await Payment.findOne({
@@ -911,13 +823,11 @@ export const regenerateReceipt = async (paymentId, shopId, userId) => {
       deletedAt: null,
     });
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
     payment.receipt.receiptGenerated = true;
-    payment.receipt.receiptNumber = payment.paymentNumber;
-    payment.receipt.receiptUrl = null;
+    payment.receipt.receiptNumber    = payment.paymentNumber;
+    payment.receipt.receiptUrl       = null;
     await payment.save();
 
     await eventLogger.logFinancial(
@@ -931,7 +841,7 @@ export const regenerateReceipt = async (paymentId, shopId, userId) => {
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Receipt regenerated successfully',
     };
   } catch (error) {
@@ -940,6 +850,9 @@ export const regenerateReceipt = async (paymentId, shopId, userId) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// GET PARTY PAYMENTS
+// ─────────────────────────────────────────────
 export const getPartyPayments = async (shopId, partyId, queryParams) => {
   try {
     const { page = 1, limit = 20, paymentType, status } = queryParams;
@@ -951,7 +864,7 @@ export const getPartyPayments = async (shopId, partyId, queryParams) => {
     };
 
     if (paymentType) query.paymentType = paymentType;
-    if (status) query.status = status;
+    if (status)      query.status      = status;
 
     const result = await paginate(Payment, query, {
       page,
@@ -961,10 +874,10 @@ export const getPartyPayments = async (shopId, partyId, queryParams) => {
     });
 
     return {
-      success: true,
-      data: result.data,
+      success:    true,
+      data:       result.data,
       pagination: result.pagination,
-      message: 'Party payments fetched successfully',
+      message:    'Party payments fetched successfully',
     };
   } catch (error) {
     logger.error('Get party payments error:', error);
@@ -972,6 +885,9 @@ export const getPartyPayments = async (shopId, partyId, queryParams) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// GET PARTY PAYMENT SUMMARY
+// ─────────────────────────────────────────────
 export const getPartyPaymentSummary = async (shopId, partyId) => {
   try {
     const payments = await Payment.find({
@@ -981,26 +897,20 @@ export const getPartyPaymentSummary = async (shopId, partyId) => {
     });
 
     const summary = {
-      totalReceived: 0,
-      totalPaid: 0,
-      totalPending: 0,
-      lastPaymentDate: null,
+      totalReceived:        0,
+      totalPaid:            0,
+      totalPending:         0,
+      lastPaymentDate:      null,
       paymentModeBreakdown: {},
     };
 
     payments.forEach(payment => {
       if (payment.transactionType === 'receipt') {
-        if (payment.status === 'completed') {
-          summary.totalReceived += payment.amount;
-        } else if (payment.status === 'pending') {
-          summary.totalPending += payment.amount;
-        }
+        if (payment.status === 'completed')  summary.totalReceived += payment.amount;
+        else if (payment.status === 'pending') summary.totalPending += payment.amount;
       } else {
-        if (payment.status === 'completed') {
-          summary.totalPaid += payment.amount;
-        } else if (payment.status === 'pending') {
-          summary.totalPending += payment.amount;
-        }
+        if (payment.status === 'completed')  summary.totalPaid    += payment.amount;
+        else if (payment.status === 'pending') summary.totalPending += payment.amount;
       }
 
       if (!summary.paymentModeBreakdown[payment.paymentMode]) {
@@ -1016,7 +926,7 @@ export const getPartyPaymentSummary = async (shopId, partyId) => {
 
     return {
       success: true,
-      data: summary,
+      data:    summary,
       message: 'Party payment summary fetched successfully',
     };
   } catch (error) {
@@ -1024,7 +934,6 @@ export const getPartyPaymentSummary = async (shopId, partyId) => {
     throw error;
   }
 };
-
 
 export const getCustomerPayments = async (shopId, customerId, queryParams) => {
   try {
@@ -1035,7 +944,6 @@ export const getCustomerPayments = async (shopId, customerId, queryParams) => {
   }
 };
 
-
 export const getSupplierPayments = async (shopId, supplierId, queryParams) => {
   try {
     return await getPartyPayments(shopId, supplierId, queryParams);
@@ -1045,7 +953,9 @@ export const getSupplierPayments = async (shopId, supplierId, queryParams) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET PAYMENTS BY MODE
+// ─────────────────────────────────────────────
 export const getPaymentsByMode = async (shopId, startDate, endDate) => {
   try {
     const query = { shopId, status: 'completed', deletedAt: null };
@@ -1064,8 +974,8 @@ export const getPaymentsByMode = async (shopId, startDate, endDate) => {
       { $match: query },
       {
         $group: {
-          _id: '$paymentMode',
-          count: { $sum: 1 },
+          _id:         '$paymentMode',
+          count:       { $sum: 1 },
           totalAmount: { $sum: '$amount' },
         },
       },
@@ -1074,7 +984,7 @@ export const getPaymentsByMode = async (shopId, startDate, endDate) => {
 
     return {
       success: true,
-      data: breakdown,
+      data:    breakdown,
       message: 'Payment mode breakdown fetched successfully',
     };
   } catch (error) {
@@ -1083,6 +993,9 @@ export const getPaymentsByMode = async (shopId, startDate, endDate) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// GET CASH COLLECTION
+// ─────────────────────────────────────────────
 export const getCashCollection = async (shopId, date) => {
   try {
     const targetDate = date ? new Date(date) : new Date();
@@ -1096,11 +1009,11 @@ export const getCashCollection = async (shopId, date) => {
         {
           $match: {
             shopId,
-            paymentMode: 'cash',
+            paymentMode:     'cash',
             transactionType: 'receipt',
-            status: 'completed',
-            paymentDate: { $gte: startOfDay, $lte: endOfDay },
-            deletedAt: null,
+            status:          'completed',
+            paymentDate:     { $gte: startOfDay, $lte: endOfDay },
+            deletedAt:       null,
           },
         },
         { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
@@ -1109,11 +1022,11 @@ export const getCashCollection = async (shopId, date) => {
         {
           $match: {
             shopId,
-            paymentMode: 'cash',
+            paymentMode:     'cash',
             transactionType: 'payment',
-            status: 'completed',
-            paymentDate: { $gte: startOfDay, $lte: endOfDay },
-            deletedAt: null,
+            status:          'completed',
+            paymentDate:     { $gte: startOfDay, $lte: endOfDay },
+            deletedAt:       null,
           },
         },
         { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
@@ -1121,14 +1034,14 @@ export const getCashCollection = async (shopId, date) => {
     ]);
 
     const totalReceived = received[0]?.total || 0;
-    const totalPaid = paid[0]?.total || 0;
+    const totalPaid     = paid[0]?.total     || 0;
 
     return {
       success: true,
       data: {
-        date: targetDate,
-        cashReceived: { amount: totalReceived, count: received[0]?.count || 0 },
-        cashPaid: { amount: totalPaid, count: paid[0]?.count || 0 },
+        date:           targetDate,
+        cashReceived:   { amount: totalReceived, count: received[0]?.count || 0 },
+        cashPaid:       { amount: totalPaid,     count: paid[0]?.count     || 0 },
         netCashBalance: totalReceived - totalPaid,
       },
       message: 'Cash collection summary fetched successfully',
@@ -1139,13 +1052,16 @@ export const getCashCollection = async (shopId, date) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// GET DIGITAL COLLECTION
+// ─────────────────────────────────────────────
 export const getDigitalCollection = async (shopId, startDate, endDate) => {
   try {
     const query = {
       shopId,
       paymentMode: { $in: ['card', 'upi', 'wallet', 'bank_transfer'] },
-      status: 'completed',
-      deletedAt: null,
+      status:      'completed',
+      deletedAt:   null,
     };
 
     if (startDate || endDate) {
@@ -1162,8 +1078,8 @@ export const getDigitalCollection = async (shopId, startDate, endDate) => {
       { $match: query },
       {
         $group: {
-          _id: '$paymentMode',
-          count: { $sum: 1 },
+          _id:         '$paymentMode',
+          count:       { $sum: 1 },
           totalAmount: { $sum: '$amount' },
         },
       },
@@ -1174,7 +1090,7 @@ export const getDigitalCollection = async (shopId, startDate, endDate) => {
 
     return {
       success: true,
-      data: { breakdown, totalDigitalCollection: total },
+      data:    { breakdown, totalDigitalCollection: total },
       message: 'Digital collection summary fetched successfully',
     };
   } catch (error) {
@@ -1183,7 +1099,9 @@ export const getDigitalCollection = async (shopId, startDate, endDate) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET PAYMENT ANALYTICS
+// ─────────────────────────────────────────────
 export const getPaymentAnalytics = async (shopId, startDate, endDate, groupBy = 'day') => {
   try {
     const query = { shopId, status: 'completed', deletedAt: null };
@@ -1200,10 +1118,10 @@ export const getPaymentAnalytics = async (shopId, startDate, endDate, groupBy = 
 
     let dateFormat;
     switch (groupBy) {
-      case 'day': dateFormat = '%Y-%m-%d'; break;
-      case 'week': dateFormat = '%Y-W%V'; break;
-      case 'month': dateFormat = '%Y-%m'; break;
-      default: dateFormat = '%Y-%m-%d';
+      case 'day':   dateFormat = '%Y-%m-%d'; break;
+      case 'week':  dateFormat = '%Y-W%V';   break;
+      case 'month': dateFormat = '%Y-%m';    break;
+      default:      dateFormat = '%Y-%m-%d';
     }
 
     const analytics = await Payment.aggregate([
@@ -1211,10 +1129,10 @@ export const getPaymentAnalytics = async (shopId, startDate, endDate, groupBy = 
       {
         $group: {
           _id: {
-            date: { $dateToString: { format: dateFormat, date: '$paymentDate' } },
+            date:            { $dateToString: { format: dateFormat, date: '$paymentDate' } },
             transactionType: '$transactionType',
           },
-          count: { $sum: 1 },
+          count:       { $sum: 1 },
           totalAmount: { $sum: '$amount' },
         },
       },
@@ -1234,8 +1152,8 @@ export const getPaymentAnalytics = async (shopId, startDate, endDate, groupBy = 
         { $match: query },
         {
           $group: {
-            _id: '$paymentMode',
-            count: { $sum: 1 },
+            _id:         '$paymentMode',
+            count:       { $sum: 1 },
             totalAmount: { $sum: '$amount' },
           },
         },
@@ -1250,9 +1168,9 @@ export const getPaymentAnalytics = async (shopId, startDate, endDate, groupBy = 
       data: {
         analytics,
         summary: {
-          totalReceipts: { amount: receiptsTotal, count: totalReceipts[0]?.count || 0 },
-          totalPayments: { amount: paymentsTotal, count: totalPayments[0]?.count || 0 },
-          netCashFlow: receiptsTotal - paymentsTotal,
+          totalReceipts:       { amount: receiptsTotal, count: totalReceipts[0]?.count || 0 },
+          totalPayments:       { amount: paymentsTotal, count: totalPayments[0]?.count || 0 },
+          netCashFlow:         receiptsTotal - paymentsTotal,
           paymentModeBreakdown,
         },
       },
@@ -1264,12 +1182,14 @@ export const getPaymentAnalytics = async (shopId, startDate, endDate, groupBy = 
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET PAYMENT DASHBOARD
+// ─────────────────────────────────────────────
 export const getPaymentDashboard = async (shopId) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const weekAgo = new Date(today);
+    const weekAgo  = new Date(today);
     weekAgo.setDate(weekAgo.getDate() - 7);
     const monthAgo = new Date(today);
     monthAgo.setMonth(monthAgo.getMonth() - 1);
@@ -1288,9 +1208,9 @@ export const getPaymentDashboard = async (shopId) => {
           $match: {
             shopId,
             transactionType: 'receipt',
-            status: 'completed',
-            paymentDate: { $gte: weekAgo },
-            deletedAt: null,
+            status:          'completed',
+            paymentDate:     { $gte: weekAgo },
+            deletedAt:       null,
           },
         },
         { $group: { _id: null, total: { $sum: '$amount' } } },
@@ -1300,9 +1220,9 @@ export const getPaymentDashboard = async (shopId) => {
           $match: {
             shopId,
             transactionType: 'receipt',
-            status: 'completed',
-            paymentDate: { $gte: monthAgo },
-            deletedAt: null,
+            status:          'completed',
+            paymentDate:     { $gte: monthAgo },
+            deletedAt:       null,
           },
         },
         { $group: { _id: null, total: { $sum: '$amount' } } },
@@ -1311,12 +1231,12 @@ export const getPaymentDashboard = async (shopId) => {
         shopId,
         paymentMode: 'cheque',
         'paymentDetails.chequeDetails.chequeStatus': 'pending',
-        deletedAt: null,
+        deletedAt:   null,
       }),
       Payment.countDocuments({
         shopId,
         'reconciliation.isReconciled': false,
-        status: 'completed',
+        status:    'completed',
         deletedAt: null,
       }),
       Payment.find({ shopId, deletedAt: null })
@@ -1330,9 +1250,9 @@ export const getPaymentDashboard = async (shopId) => {
     return {
       success: true,
       data: {
-        todayCollection: todayCollection.data,
-        weekCollection: weekCollection[0]?.total || 0,
-        monthCollection: monthCollection[0]?.total || 0,
+        todayCollection:    todayCollection.data,
+        weekCollection:     weekCollection[0]?.total  || 0,
+        monthCollection:    monthCollection[0]?.total || 0,
         pendingChequesCount,
         unreconciledCount,
         recentPayments,
@@ -1345,10 +1265,12 @@ export const getPaymentDashboard = async (shopId) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET TODAY PAYMENTS
+// ─────────────────────────────────────────────
 export const getTodayPayments = async (shopId) => {
   try {
-    const today = new Date();
+    const today    = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1356,7 +1278,7 @@ export const getTodayPayments = async (shopId) => {
     const payments = await Payment.find({
       shopId,
       paymentDate: { $gte: today, $lt: tomorrow },
-      deletedAt: null,
+      deletedAt:   null,
     })
       .sort({ paymentDate: -1 })
       .populate('party.partyId', 'name phone')
@@ -1367,12 +1289,12 @@ export const getTodayPayments = async (shopId) => {
         $match: {
           shopId,
           paymentDate: { $gte: today, $lt: tomorrow },
-          deletedAt: null,
+          deletedAt:   null,
         },
       },
       {
         $group: {
-          _id: '$paymentMode',
+          _id:   '$paymentMode',
           count: { $sum: 1 },
           total: { $sum: '$amount' },
         },
@@ -1381,7 +1303,7 @@ export const getTodayPayments = async (shopId) => {
 
     return {
       success: true,
-      data: { payments, totalByMode },
+      data:    { payments, totalByMode },
       message: "Today's payments fetched successfully",
     };
   } catch (error) {
@@ -1390,13 +1312,14 @@ export const getTodayPayments = async (shopId) => {
   }
 };
 
-
-
+// ─────────────────────────────────────────────
+// GET PENDING PAYMENTS
+// ─────────────────────────────────────────────
 export const getPendingPayments = async (shopId) => {
   try {
     const payments = await Payment.find({
       shopId,
-      status: 'pending',
+      status:    'pending',
       deletedAt: null,
     })
       .sort({ paymentDate: -1 })
@@ -1405,8 +1328,8 @@ export const getPendingPayments = async (shopId) => {
 
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       message: 'Pending payments fetched successfully',
     };
   } catch (error) {
@@ -1415,12 +1338,14 @@ export const getPendingPayments = async (shopId) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET FAILED PAYMENTS
+// ─────────────────────────────────────────────
 export const getFailedPayments = async (shopId) => {
   try {
     const payments = await Payment.find({
       shopId,
-      status: 'failed',
+      status:    'failed',
       deletedAt: null,
     })
       .sort({ paymentDate: -1 })
@@ -1429,8 +1354,8 @@ export const getFailedPayments = async (shopId) => {
 
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       message: 'Failed payments fetched successfully',
     };
   } catch (error) {
@@ -1439,13 +1364,15 @@ export const getFailedPayments = async (shopId) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET SALE PAYMENTS
+// ─────────────────────────────────────────────
 export const getSalePayments = async (shopId, saleId) => {
   try {
     const payments = await Payment.find({
       shopId,
       'reference.referenceType': 'sale',
-      'reference.referenceId': saleId,
+      'reference.referenceId':   saleId,
       deletedAt: null,
     })
       .sort({ paymentDate: -1 })
@@ -1453,8 +1380,8 @@ export const getSalePayments = async (shopId, saleId) => {
 
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       message: 'Sale payments fetched successfully',
     };
   } catch (error) {
@@ -1463,14 +1390,15 @@ export const getSalePayments = async (shopId, saleId) => {
   }
 };
 
-
-
+// ─────────────────────────────────────────────
+// GET PURCHASE PAYMENTS
+// ─────────────────────────────────────────────
 export const getPurchasePayments = async (shopId, purchaseId) => {
   try {
     const payments = await Payment.find({
       shopId,
       'reference.referenceType': 'purchase',
-      'reference.referenceId': purchaseId,
+      'reference.referenceId':   purchaseId,
       deletedAt: null,
     })
       .sort({ paymentDate: -1 })
@@ -1478,8 +1406,8 @@ export const getPurchasePayments = async (shopId, purchaseId) => {
 
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       message: 'Purchase payments fetched successfully',
     };
   } catch (error) {
@@ -1488,6 +1416,9 @@ export const getPurchasePayments = async (shopId, purchaseId) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// SEARCH PAYMENTS
+// ─────────────────────────────────────────────
 export const searchPayments = async (shopId, searchQuery, limit = 50) => {
   try {
     const regex = new RegExp(searchQuery, 'i');
@@ -1511,8 +1442,8 @@ export const searchPayments = async (shopId, searchQuery, limit = 50) => {
 
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       message: 'Search results fetched successfully',
     };
   } catch (error) {
@@ -1521,7 +1452,9 @@ export const searchPayments = async (shopId, searchQuery, limit = 50) => {
   }
 };
 
-
+// ─────────────────────────────────────────────
+// GET PAYMENTS BY DATE RANGE
+// ─────────────────────────────────────────────
 export const getPaymentsByDateRange = async (shopId, startDate, endDate, queryParams) => {
   try {
     const { page = 1, limit = 50 } = queryParams;
@@ -1550,10 +1483,10 @@ export const getPaymentsByDateRange = async (shopId, startDate, endDate, queryPa
     });
 
     return {
-      success: true,
-      data: result.data,
+      success:    true,
+      data:       result.data,
       pagination: result.pagination,
-      message: 'Payments by date range fetched successfully',
+      message:    'Payments by date range fetched successfully',
     };
   } catch (error) {
     logger.error('Get payments by date range error:', error);
@@ -1561,6 +1494,9 @@ export const getPaymentsByDateRange = async (shopId, startDate, endDate, queryPa
   }
 };
 
+// ─────────────────────────────────────────────
+// GET PAYMENTS BY AMOUNT RANGE
+// ─────────────────────────────────────────────
 export const getPaymentsByAmountRange = async (shopId, minAmount, maxAmount, queryParams) => {
   try {
     const { page = 1, limit = 50 } = queryParams;
@@ -1585,10 +1521,10 @@ export const getPaymentsByAmountRange = async (shopId, minAmount, maxAmount, que
     });
 
     return {
-      success: true,
-      data: result.data,
+      success:    true,
+      data:       result.data,
       pagination: result.pagination,
-      message: 'Payments by amount range fetched successfully',
+      message:    'Payments by amount range fetched successfully',
     };
   } catch (error) {
     logger.error('Get payments by amount range error:', error);
@@ -1596,28 +1532,28 @@ export const getPaymentsByAmountRange = async (shopId, minAmount, maxAmount, que
   }
 };
 
-
+// ─────────────────────────────────────────────
+// BULK RECONCILE PAYMENTS
+// ─────────────────────────────────────────────
 export const bulkReconcilePayments = async (shopId, userId, paymentIds, reconciledWith, notes) => {
   try {
     const payments = await Payment.find({
-      _id: { $in: paymentIds },
+      _id:       { $in: paymentIds },
       shopId,
       deletedAt: null,
     });
 
-    if (payments.length === 0) {
-      throw new NotFoundError('No valid payments found');
-    }
+    if (payments.length === 0) throw new NotFoundError('No valid payments found');
 
     let reconciledCount = 0;
 
     for (const payment of payments) {
       if (!payment.reconciliation.isReconciled && payment.status === 'completed') {
-        payment.reconciliation.isReconciled = true;
-        payment.reconciliation.reconciledAt = new Date();
-        payment.reconciliation.reconciledBy = userId;
+        payment.reconciliation.isReconciled  = true;
+        payment.reconciliation.reconciledAt  = new Date();
+        payment.reconciliation.reconciledBy  = userId;
         payment.reconciliation.reconciledWith = reconciledWith;
-        payment.reconciliation.notes = notes;
+        payment.reconciliation.notes         = notes;
         await payment.save();
         reconciledCount++;
       }
@@ -1634,7 +1570,7 @@ export const bulkReconcilePayments = async (shopId, userId, paymentIds, reconcil
 
     return {
       success: true,
-      data: { reconciledCount, totalProvided: paymentIds.length },
+      data:    { reconciledCount, totalProvided: paymentIds.length },
       message: `Successfully reconciled ${reconciledCount} payments`,
     };
   } catch (error) {
@@ -1643,14 +1579,16 @@ export const bulkReconcilePayments = async (shopId, userId, paymentIds, reconcil
   }
 };
 
-
+// ─────────────────────────────────────────────
+// BULK EXPORT PAYMENTS
+// ─────────────────────────────────────────────
 export const bulkExportPayments = async (shopId, paymentIds, format) => {
   try {
     let payments;
 
     if (paymentIds && paymentIds.length > 0) {
       payments = await Payment.find({
-        _id: { $in: paymentIds },
+        _id:       { $in: paymentIds },
         shopId,
         deletedAt: null,
       })
@@ -1666,11 +1604,10 @@ export const bulkExportPayments = async (shopId, paymentIds, format) => {
         .lean();
     }
 
-
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       format,
       message: `Export data prepared in ${format} format`,
     };
@@ -1680,10 +1617,13 @@ export const bulkExportPayments = async (shopId, paymentIds, format) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// BULK PRINT RECEIPTS
+// ─────────────────────────────────────────────
 export const bulkPrintReceipts = async (shopId, paymentIds) => {
   try {
     const payments = await Payment.find({
-      _id: { $in: paymentIds },
+      _id:       { $in: paymentIds },
       shopId,
       deletedAt: null,
     })
@@ -1691,14 +1631,12 @@ export const bulkPrintReceipts = async (shopId, paymentIds) => {
       .populate('processedBy', 'firstName lastName')
       .lean();
 
-    if (payments.length === 0) {
-      throw new NotFoundError('No valid payments found');
-    }
+    if (payments.length === 0) throw new NotFoundError('No valid payments found');
 
     return {
       success: true,
-      data: payments,
-      count: payments.length,
+      data:    payments,
+      count:   payments.length,
       message: 'Bulk receipt data prepared',
     };
   } catch (error) {
@@ -1707,6 +1645,9 @@ export const bulkPrintReceipts = async (shopId, paymentIds) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// APPROVE PAYMENT
+// ─────────────────────────────────────────────
 export const approvePayment = async (paymentId, shopId, userId, notes) => {
   try {
     const payment = await Payment.findOne({
@@ -1715,20 +1656,17 @@ export const approvePayment = async (paymentId, shopId, userId, notes) => {
       deletedAt: null,
     });
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
     if (payment.approval.approvalStatus === 'approved') {
       throw new BadRequestError('Payment is already approved');
     }
 
     payment.approval.approvalStatus = 'approved';
-    payment.approval.approvedBy = userId;
-    payment.approval.approvedAt = new Date();
-    if (notes) payment.notes = notes;
+    payment.approval.approvedBy     = userId;
+    payment.approval.approvedAt     = new Date();
+    if (notes) payment.notes        = notes;
     payment.updatedBy = userId;
-
     await payment.save();
 
     await eventLogger.logFinancial(
@@ -1742,7 +1680,7 @@ export const approvePayment = async (paymentId, shopId, userId, notes) => {
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Payment approved successfully',
     };
   } catch (error) {
@@ -1751,6 +1689,9 @@ export const approvePayment = async (paymentId, shopId, userId, notes) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// REJECT PAYMENT
+// ─────────────────────────────────────────────
 export const rejectPayment = async (paymentId, shopId, userId, reason) => {
   try {
     const payment = await Payment.findOne({
@@ -1759,17 +1700,14 @@ export const rejectPayment = async (paymentId, shopId, userId, reason) => {
       deletedAt: null,
     });
 
-    if (!payment) {
-      throw new NotFoundError('Payment not found');
-    }
+    if (!payment) throw new NotFoundError('Payment not found');
 
-    payment.approval.approvalStatus = 'rejected';
-    payment.approval.approvedBy = userId;
-    payment.approval.approvedAt = new Date();
+    payment.approval.approvalStatus  = 'rejected';
+    payment.approval.approvedBy      = userId;
+    payment.approval.approvedAt      = new Date();
     payment.approval.rejectionReason = reason;
-    payment.status = 'cancelled';
+    payment.status    = 'cancelled';
     payment.updatedBy = userId;
-
     await payment.save();
 
     await eventLogger.logFinancial(
@@ -1783,7 +1721,7 @@ export const rejectPayment = async (paymentId, shopId, userId, reason) => {
 
     return {
       success: true,
-      data: payment,
+      data:    payment,
       message: 'Payment rejected successfully',
     };
   } catch (error) {
@@ -1792,6 +1730,9 @@ export const rejectPayment = async (paymentId, shopId, userId, reason) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// PROCESS REFUND
+// ─────────────────────────────────────────────
 export const processRefund = async (paymentId, shopId, organizationId, userId, refundData) => {
   try {
     const originalPayment = await Payment.findOne({
@@ -1800,9 +1741,7 @@ export const processRefund = async (paymentId, shopId, organizationId, userId, r
       deletedAt: null,
     });
 
-    if (!originalPayment) {
-      throw new NotFoundError('Original payment not found');
-    }
+    if (!originalPayment) throw new NotFoundError('Original payment not found');
 
     if (refundData.refundAmount > originalPayment.amount) {
       throw new ValidationError('Refund amount cannot exceed original payment amount');
@@ -1813,35 +1752,36 @@ export const processRefund = async (paymentId, shopId, organizationId, userId, r
     const refundPayment = new Payment({
       organizationId,
       shopId,
-      paymentNumber: refundNumber,
-      paymentDate: new Date(),
-      paymentType: 'refund',
+      paymentNumber:   refundNumber,
+      paymentDate:     new Date(),
+      paymentType:     'refund',
       transactionType: originalPayment.transactionType === 'receipt' ? 'payment' : 'receipt',
-      amount: refundData.refundAmount,
-      paymentMode: refundData.refundMode,
-      party: originalPayment.party,
-      reference: originalPayment.reference,
+      amount:          refundData.refundAmount,
+      paymentMode:     refundData.refundMode,
+      party:           originalPayment.party,
+      reference:       originalPayment.reference,
       refund: {
-        isRefund: true,
+        isRefund:          true,
         originalPaymentId: originalPayment._id,
-        refundReason: refundData.refundReason,
-        refundedBy: userId,
+        refundReason:      refundData.refundReason,
+        refundedBy:        userId,
       },
-      status: 'completed',
+      status:      'completed',
       processedBy: userId,
-      createdBy: userId,
+      createdBy:   userId,
     });
 
     await refundPayment.save();
 
-    originalPayment.status = 'refunded';
-    await originalPayment.save();
-
-    await updatePartyBalance(refundPayment);
-
-    if (refundPayment.reference.referenceId) {
-      await updateReferencePaymentStatus(refundPayment);
-    }
+    // ── EVENT EMIT ──────────────────────────
+    // payment.listener   → original payment status refunded
+    // ledger.listener    → party + cash/bank entry
+    // reference.listener → sale/purchase reverse
+    eventBus.emit('PAYMENT_REFUNDED', {
+      refundPayment,
+      originalPaymentId: originalPayment._id,
+    });
+    // ─────────────────────────────────────────
 
     await eventLogger.logFinancial(
       userId,
@@ -1854,7 +1794,7 @@ export const processRefund = async (paymentId, shopId, organizationId, userId, r
 
     return {
       success: true,
-      data: refundPayment,
+      data:    refundPayment,
       message: 'Refund processed successfully',
     };
   } catch (error) {
@@ -1863,12 +1803,15 @@ export const processRefund = async (paymentId, shopId, organizationId, userId, r
   }
 };
 
+// ─────────────────────────────────────────────
+// GET REFUNDS
+// ─────────────────────────────────────────────
 export const getRefunds = async (shopId) => {
   try {
     const refunds = await Payment.find({
       shopId,
       paymentType: 'refund',
-      deletedAt: null,
+      deletedAt:   null,
     })
       .sort({ paymentDate: -1 })
       .populate('party.partyId', 'name phone')
@@ -1877,8 +1820,8 @@ export const getRefunds = async (shopId) => {
 
     return {
       success: true,
-      data: refunds,
-      count: refunds.length,
+      data:    refunds,
+      count:   refunds.length,
       message: 'Refunds fetched successfully',
     };
   } catch (error) {

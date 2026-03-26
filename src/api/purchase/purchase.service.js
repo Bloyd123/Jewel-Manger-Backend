@@ -1,29 +1,13 @@
-// FILE: src/api/purchase/purchase.service.js
 import Purchase from '../../models/Purchase.js';
 import eventLogger from '../../utils/eventLogger.js';
 import { businessLogger } from '../../utils/logger.js';
 import logger from '../../utils/logger.js';
-import {
-  increaseStock,
-  decreaseStock,
-  createProductFromPurchase,
-} from '../inventory/inventory.service.js';
 import Supplier from '../../models/Supplier.js';
-import User from '../../models/User.js';
 import JewelryShop from '../../models/Shop.js';
-import LedgerEntry from '../ledger/ledger.model.js';
-import Product from '../../models/Product.js'; // ✅ BUG 3 & 4 FIX: Product import add kiya
-import {
-  createDebitEntry,
-  createCreditEntry,
-  reverseEntry,
-} from '../ledger/ledger.service.js';
+import Product from '../../models/Product.js';
 import { createPayment, getPurchasePayments } from '../payment/payment.service.js';
 import { NotFoundError, BadRequestError } from '../../utils/AppError.js';
-import {
-  sendPurchasePaymentVoucherEmail,
-  sendSupplierPaymentDoneEmail,
-} from '../../utils/email.js';
+import eventBus from '../../eventBus.js';
 
 // ─────────────────────────────────────────────
 // HELPER
@@ -80,12 +64,12 @@ export const createPurchase = async (shopId, organizationId, data, userId) => {
         createdBy: userId,
       });
 
-      break; // ✅ success
+      break;
 
     } catch (err) {
       if (err.code === 11000 && attempts < 2) {
         attempts++;
-        continue; // duplicate number tha — retry
+        continue;
       }
       throw err;
     }
@@ -111,6 +95,7 @@ export const createPurchase = async (shopId, organizationId, data, userId) => {
 
   return purchase.populate('supplierId', 'businessName supplierCode contactPerson');
 };
+
 // ─────────────────────────────────────────────
 // GET ALL
 // ─────────────────────────────────────────────
@@ -286,54 +271,18 @@ export const receivePurchase = async (purchaseId, shopId, organizationId, receiv
     throw new BadRequestError('Purchase already marked as received');
   }
 
+  // Status update karo
   purchase.status                = 'completed';
   purchase.delivery.receivedDate = receiveData.receivedDate || new Date();
   purchase.delivery.receivedBy   = receiveData.receivedBy   || userId;
   if (receiveData.notes) purchase.notes = receiveData.notes;
   await purchase.save();
 
-  for (const item of purchase.items) {
-    if (item.productId) {
-      await increaseStock({
-        organizationId:  purchase.organizationId,
-        shopId:          purchase.shopId,
-        productId:       item.productId,
-        quantity:        item.quantity,
-        referenceId:     purchase._id,
-        referenceNumber: purchase.purchaseNumber,
-        value:           item.itemTotal,
-        performedBy:     userId,
-      });
-    } else {
-      await createProductFromPurchase({
-        organizationId:  purchase.organizationId,
-        shopId:          purchase.shopId,
-        item,
-        purchaseId:      purchase._id,
-        purchaseNumber:  purchase.purchaseNumber,
-        supplierId:      purchase.supplierId,
-        supplierDetails: purchase.supplierDetails,
-        userId,
-      });
-    }
-  }
-
-  if (purchase.payment.dueAmount > 0) {
-    await createDebitEntry({
-      organizationId:  purchase.organizationId,
-      shopId:          purchase.shopId,
-      partyType:       'supplier',
-      partyId:         purchase.supplierId,
-      partyModel:      'Supplier',
-      partyName:       purchase.supplierDetails.supplierName,
-      amount:          purchase.payment.dueAmount,
-      referenceType:   'purchase',
-      referenceId:     purchase._id,
-      referenceNumber: purchase.purchaseNumber,
-      description:     `Purchase received - ${purchase.purchaseNumber}`,
-      createdBy:       userId,
-    });
-  }
+  // ── EVENT EMIT ──────────────────────────
+  // inventory.listener  → stock badhao / product banao
+  // ledger.listener     → supplier debit entry
+  eventBus.emit('PURCHASE_RECEIVED', { purchase, userId });
+  // ─────────────────────────────────────────
 
   await eventLogger.logPurchase(
     userId,
@@ -358,44 +307,14 @@ export const cancelPurchase = async (purchaseId, shopId, organizationId, reason,
     throw new BadRequestError('Cannot cancel completed purchase');
   }
 
-  // ✅ BUG 3 FIX: Product ab import hai file ke top pe, yeh ab kaam karega
-  if (['received', 'partial_received'].includes(purchase.status)) {
-    for (const item of purchase.items) {
-      if (item.productId) {
-        const product = await Product.findById(item.productId);
-        if (product) {
-          const reverseQty = Math.min(item.quantity, product.stock.quantity);
-          if (reverseQty > 0) {
-            await decreaseStock({
-              organizationId:  purchase.organizationId,
-              shopId:          purchase.shopId,
-              productId:       item.productId,
-              quantity:        reverseQty,
-              referenceId:     purchase._id,
-              referenceNumber: purchase.purchaseNumber,
-              performedBy:     userId,
-            });
-          }
-        }
-      }
-    }
-  }
-
-  const ledgerEntry = await LedgerEntry.findOne({
-    referenceId:   purchase._id,
-    referenceType: 'purchase',
-    status:        'active',
-  });
-
-  if (ledgerEntry) {
-    await reverseEntry({
-      entryId:     ledgerEntry._id,
-      createdBy:   userId,
-      description: `Purchase cancelled - ${purchase.purchaseNumber}`,
-    });
-  }
-
+  // Status update karo
   await purchase.cancel();
+
+  // ── EVENT EMIT ──────────────────────────
+  // inventory.listener  → stock reverse karo (agar received tha)
+  // ledger.listener     → ledger entry reverse karo
+  eventBus.emit('PURCHASE_CANCELLED', { purchase, userId, reason });
+  // ─────────────────────────────────────────
 
   await eventLogger.logPurchase(
     userId,
@@ -420,45 +339,16 @@ export const returnPurchase = async (purchaseId, shopId, organizationId, reason,
     throw new BadRequestError('Only completed purchases can be returned');
   }
 
-  // ✅ BUG 4 FIX: Product ab import hai file ke top pe, yeh ab kaam karega
-  for (const item of purchase.items) {
-    if (item.productId) {
-      const product = await Product.findById(item.productId);
-      if (product) {
-        const reverseQty = Math.min(item.quantity, product.stock.quantity);
-        if (reverseQty > 0) {
-          await decreaseStock({
-            organizationId:  purchase.organizationId,
-            shopId:          purchase.shopId,
-            productId:       item.productId,
-            quantity:        reverseQty,
-            referenceId:     purchase._id,
-            referenceNumber: purchase.purchaseNumber,
-            performedBy:     userId,
-          });
-        }
-      }
-    }
-  }
-
-  await createCreditEntry({
-    organizationId:  purchase.organizationId,
-    shopId:          purchase.shopId,
-    partyType:       'supplier',
-    partyId:         purchase.supplierId,
-    partyModel:      'Supplier',
-    partyName:       purchase.supplierDetails.supplierName,
-    amount:          purchase.financials.grandTotal,
-    referenceType:   'purchase',
-    referenceId:     purchase._id,
-    referenceNumber: purchase.purchaseNumber,
-    description:     `Purchase returned - ${purchase.purchaseNumber}`,
-    createdBy:       userId,
-  });
-
+  // Status update karo
   purchase.status    = 'returned';
   purchase.updatedBy = userId;
   await purchase.save();
+
+  // ── EVENT EMIT ──────────────────────────
+  // inventory.listener  → stock ghataao
+  // ledger.listener     → supplier credit entry
+  eventBus.emit('PURCHASE_RETURNED', { purchase, userId, reason });
+  // ─────────────────────────────────────────
 
   await eventLogger.logPurchase(
     userId,
@@ -551,56 +441,24 @@ export const addPayment = async (purchaseId, paymentData, userId, shopId, organi
     },
   });
 
-  // ✅ BUG 1 FIX: Purchase ka paidAmount aur dueAmount update karo
-  await Purchase.applyPayment(purchaseId, paymentData.amount);
-
-  // ✅ BUG 2 FIX: Ledger mein credit entry likho — "itna paisa de diya supplier ko"
-  await createCreditEntry({
-    organizationId:  purchase.organizationId,
-    shopId:          purchase.shopId,
-    partyType:       'supplier',
-    partyId:         purchase.supplierId,
-    partyModel:      'Supplier',
-    partyName:       purchase.supplierDetails.supplierName,
-    amount:          paymentData.amount,
-    referenceType:   'payment',
-    referenceId:     result.payment._id,
-    referenceNumber: result.payment.paymentNumber,
-    description:     `Payment made for purchase - ${purchase.purchaseNumber}`,
-    createdBy:       userId,
-  });
-
-  // ── EMAILS ────────────────────────────────
-  const [supplier, shop, shopAdmins] = await Promise.all([
+  // Supplier fetch karo email ke liye
+  const [supplier, shop] = await Promise.all([
     Supplier.findById(purchase.supplierId).lean(),
     JewelryShop.findById(shopId).lean(),
-    User.find({
-      organizationId,
-      role:     { $in: ['org_admin', 'shop_admin'] },
-      isActive: true,
-    })
-      .select('firstName email')
-      .lean(),
   ]);
 
-  if (supplier?.contactPerson?.email || supplier?.businessEmail) {
-    sendPurchasePaymentVoucherEmail(result.payment, purchase, supplier, shop).catch(err => {
-      logger.error(`Purchase payment voucher email failed for ${purchase.purchaseNumber}:`, err);
-    });
-  }
-
-  if (shopAdmins.length > 0) {
-    Promise.all(
-      shopAdmins.map(admin =>
-        sendSupplierPaymentDoneEmail(result.payment, purchase, supplier, shop, admin).catch(err => {
-          logger.error(
-            `Supplier payment done email failed for admin ${admin.email} — ${purchase.purchaseNumber}:`,
-            err
-          );
-        })
-      )
-    );
-  }
+  // ── EVENT EMIT ──────────────────────────
+  // reference.listener  → purchase paidAmount update karo
+  // ledger.listener     → supplier credit entry
+  // email.listener      → supplier voucher + admin notify
+  eventBus.emit('PURCHASE_PAYMENT_ADDED', {
+    purchase,
+    payment:        result.data,
+    supplier,
+    shop,
+    organizationId,
+    userId,
+  });
   // ─────────────────────────────────────────
 
   return result;
@@ -715,7 +573,7 @@ export const getPurchaseAnalytics = async (shopId, organizationId, filters) => {
 
   return {
     totalPurchases,
-    totalPurchaseValue:    totalValue[0]?.total || 0,
+    totalPurchaseValue:     totalValue[0]?.total || 0,
     pendingPurchases,
     paymentStatusBreakdown: paymentBreakdown,
     topSuppliers,
@@ -786,7 +644,6 @@ export const bulkDeletePurchases = async (purchaseIds, shopId, organizationId) =
     { $set: { deletedAt: new Date() } }
   );
 
-  // ✅ BUG 5 FIX: Har deleted purchase ke liye event log karo
   await Promise.all(
     purchases.map(purchase =>
       eventLogger.logPurchase(
@@ -836,7 +693,6 @@ export const bulkApprovePurchases = async (purchaseIds, userId, shopId, organiza
     ]
   );
 
-  // ✅ BUG 6 FIX: Har approved purchase ke liye event log karo
   await Promise.all(
     purchases.map(purchase =>
       eventLogger.logPurchase(

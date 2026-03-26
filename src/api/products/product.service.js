@@ -2,7 +2,6 @@ import Product from '../../models/Product.js';
 import MetalRate from '../../models/MetalRate.js';
 import InventoryTransaction from '../../models/InventoryTransaction.js';
 import JewelryShop from '../../models/Shop.js';
-import User from '../../models/User.js';
 import { adjustStock } from '../inventory/inventory.service.js';
 import eventLogger from '../../utils/eventLogger.js';
 import logger from '../../utils/logger.js';
@@ -11,10 +10,9 @@ import {
   ProductNotFoundError,
   ValidationError,
   InsufficientStockError,
-  DuplicateProductCodeError,
 } from '../../utils/AppError.js';
 import Category from '../../models/Category.js';
-import { sendLowStockAlertEmail } from '../../utils/email.js';
+import eventBus from '../../eventBus.js';
 
 // ─────────────────────────────────────────────
 // CREATE
@@ -29,9 +27,9 @@ export async function createProduct(productData, shopId, organizationId, userId)
     );
   }
 
-  const grossWeight = parseFloat(productData.weight?.grossWeight) || 0;
-  const stoneWeight = parseFloat(productData.weight?.stoneWeight) || 0;
-  const netWeight   = grossWeight - stoneWeight;
+  const grossWeight  = parseFloat(productData.weight?.grossWeight) || 0;
+  const stoneWeight  = parseFloat(productData.weight?.stoneWeight) || 0;
+  const netWeight    = grossWeight - stoneWeight;
 
   const pricing = await calculateProductPrice(
     {
@@ -47,20 +45,17 @@ export async function createProduct(productData, shopId, organizationId, userId)
     });
   }
 
-  const quantity    = productData.stock?.quantity || 1;
+  const quantity     = productData.stock?.quantity || 1;
   const reorderLevel = productData.stock?.reorderLevel || 0;
-  let stockStatus   = 'in_stock';
+  let stockStatus    = 'in_stock';
 
-  if (quantity === 0) {
-    stockStatus = 'out_of_stock';
-  } else if (quantity <= reorderLevel && quantity > 0) {
-    stockStatus = 'low_stock';
-  }
+  if (quantity === 0)                          stockStatus = 'out_of_stock';
+  else if (quantity <= reorderLevel && quantity > 0) stockStatus = 'low_stock';
 
   let finalCategoryId    = productData.categoryId;
   let finalSubCategoryId = productData.subCategoryId;
 
-  if (finalCategoryId === 'OTHER')       finalCategoryId    = process.env.OTHER_CATEGORY_ID;
+  if (finalCategoryId === 'OTHER')         finalCategoryId    = process.env.OTHER_CATEGORY_ID;
   if (finalSubCategoryId === 'OTHER_MISC') finalSubCategoryId = process.env.OTHER_SUBCATEGORY_ID;
 
   const categoryExists = await Category.findOne({
@@ -82,11 +77,11 @@ export async function createProduct(productData, shopId, organizationId, userId)
     ...productData,
     categoryId:    finalCategoryId,
     subCategoryId: finalSubCategoryId,
-    weight:  { ...productData.weight, netWeight },
-    pricing: { ...productData.pricing, ...pricing },
-    stock:   { ...productData.stock, quantity, status: stockStatus },
-    createdBy: userId,
-    isActive:  true,
+    weight:     { ...productData.weight, netWeight },
+    pricing:    { ...productData.pricing, ...pricing },
+    stock:      { ...productData.stock, quantity, status: stockStatus },
+    createdBy:  userId,
+    isActive:   true,
     saleStatus: 'available',
   });
 
@@ -101,7 +96,7 @@ export async function createProduct(productData, shopId, organizationId, userId)
 
   const shop = await JewelryShop.findById(shopId);
   if (shop) {
-    shop.statistics.totalProducts      += 1;
+    shop.statistics.totalProducts       += 1;
     shop.statistics.totalInventoryValue += product.pricing.sellingPrice * product.stock.quantity;
     await shop.save();
   }
@@ -148,9 +143,9 @@ export async function calculateProductPrice(productData, metalRates) {
   const metalValue = netWeight * metalRate;
 
   let makingChargesAmount = 0;
-  if (makingCharges?.type === 'per_gram')   makingChargesAmount = netWeight * (makingCharges.value || 0);
+  if (makingCharges?.type === 'per_gram')        makingChargesAmount = netWeight * (makingCharges.value || 0);
   else if (makingCharges?.type === 'percentage') makingChargesAmount = (metalValue * (makingCharges.value || 0)) / 100;
-  else if (makingCharges?.type === 'flat')  makingChargesAmount = makingCharges.value || 0;
+  else if (makingCharges?.type === 'flat')       makingChargesAmount = makingCharges.value || 0;
 
   const stoneValue = stones?.reduce((sum, stone) =>
     sum + (stone.stonePrice || 0) * (stone.pieceCount || 1), 0) || 0;
@@ -194,14 +189,14 @@ export async function getProducts(shopId, organizationId, filters = {}, options 
 
   const query = { shopId, organizationId, deletedAt: null };
 
-  if (category)                query.categoryId              = category;
-  if (metalType)               query['metal.type']           = metalType;
-  if (purity)                  query['metal.purity']         = purity;
-  if (status)                  query.status                  = status;
-  if (saleStatus)              query.saleStatus              = saleStatus;
-  if (gender)                  query.gender                  = gender;
-  if (isActive !== undefined)  query.isActive                = isActive;
-  if (isFeatured !== undefined) query.isFeatured             = isFeatured;
+  if (category)                 query.categoryId              = category;
+  if (metalType)                query['metal.type']           = metalType;
+  if (purity)                   query['metal.purity']         = purity;
+  if (status)                   query.status                  = status;
+  if (saleStatus)               query.saleStatus              = saleStatus;
+  if (gender)                   query.gender                  = gender;
+  if (isActive !== undefined)   query.isActive                = isActive;
+  if (isFeatured !== undefined) query.isFeatured              = isFeatured;
 
   if (minPrice || maxPrice) {
     query['pricing.sellingPrice'] = {};
@@ -292,9 +287,9 @@ export async function updateProduct(productId, shopId, organizationId, updateDat
     const newQuantity  = updateData.stock.quantity;
     const reorderLevel = updateData.stock.reorderLevel || product.stock.reorderLevel || 0;
 
-    if (newQuantity === 0)             updateData.stock.status = 'out_of_stock';
+    if (newQuantity === 0)                updateData.stock.status = 'out_of_stock';
     else if (newQuantity <= reorderLevel) updateData.stock.status = 'low_stock';
-    else                               updateData.stock.status = 'in_stock';
+    else                                  updateData.stock.status = 'in_stock';
   }
 
   let finalCategoryId    = updateData.categoryId;
@@ -369,7 +364,7 @@ export async function deleteProduct(productId, shopId, organizationId, userId) {
 }
 
 // ─────────────────────────────────────────────
-// UPDATE STOCK  ← email call yahan hai
+// UPDATE STOCK
 // ─────────────────────────────────────────────
 export async function updateStock(productId, shopId, organizationId, stockData, userId) {
   const { operation, quantity, reason, referenceType, referenceId } = stockData;
@@ -380,7 +375,7 @@ export async function updateStock(productId, shopId, organizationId, stockData, 
   if (!product) throw new ProductNotFoundError('Product not found');
 
   const previousQuantity = product.stock.quantity;
-  const previousStatus   = product.stock.status; // ← pehle status save karo
+  const previousStatus   = product.stock.status;
   let newQuantity;
 
   switch (operation) {
@@ -401,7 +396,6 @@ export async function updateStock(productId, shopId, organizationId, stockData, 
   const transactionType =
     operation === 'add' ? 'IN' : operation === 'subtract' ? 'OUT' : 'ADJUSTMENT';
 
-  // adjustStock return karta hai updated product — product.updateStock() internally status bhi set karta hai
   const updatedProduct = await adjustStock({
     organizationId,
     shopId,
@@ -411,31 +405,21 @@ export async function updateStock(productId, shopId, organizationId, stockData, 
     performedBy: userId,
   });
 
-  // ── LOW STOCK EMAIL ──────────────────────
+  // ── EVENT EMIT ──────────────────────────
+  // Sirf tab emit karo jab in_stock → low_stock ya out_of_stock ho
+  // email.listener → shop admins ko alert email
   const newStatus = updatedProduct?.stock?.status;
 
-  // Sirf tab email jab in_stock → low_stock ya out_of_stock ho
   if (
     previousStatus === 'in_stock' &&
     (newStatus === 'low_stock' || newStatus === 'out_of_stock')
   ) {
-    const shopAdmins = await User.find({
+    eventBus.emit('PRODUCT_LOW_STOCK', {
+      product:        updatedProduct,
+      newStatus,
       organizationId,
-      role:     { $in: ['org_admin', 'shop_admin'] },
-      isActive: true,
-    }).select('firstName email').lean();
-
-    if (shopAdmins.length > 0) {
-      Promise.all(
-        shopAdmins.map(admin =>
-          sendLowStockAlertEmail(updatedProduct, admin, newStatus).catch(err =>
-            logger.error(
-              `Low stock alert email failed — ${product.productCode} → ${admin.email}:`, err
-            )
-          )
-        )
-      );
-    }
+      shopId,
+    });
   }
   // ─────────────────────────────────────────
 
@@ -471,7 +455,7 @@ export async function reserveProduct(productId, shopId, organizationId, reservat
   const product = await Product.findOne({
     _id: productId, shopId, organizationId, deletedAt: null,
   });
-  if (!product) throw new ProductNotFoundError('Product not found');
+  if (!product)                          throw new ProductNotFoundError('Product not found');
   if (product.saleStatus === 'sold')     throw new ValidationError('Product is already sold');
   if (product.saleStatus === 'reserved') throw new ValidationError('Product is already reserved');
   if (product.stock.quantity < 1)        throw new InsufficientStockError('Product is out of stock');
@@ -480,15 +464,17 @@ export async function reserveProduct(productId, shopId, organizationId, reservat
 
   await InventoryTransaction.create({
     organizationId, shopId,
-    productId: product._id, productCode: product.productCode,
-    transactionType: 'RESERVED', quantity: 1,
+    productId:       product._id,
+    productCode:     product.productCode,
+    transactionType: 'RESERVED',
+    quantity:        1,
     previousQuantity: product.stock.quantity,
     newQuantity:      product.stock.quantity,
-    transactionDate: new Date(),
-    referenceType: 'reservation',
-    performedBy: userId,
-    reason: notes || 'Product reserved for customer',
-    metadata: { customerId, reservationDays },
+    transactionDate:  new Date(),
+    referenceType:   'reservation',
+    performedBy:     userId,
+    reason:          notes || 'Product reserved for customer',
+    metadata:        { customerId, reservationDays },
   });
 
   cache.del(cache.productKey(productId));
@@ -506,23 +492,25 @@ export async function cancelReservation(productId, shopId, organizationId, userI
   const product = await Product.findOne({
     _id: productId, shopId, organizationId, deletedAt: null,
   });
-  if (!product) throw new ProductNotFoundError('Product not found');
-  if (product.saleStatus !== 'reserved') throw new ValidationError('Product is not reserved');
+  if (!product)                              throw new ProductNotFoundError('Product not found');
+  if (product.saleStatus !== 'reserved')     throw new ValidationError('Product is not reserved');
 
   const customerId = product.reservedFor?.customerId;
   await product.cancelReservation();
 
   await InventoryTransaction.create({
     organizationId, shopId,
-    productId: product._id, productCode: product.productCode,
-    transactionType: 'UNRESERVED', quantity: 1,
+    productId:       product._id,
+    productCode:     product.productCode,
+    transactionType: 'UNRESERVED',
+    quantity:        1,
     previousQuantity: product.stock.quantity,
     newQuantity:      product.stock.quantity,
-    transactionDate: new Date(),
-    referenceType: 'reservation',
-    performedBy: userId,
-    reason: 'Reservation cancelled',
-    metadata: { customerId },
+    transactionDate:  new Date(),
+    referenceType:   'reservation',
+    performedBy:     userId,
+    reason:          'Reservation cancelled',
+    metadata:        { customerId },
   });
 
   cache.del(cache.productKey(productId));
@@ -544,24 +532,27 @@ export async function markAsSold(productId, shopId, organizationId, saleData, us
   const product = await Product.findOne({
     _id: productId, shopId, organizationId, deletedAt: null,
   });
-  if (!product) throw new ProductNotFoundError('Product not found');
-  if (product.saleStatus === 'sold')  throw new ValidationError('Product is already sold');
-  if (product.stock.quantity < 1)     throw new InsufficientStockError('Product is out of stock');
+  if (!product)                         throw new ProductNotFoundError('Product not found');
+  if (product.saleStatus === 'sold')    throw new ValidationError('Product is already sold');
+  if (product.stock.quantity < 1)       throw new InsufficientStockError('Product is out of stock');
 
   await product.markAsSold(customerId);
 
   await InventoryTransaction.create({
     organizationId, shopId,
-    productId: product._id, productCode: product.productCode,
-    transactionType: 'SALE', quantity: 1,
+    productId:       product._id,
+    productCode:     product.productCode,
+    transactionType: 'SALE',
+    quantity:        1,
     previousQuantity: product.stock.quantity + 1,
     newQuantity:      product.stock.quantity,
-    transactionDate: new Date(),
-    referenceType: 'sale', referenceId: saleId || null,
-    performedBy: userId,
-    reason: 'Product sold',
-    value: product.pricing.sellingPrice,
-    metadata: { customerId },
+    transactionDate:  new Date(),
+    referenceType:   'sale',
+    referenceId:     saleId || null,
+    performedBy:     userId,
+    reason:          'Product sold',
+    value:           product.pricing.sellingPrice,
+    metadata:        { customerId },
   });
 
   cache.del(cache.productKey(productId));
@@ -722,10 +713,11 @@ export async function bulkDeleteProducts(productIds, shopId, organizationId, use
 
   await eventLogger.logActivity({
     userId, organizationId, shopId,
-    action: 'bulk_delete', module: 'product',
+    action:      'bulk_delete',
+    module:      'product',
     description: `Bulk deleted ${deletedCount} products`,
-    level: 'info',
-    metadata: { productIds, deletedCount },
+    level:       'info',
+    metadata:    { productIds, deletedCount },
   });
 
   return { deletedCount };
@@ -743,10 +735,11 @@ export async function bulkUpdateStatus(productIds, shopId, organizationId, statu
 
   await eventLogger.logActivity({
     userId, organizationId, shopId,
-    action: 'bulk_update_status', module: 'product',
+    action:      'bulk_update_status',
+    module:      'product',
     description: `Bulk updated status to ${status} for ${result.modifiedCount} products`,
-    level: 'info',
-    metadata: { productIds, status, modifiedCount: result.modifiedCount },
+    level:       'info',
+    metadata:    { productIds, status, modifiedCount: result.modifiedCount },
   });
 
   return { modifiedCount: result.modifiedCount };

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-
+import Party from './Party.js';
 const jewelryShopSchema = new mongoose.Schema(
   {
     // BASIC SHOP INFORMATION

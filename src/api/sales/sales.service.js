@@ -1,25 +1,18 @@
 // FILE: services/sales.service.js
-// Sales Service - FULLY FIXED (organizationId + bugs fixed + email integrated)
+// Sales Service - EDA Implemented
 
 import mongoose from 'mongoose';
 import Sale from '../../models/Sale.js';
 import Customer from '../../models/Customer.js';
 import Payment from '../../models/Payment.js';
-import { decreaseStock, returnStock } from '../inventory/inventory.service.js';
 import JewelryShop from '../../models/Shop.js';
-import { createDebitEntry, reverseEntry } from '../ledger/ledger.service.js';
-import LedgerEntry from '../ledger/ledger.model.js';
 import { createPayment, getSalePayments as getPaymentsFromModule } from '../payment/payment.service.js';
 import { NotFoundError, BadRequestError } from '../../utils/AppError.js';
 import eventLogger from '../../utils/eventLogger.js';
 import { businessLogger } from '../../utils/logger.js';
 import logger from '../../utils/logger.js';
 import cache from '../../utils/cache.js';
-import {
-  sendSaleInvoiceEmail,
-  sendSalePaymentReceiptEmail,
-  sendPaymentReminderEmail,
-} from '../../utils/email.js';
+import eventBus from '../../eventBus.js';
 
 // ─────────────────────────────────────────────
 // HELPER: Sale find karo with security check
@@ -77,43 +70,6 @@ export const createSale = async (shopId, saleData, userId, organizationId, ipAdd
       { session }
     );
 
-    for (const item of saleData.items) {
-      if (item.productId) {
-        await decreaseStock({
-          organizationId,
-          shopId,
-          productId:       item.productId,
-          quantity:        item.quantity,
-          referenceId:     sale[0]._id,
-          referenceNumber: invoiceNumber,
-          value:           item.itemTotal,
-          performedBy:     userId,
-          customerId:      customer._id,
-          session,
-        });
-      }
-    }
-
-    await Customer.recordPurchase(customer._id, sale[0].financials.grandTotal, session);
-
-    if (sale[0].payment.dueAmount > 0) {
-      await createDebitEntry({
-        organizationId,
-        shopId,
-        partyType:       'customer',
-        partyId:         customer._id,
-        partyModel:      'Customer',
-        partyName:       customer.fullName,
-        amount:          sale[0].payment.dueAmount,
-        referenceType:   'sale',
-        referenceId:     sale[0]._id,
-        referenceNumber: invoiceNumber,
-        description:     `Sale created - ${invoiceNumber}`,
-        createdBy:       userId,
-        session,
-      });
-    }
-
     await eventLogger.logSale(userId, organizationId, shopId, 'create', sale[0]._id,
       `Created sale ${invoiceNumber} for customer ${customer.fullName}`,
       { invoiceNumber, customerId: customer._id, amount: sale[0].financials.grandTotal, itemCount: sale[0].items.length }
@@ -129,13 +85,18 @@ export const createSale = async (shopId, saleData, userId, organizationId, ipAdd
 
     cache.invalidateShop(shopId);
 
-    // ── EMAIL: Tax Invoice ───────────────────
-    // customer.email check — email nahi hai toh skip
-    if (customer.email) {
-      sendSaleInvoiceEmail(populatedSale, customer, shop).catch(err => {
-        logger.error(`Sale invoice email failed for ${invoiceNumber}:`, err);
-      });
-    }
+    // ── EVENT EMIT ──────────────────────────
+    // inventory.listener  → stock ghataao
+    // ledger.listener     → customer debit entry
+    // customer.listener   → statistics update
+    // email.listener      → invoice email
+    eventBus.emit('SALE_CREATED', {
+      sale:       populatedSale,
+      customer,
+      shop,
+      userId,
+      session:    null, // session commit ho gayi, ab null pass karo
+    });
     // ─────────────────────────────────────────
 
     return populatedSale;
@@ -234,7 +195,7 @@ export const updateSale = async (shopId, saleId, updateData, userId, organizatio
     throw new BadRequestError('Can only edit draft or pending sales');
   }
 
-  if (updateData.invoiceNumber) delete updateData.invoiceNumber;
+  if (updateData.invoiceNumber)  delete updateData.invoiceNumber;
   if (updateData.organizationId) delete updateData.organizationId;
 
   Object.assign(sale, updateData);
@@ -313,9 +274,9 @@ export const confirmSale = async (shopId, saleId, userId, organizationId) => {
 export const deliverSale = async (shopId, saleId, deliveryData, userId, organizationId) => {
   const sale = await findSale(shopId, saleId, organizationId);
 
-  sale.status                = 'delivered';
-  sale.delivery.deliveredAt  = new Date();
-  sale.delivery.deliveredBy  = userId;
+  sale.status               = 'delivered';
+  sale.delivery.deliveredAt = new Date();
+  sale.delivery.deliveredBy = userId;
   Object.assign(sale.delivery, deliveryData);
   sale.updatedBy = userId;
   await sale.save();
@@ -325,20 +286,16 @@ export const deliverSale = async (shopId, saleId, deliveryData, userId, organiza
 };
 
 export const completeSale = async (shopId, saleId, userId, organizationId) => {
-  const sale     = await findSale(shopId, saleId, organizationId);
-  const customer = await Customer.findById(sale.customerId);
-
-  await Customer.findByIdAndUpdate(sale.customerId, {
-    $inc: { 'statistics.completedOrders': +1 },
-    $set: {
-      'statistics.averageOrderValue':
-        customer.statistics.totalSpent / (customer.statistics.completedOrders + 1),
-    },
-  });
+  const sale = await findSale(shopId, saleId, organizationId);
 
   sale.status    = 'completed';
   sale.updatedBy = userId;
   await sale.save();
+
+  // ── EVENT EMIT ──────────────────────────
+  // customer.listener → completedOrders, averageOrderValue update
+  eventBus.emit('SALE_COMPLETED', { sale });
+  // ─────────────────────────────────────────
 
   cache.invalidateShop(shopId);
   return sale;
@@ -355,40 +312,6 @@ export const cancelSale = async (shopId, saleId, reason, refundAmount, userId, o
       throw new BadRequestError('Sale is already cancelled');
     }
 
-    for (const item of sale.items) {
-      if (item.productId) {
-        await returnStock({
-          organizationId: sale.organizationId,
-          shopId, productId: item.productId,
-          quantity:        item.quantity,
-          referenceId:     sale._id,
-          referenceNumber: sale.invoiceNumber,
-          performedBy:     userId, session,
-        });
-      }
-    }
-
-    const ledgerEntry = await LedgerEntry.findOne({
-      referenceId: sale._id, referenceType: 'sale', status: 'active',
-    }).session(session);
-
-    if (ledgerEntry) {
-      await reverseEntry({
-        entryId:     ledgerEntry._id,
-        createdBy:   userId,
-        description: `Sale cancelled - ${sale.invoiceNumber}`,
-        session,
-      });
-    }
-
-    await Customer.findByIdAndUpdate(sale.customerId, {
-      $inc: {
-        'statistics.cancelledOrders': +1,
-        'statistics.completedOrders': -1,
-        'statistics.totalSpent':      -sale.financials.grandTotal,
-      },
-    }, { session });
-
     sale.status       = 'cancelled';
     sale.cancellation = {
       isCancelled:        true,
@@ -401,6 +324,14 @@ export const cancelSale = async (shopId, saleId, reason, refundAmount, userId, o
     await sale.save({ session });
 
     await session.commitTransaction();
+
+    // ── EVENT EMIT ──────────────────────────
+    // inventory.listener  → stock wapas karo
+    // ledger.listener     → ledger entry reverse
+    // customer.listener   → cancelledOrders update
+    eventBus.emit('SALE_CANCELLED', { sale, userId, reason, refundAmount });
+    // ─────────────────────────────────────────
+
     cache.invalidateShop(shopId);
     return sale;
   } catch (error) {
@@ -442,20 +373,17 @@ export const addPayment = async (shopId, saleId, paymentData, userId, organizati
     },
   });
 
-  // ── EMAIL: Payment Receipt ───────────────
-  // result.payment = newly created Payment doc
-  // customer email check karo pehle
-  if (sale.customerDetails?.email) {
-    const customer = { fullName: sale.customerDetails.customerName, email: sale.customerDetails.email };
-    const shop     = await JewelryShop.findById(shopId).lean();
+  // Updated sale fetch karo — paidAmount/dueAmount updated hoga
+  const updatedSale = await findSale(shopId, saleId, organizationId);
 
-    // Updated sale fetch karo — paidAmount/dueAmount updated hoga
-    const updatedSale = await findSale(shopId, saleId, organizationId);
-
-    sendSalePaymentReceiptEmail(result.payment, updatedSale, customer, shop).catch(err => {
-      logger.error(`Payment receipt email failed for sale ${sale.invoiceNumber}:`, err);
-    });
-  }
+  // ── EVENT EMIT ──────────────────────────
+  // reference.listener → sale paidAmount update
+  // email.listener     → receipt email
+  eventBus.emit('SALE_PAYMENT_ADDED', {
+    sale:    updatedSale,
+    payment: result.data,
+    userId,
+  });
   // ─────────────────────────────────────────
 
   return result;
@@ -508,25 +436,6 @@ export const returnSale = async (shopId, saleId, returnData, userId, organizatio
       throw new BadRequestError('Sale is already returned');
     }
 
-    const itemsToReturn = returnData.itemsToReturn || sale.items;
-
-    for (const returnItem of itemsToReturn) {
-      const saleItem = sale.items.find(
-        item => item.productId?.toString() === returnItem.productId?.toString()
-      );
-
-      if (saleItem && saleItem.productId) {
-        await returnStock({
-          organizationId: sale.organizationId,
-          shopId, productId: saleItem.productId,
-          quantity:        returnItem.quantity || saleItem.quantity,
-          referenceId:     sale._id,
-          referenceNumber: sale.invoiceNumber,
-          performedBy:     userId, session,
-        });
-      }
-    }
-
     await sale.processReturn({
       returnDate:   returnData.returnDate || new Date(),
       reason:       returnData.returnReason,
@@ -540,6 +449,18 @@ export const returnSale = async (shopId, saleId, returnData, userId, organizatio
     );
 
     await session.commitTransaction();
+
+    // ── EVENT EMIT ──────────────────────────
+    // inventory.listener  → stock wapas karo
+    // customer.listener   → totalSpent reverse
+    eventBus.emit('SALE_RETURNED', {
+      sale,
+      itemsToReturn: returnData.itemsToReturn || null,
+      refundAmount:  returnData.refundAmount,
+      userId,
+    });
+    // ─────────────────────────────────────────
+
     cache.invalidateShop(shopId);
     return sale;
   } catch (error) {
@@ -589,10 +510,10 @@ export const addOldGold = async (shopId, saleId, oldGoldData, userId, organizati
     totalValue: totalOldGoldValue,
   };
 
-  sale.financials.oldGoldValue  = totalOldGoldValue;
-  sale.financials.netPayable    = sale.financials.grandTotal - totalOldGoldValue;
-  sale.payment.totalAmount      = sale.financials.netPayable;
-  sale.payment.dueAmount        = sale.financials.netPayable - sale.payment.paidAmount;
+  sale.financials.oldGoldValue = totalOldGoldValue;
+  sale.financials.netPayable   = sale.financials.grandTotal - totalOldGoldValue;
+  sale.payment.totalAmount     = sale.financials.netPayable;
+  sale.payment.dueAmount       = sale.financials.netPayable - sale.payment.paidAmount;
 
   await sale.save();
 
@@ -654,8 +575,8 @@ export const getSalesAnalytics = async (shopId, organizationId, startDate, endDa
         totalDiscount:     { $sum: '$financials.totalDiscount' },
         totalGST:          { $sum: '$financials.totalGST' },
         averageOrderValue: { $avg: '$financials.grandTotal' },
-        paidSales:         { $sum: { $cond: [{ $eq: ['$payment.paymentStatus', 'paid'] },    1, 0] } },
-        unpaidSales:       { $sum: { $cond: [{ $eq: ['$payment.paymentStatus', 'unpaid'] },  1, 0] } },
+        paidSales:         { $sum: { $cond: [{ $eq: ['$payment.paymentStatus', 'paid'] },   1, 0] } },
+        unpaidSales:       { $sum: { $cond: [{ $eq: ['$payment.paymentStatus', 'unpaid'] }, 1, 0] } },
       },
     },
   ]);
@@ -799,8 +720,8 @@ export const getSalesPersonPerformance = async (shopId, userId, organizationId, 
   const sales = await Sale.find(query);
 
   return {
-    totalSales:  sales.length,
-    totalValue:  sales.reduce((sum, s) => sum + s.financials.grandTotal, 0),
+    totalSales:   sales.length,
+    totalValue:   sales.reduce((sum, s) => sum + s.financials.grandTotal, 0),
     averageValue: sales.length
       ? sales.reduce((sum, s) => sum + s.financials.grandTotal, 0) / sales.length
       : 0,
@@ -918,20 +839,13 @@ export const bulkDeleteSales = async (shopId, saleIds, reason, userId, organizat
       }).session(session);
 
       if (sale && sale.status === 'draft') {
-        for (const item of sale.items) {
-          if (item.productId) {
-            await returnStock({
-              organizationId: sale.organizationId, shopId,
-              productId:       item.productId,
-              quantity:        item.quantity,
-              referenceId:     sale._id,
-              referenceNumber: sale.invoiceNumber,
-              performedBy:     userId, session,
-            });
-          }
-        }
         await sale.softDelete();
         deletedCount++;
+
+        // ── EVENT EMIT ──────────────────────
+        // inventory.listener → stock wapas karo
+        eventBus.emit('SALE_CANCELLED', { sale, userId, reason });
+        // ────────────────────────────────────
       }
     }
 
@@ -981,17 +895,17 @@ export const bulkSendReminders = async (shopId, saleIds, method, organizationId)
   let sentCount = 0;
 
   for (const sale of sales) {
-    // ── EMAIL: Payment Reminder ──────────────
-    if (method === 'email' && sale.customerDetails?.email) {
-      const customer = {
+    // ── EVENT EMIT ──────────────────────────
+    // email.listener → reminder email bhejo
+    eventBus.emit('PAYMENT_REMINDER', {
+      sale,
+      customer: {
         fullName: sale.customerDetails.customerName,
         email:    sale.customerDetails.email,
-      };
-
-      sendPaymentReminderEmail(sale, customer, shop).catch(err => {
-        logger.error(`Payment reminder email failed for sale ${sale.invoiceNumber}:`, err);
-      });
-    }
+      },
+      shop,
+      method,
+    });
     // ─────────────────────────────────────────
 
     await eventLogger.logSale(null, sale.organizationId, shopId, 'send_reminder', sale._id,
@@ -1005,13 +919,8 @@ export const bulkSendReminders = async (shopId, saleIds, method, organizationId)
 };
 
 // ─────────────────────────────────────────────
-// SINGLE PAYMENT REMINDER (individual sale)
+// SINGLE PAYMENT REMINDER
 // ─────────────────────────────────────────────
-
-/**
- * Single sale ka payment reminder bhejo
- * Controller: POST /shops/:shopId/sales/:saleId/send-reminder
- */
 export const sendPaymentReminder = async (shopId, saleId, organizationId) => {
   const sale = await getSaleById(shopId, saleId, organizationId);
 
@@ -1023,14 +932,20 @@ export const sendPaymentReminder = async (shopId, saleId, organizationId) => {
     throw new BadRequestError('Customer email not found');
   }
 
-  const customer = {
-    fullName: sale.customerDetails.customerName,
-    email:    sale.customerDetails.email,
-  };
-
   const shop = await JewelryShop.findById(shopId).lean();
 
-  await sendPaymentReminderEmail(sale, customer, shop);
+  // ── EVENT EMIT ──────────────────────────
+  // email.listener → reminder email bhejo
+  eventBus.emit('PAYMENT_REMINDER', {
+    sale,
+    customer: {
+      fullName: sale.customerDetails.customerName,
+      email:    sale.customerDetails.email,
+    },
+    shop,
+    method: 'email',
+  });
+  // ─────────────────────────────────────────
 
   await eventLogger.logSale(null, sale.organizationId, shopId, 'send_reminder', sale._id,
     `Payment reminder sent for ${sale.invoiceNumber} via email`,
