@@ -1,12 +1,13 @@
 // FILE: src/api/metal-rates/metalRate.routes.js
 
 import express from 'express';
-import metalRateController from './metalRate.controller.js';
+import * as metalRateController from './metalRate.controller.js';
 import metalRateValidation from './metalRate.validation.js';
 import { authenticate } from '../middlewares/auth.js';
 import { checkShopAccess, checkPermission } from '../middlewares/checkShopAccess.js';
 import { restrictTo } from '../middlewares/restrictTo.js';
-import rateLimiter from '../middlewares/rateLimiter.js';
+import { rateLimiter } from '../middlewares/rateLimiter.js';
+
 
 const router = express.Router();
 
