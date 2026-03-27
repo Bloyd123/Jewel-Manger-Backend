@@ -27,11 +27,11 @@ const startServer = async () => {
     // Start listening
     const server = app.listen(PORT, HOST, () => {
       logger.info('='.repeat(50));
-      logger.info(`🚀 Server started successfully!`);
-      logger.info(`📍 Environment: ${NODE_ENV}`);
-      logger.info(`🌐 Server running on: http://${HOST}:${PORT}`);
-      logger.info(`🏥 Health check: http://${HOST}:${PORT}/health`);
-      logger.info(`📊 API endpoint: http://${HOST}:${PORT}/api`);
+      logger.info(`Server started successfully!`);
+      logger.info(`Environment: ${NODE_ENV}`);
+      logger.info(`Server running on: http://${HOST}:${PORT}`);
+      logger.info(`Health check: http://${HOST}:${PORT}/health`);
+      logger.info(`API endpoint: http://${HOST}:${PORT}/api`);
       logger.info('='.repeat(50));
     });
 

@@ -6,7 +6,7 @@ import logger from '../utils/logger.js';
  * Initialize All Loaders
  */
 const initLoaders = async app => {
-  logger.info('🔄 Initializing loaders...');
+  logger.info('Initializing loaders...');
 
   try {
     // 1. Load Database Connection
