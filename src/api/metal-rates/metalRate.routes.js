@@ -8,7 +8,7 @@ import { checkShopAccess, checkPermission } from '../middlewares/checkShopAccess
 import { restrictTo } from '../middlewares/restrictTo.js';
 import { rateLimiter } from '../middlewares/rateLimiter.js';
 
-
+import { PERMISSIONS } from '../../config/permission.constants.js';
 const router = express.Router();
 
 // POST /api/v1/shops/:shopId/metal-rates
@@ -16,7 +16,7 @@ router.post(
   '/shops/:shopId/metal-rates',
   authenticate,
   checkShopAccess,
-  checkPermission('canUpdateMetalRates'),
+  checkPermission(PERMISSIONS.CREATE_UPDATE_RATE),
   rateLimiter({ max: 10, windowMs: 15 * 60 * 1000 }),
   metalRateValidation.createOrUpdateRate,
   metalRateController.createOrUpdateTodayRate
@@ -36,7 +36,7 @@ router.get(
   '/shops/:shopId/metal-rates/history',
   authenticate,
   checkShopAccess,
-  checkPermission('canViewReports'),
+  checkPermission(PERMISSIONS.GET_RATE_HISTORY),
   metalRateValidation.getRateHistory,
   metalRateController.getRateHistory
 );
@@ -46,7 +46,7 @@ router.get(
   '/shops/:shopId/metal-rates/latest',
   authenticate,
   checkShopAccess,
-  checkPermission('canViewDashboard'),
+  checkPermission(PERMISSIONS.GET_CURRENT_RATE),
   metalRateController.getLatestRates
 );
 
@@ -55,7 +55,7 @@ router.get(
   '/shops/:shopId/metal-rates/trends',
   authenticate,
   checkShopAccess,
-  checkPermission('canViewReports'),
+  checkPermission(PERMISSIONS.GET_TREND_DATA),
   metalRateValidation.getTrendData,
   metalRateController.getTrendChartData
 );
@@ -65,7 +65,7 @@ router.get(
   '/shops/:shopId/metal-rates/compare',
   authenticate,
   checkShopAccess,
-  checkPermission('canViewReports'),
+  checkPermission(PERMISSIONS.COMPARE_RATES),
   metalRateValidation.compareRates,
   metalRateController.compareRates
 );
@@ -75,7 +75,7 @@ router.get(
   '/shops/:shopId/metal-rates/date/:date',
   authenticate,
   checkShopAccess,
-  checkPermission('canViewReports'),
+  checkPermission(PERMISSIONS.GET_RATE_BY_DATE),
   metalRateValidation.getRateByDate,
   metalRateController.getRateByDate
 );
@@ -84,6 +84,7 @@ router.get(
   '/shops/:shopId/metal-rates/current/purity/:metalType/:purity',
   authenticate,
   checkShopAccess,
+  checkPermission(PERMISSIONS.GET_CURRENT_RATE),
   metalRateValidation.getRateForPurity,
   metalRateController.getRateForPurity
 );
@@ -93,7 +94,7 @@ router.get(
   '/shops/:shopId/metal-rates/average',
   authenticate,
   checkShopAccess,
-  checkPermission('canViewReports'),
+  checkPermission(PERMISSIONS.GET_AVERAGE_RATE),
   metalRateValidation.getAverageRate,
   metalRateController.getAverageRate
 );

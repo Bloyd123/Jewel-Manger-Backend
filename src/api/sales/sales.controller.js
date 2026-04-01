@@ -1,9 +1,9 @@
 // FILE: controllers/sales.controller.js
 // Sales Controller - FIXED (organizationId added everywhere)
 
-import * as saleService from '../services/sales.service.js';
+import * as saleService from './sales.service.js';
 import { sendSuccess, sendCreated, sendPaginated } from '../../utils/sendResponse.js';
-import { catchAsync } from '../../middlewares/errorHandler.js';
+import { catchAsync } from '../middlewares/errorHandler.js';
 
 // 1. SALE CRUD OPERATIONS
 
@@ -490,3 +490,51 @@ export default {
   uploadDocument, getDocuments,
   approveSale, rejectSale,
 };
+// GET TOP PRODUCTS
+export const getTopProducts = catchAsync(async (req, res) => {
+  const { shopId }                   = req.params;
+  const organizationId               = req.user.organizationId;
+  const { limit, startDate, endDate } = req.query;
+
+  const products = await saleService.getTopProducts(
+    shopId,
+    organizationId,
+    limit,
+    startDate,
+    endDate
+  );
+
+  sendSuccess(res, 200, 'Top products fetched successfully', products);
+});
+export const getSalesByCategory = catchAsync(async (req, res) => {
+  const { shopId }                 = req.params;
+  const organizationId             = req.user.organizationId;
+  const { startDate, endDate }     = req.query;
+
+  const data = await saleService.getSalesByCategory(
+    shopId, organizationId, startDate, endDate
+  );
+
+  sendSuccess(res, 200, 'Sales by category fetched successfully', data);
+});
+
+export const getMonthlyComparison = catchAsync(async (req, res) => {
+  const { shopId }     = req.params;
+  const organizationId = req.user.organizationId;
+
+  const data = await saleService.getMonthlyComparison(shopId, organizationId);
+
+  sendSuccess(res, 200, 'Monthly comparison fetched successfully', data);
+});
+
+export const getRevenueVsExpenses = catchAsync(async (req, res) => {
+  const { shopId }             = req.params;
+  const organizationId         = req.user.organizationId;
+  const { startDate, endDate } = req.query;
+
+  const data = await saleService.getRevenueVsExpenses(
+    shopId, organizationId, startDate, endDate
+  );
+
+  sendSuccess(res, 200, 'Revenue vs expenses fetched successfully', data);
+});

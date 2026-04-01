@@ -502,7 +502,66 @@ export const removeBlacklistValidation = validate([
   param('id').isMongoId().withMessage('Invalid supplier ID'),
 ]);
 
-// EXPORT ALL VALIDATIONS
+
+export const addDocumentValidation = validate([
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
+
+  body('documentType')
+    .notEmpty()
+    .withMessage('Document type is required')
+    .isIn(['gst_certificate', 'pan_card', 'trade_license', 'contract', 'other'])
+    .withMessage('Invalid document type'),
+
+  body('documentNumber')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Document number must not exceed 100 characters'),
+
+  body('documentUrl')
+    .optional()
+    .trim()
+    .isURL()
+    .withMessage('Invalid document URL'),
+]);
+
+export const addCertificationValidation = validate([
+  param('id').isMongoId().withMessage('Invalid supplier ID'),
+
+  body('certificationType')
+    .notEmpty()
+    .withMessage('Certification type is required')
+    .isIn(['bis', 'hallmarking', 'iso', 'gemological', 'other'])
+    .withMessage('Invalid certification type'),
+
+  body('certificateNumber')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Certificate number must not exceed 100 characters'),
+
+  body('issuedBy')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Issued by must not exceed 100 characters'),
+
+  body('issueDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Invalid issue date format'),
+
+  body('expiryDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Invalid expiry date format'),
+
+  body('documentUrl')
+    .optional()
+    .trim()
+    .isURL()
+    .withMessage('Invalid document URL'),
+]);
 
 export default {
   createSupplierValidation,
@@ -513,7 +572,9 @@ export default {
   updateRatingValidation,
   blacklistSupplierValidation,
   updateBalanceValidation,
+  addDocumentValidation,
   restoreSupplierValidation,
   markPreferredValidation,
+  addCertificationValidation,
   removeBlacklistValidation,
 };

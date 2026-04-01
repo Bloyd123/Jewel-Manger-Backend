@@ -13,6 +13,10 @@ import {
   addLoyaltyPoints,
   redeemLoyaltyPoints,
   getCustomerAnalytics,
+    getCustomerLoyaltySummary,
+    getCustomerDocuments,
+    getCustomerActivity,
+    getAdvancedAnalytics,
 } from './customer.controller.js';
 
 import {
@@ -228,6 +232,46 @@ router.post(
   rateLimiter({ max: 50, windowMs: 60000 }),
   redeemLoyaltyPoints
 );
+router.get(
+  '/:customerId/activity',
+  shopIdValidation,
+  customerIdValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewCustomerHistory'),
+  rateLimiter({ max: 50, windowMs: 60000 }),
+  getCustomerActivity
+)
 
+router.get(
+  '/:customerId/documents',
+  shopIdValidation,
+  customerIdValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewCustomers'),
+  rateLimiter({ max: 50, windowMs: 60000 }),
+  getCustomerDocuments
+)
+
+router.get(
+  '/:customerId/loyalty-summary',
+  shopIdValidation,
+  customerIdValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewCustomers'),
+  rateLimiter({ max: 50, windowMs: 60000 }),
+  getCustomerLoyaltySummary
+)
+router.get(
+  '/advanced-analytics',
+  shopIdValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
+  checkPermission(PERMISSIONS.VIEW_CUSTOMER_ANALYTICS),
+  rateLimiter({ max: 20, windowMs: 60000 }),
+  getAdvancedAnalytics
+)
 
 export default router;

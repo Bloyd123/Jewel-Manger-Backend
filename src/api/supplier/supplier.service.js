@@ -2,6 +2,7 @@ import Supplier from '../../models/Supplier.js';
 import Shop from '../../models/Shop.js';
 import { NotFoundError, ValidationError, ConflictError } from '../../utils/AppError.js';
 import logger from '../../utils/logger.js';
+import ActivityLog from '../../models/ActivityLog.js';
 
 /**
  * Create a new supplier
@@ -547,6 +548,179 @@ export async function getTopSuppliers(shopId, organizationId, limit = 10) {
     return topSuppliers;
   } catch (error) {
     logger.error('Error fetching top suppliers', { error: error.message, shopId });
+    throw error;
+  }
+}
+
+
+export async function addDocument(supplierId, documentData, userId, shopId, organizationId) {
+  try {
+    const supplier = await Supplier.findOne({
+      _id: supplierId,
+      shopId,
+      organizationId,
+      deletedAt: null,
+    });
+
+    if (!supplier) throw new NotFoundError('Supplier not found');
+
+    if (supplier.documents.length >= 10) {
+      throw new ValidationError('Maximum 10 documents allowed per supplier');
+    }
+
+    supplier.documents.push({
+      documentType:   documentData.documentType,
+      documentNumber: documentData.documentNumber || '',
+      documentUrl:    documentData.documentUrl || '',
+      uploadedAt:     new Date(),
+    });
+
+    supplier.updatedBy = userId;
+    await supplier.save();
+
+    logger.info('Document added to supplier', { supplierId, userId });
+    return supplier;
+  } catch (error) {
+    logger.error('Error adding document', { error: error.message, supplierId });
+    throw error;
+  }
+}
+
+export async function deleteDocument(supplierId, documentId, userId, shopId, organizationId) {
+  try {
+    const supplier = await Supplier.findOne({
+      _id: supplierId,
+      shopId,
+      organizationId,
+      deletedAt: null,
+    });
+
+    if (!supplier) throw new NotFoundError('Supplier not found');
+
+    const docIndex = supplier.documents.findIndex(
+      doc => doc._id.toString() === documentId
+    );
+
+    if (docIndex === -1) throw new NotFoundError('Document not found');
+
+    supplier.documents.splice(docIndex, 1);
+    supplier.updatedBy = userId;
+    await supplier.save();
+
+    logger.info('Document deleted from supplier', { supplierId, documentId, userId });
+    return supplier;
+  } catch (error) {
+    logger.error('Error deleting document', { error: error.message, supplierId });
+    throw error;
+  }
+}
+
+export async function addCertification(supplierId, certData, userId, shopId, organizationId) {
+  try {
+    const supplier = await Supplier.findOne({
+      _id: supplierId,
+      shopId,
+      organizationId,
+      deletedAt: null,
+    });
+
+    if (!supplier) throw new NotFoundError('Supplier not found');
+
+    supplier.certifications.push({
+      certificationType:  certData.certificationType,
+      certificateNumber:  certData.certificateNumber || '',
+      issuedBy:           certData.issuedBy || '',
+      issueDate:          certData.issueDate || null,
+      expiryDate:         certData.expiryDate || null,
+      documentUrl:        certData.documentUrl || '',
+    });
+
+    supplier.updatedBy = userId;
+    await supplier.save();
+
+    logger.info('Certification added to supplier', { supplierId, userId });
+    return supplier;
+  } catch (error) {
+    logger.error('Error adding certification', { error: error.message, supplierId });
+    throw error;
+  }
+}
+
+export async function deleteCertification(supplierId, certificationId, userId, shopId, organizationId) {
+  try {
+    const supplier = await Supplier.findOne({
+      _id: supplierId,
+      shopId,
+      organizationId,
+      deletedAt: null,
+    });
+
+    if (!supplier) throw new NotFoundError('Supplier not found');
+
+    const certIndex = supplier.certifications.findIndex(
+      cert => cert._id.toString() === certificationId
+    );
+
+    if (certIndex === -1) throw new NotFoundError('Certification not found');
+
+    supplier.certifications.splice(certIndex, 1);
+    supplier.updatedBy = userId;
+    await supplier.save();
+
+    logger.info('Certification deleted from supplier', { supplierId, certificationId, userId });
+    return supplier;
+  } catch (error) {
+    logger.error('Error deleting certification', { error: error.message, supplierId });
+    throw error;
+  }
+}
+
+export async function getSupplierActivity(supplierId, shopId, organizationId, filters = {}) {
+  try {
+    const {
+      page  = 1,
+      limit = 20,
+      action,
+      startDate,
+      endDate,
+    } = filters;
+
+    const query = {
+      shopId,
+      organizationId,
+      'metadata.supplierId': supplierId,
+    };
+
+    if (action)    query.action    = action;
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate)   query.createdAt.$lte = new Date(endDate);
+    }
+
+    const ActivityLog = (await import('../../models/ActivityLog.js')).default;
+
+    const [logs, total] = await Promise.all([
+      ActivityLog.find(query)
+        .sort('-createdAt')
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit))
+        .populate('userId', 'firstName lastName email')
+        .lean(),
+      ActivityLog.countDocuments(query),
+    ]);
+
+    return {
+      logs,
+      pagination: {
+        total,
+        page:  parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit),
+      },
+    };
+  } catch (error) {
+    logger.error('Error fetching supplier activity', { error: error.message, supplierId });
     throw error;
   }
 }

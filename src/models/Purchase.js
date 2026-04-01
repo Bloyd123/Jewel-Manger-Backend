@@ -108,7 +108,7 @@ const purchaseSchema = new mongoose.Schema(
           value: { type: Number, default: 0, min: 0 },
           amount: { type: Number, default: 0, min: 0 },
         },
-        itemTotal: { type: Number, required: true, min: 0 },
+        itemTotal: { type: Number, default: 0, min: 0 },
         quantity: { type: Number, default: 1, min: 1 },
         huid: String,
         isHallmarked: { type: Boolean, default: false },
@@ -118,7 +118,6 @@ const purchaseSchema = new mongoose.Schema(
 
     // Financial Summary
     financials: {
-      subtotal: { type: Number, required: true, default: 0, min: 0 },
       totalMetalValue: { type: Number, default: 0, min: 0 },
       totalStoneValue: { type: Number, default: 0, min: 0 },
       totalMakingCharges: { type: Number, default: 0, min: 0 },
@@ -126,8 +125,9 @@ const purchaseSchema = new mongoose.Schema(
       totalDiscount: { type: Number, default: 0, min: 0 },
       totalTaxableAmount: { type: Number, default: 0, min: 0 },
       totalGST: { type: Number, default: 0, min: 0 },
+        subtotal:          { type: Number, default: 0, min: 0 }, // ✅
+  grandTotal:        { type: Number, default: 0, min: 0 },
       roundOff: { type: Number, default: 0 },
-      grandTotal: { type: Number, required: true, min: 0 },
     },
 
     // Payment Details

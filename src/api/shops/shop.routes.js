@@ -10,7 +10,7 @@ import {
   verifyShopOwnership,
 } from '../middlewares/checkShopAccess.js';
 import { restrictTo } from '../middlewares/restrictTo.js';
-
+import { PERMISSIONS } from '../../config/permission.constants.js';
 const router = express.Router();
 
 
@@ -21,7 +21,7 @@ router.post(
   '/',
   shopValidation.createShopValidation,
   restrictTo('super_admin', 'org_admin'),
-  checkPermission('canCreateShop'),
+  checkPermission(PERMISSIONS.CREATE_SHOP),
   shopController.createShop
 );
 
@@ -29,7 +29,7 @@ router.get(
   '/',
   shopValidation.getShopsValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
-  checkPermission('canViewShops'),
+  checkPermission(PERMISSIONS.VIEW_SHOPS),
   shopController.getAllShops
 );
 
@@ -37,7 +37,7 @@ router.get(
   '/:id',
   shopValidation.getShopValidation,
   checkShopAccess, 
-  checkPermission('canViewSingleShop'),
+  checkPermission(PERMISSIONS.VIEW_SINGLE_SHOP),
   shopController.getShopById
 );
 router.put(
@@ -45,7 +45,7 @@ router.put(
   shopValidation.updateShopValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canUpdateShop'), 
+  checkPermission(PERMISSIONS.UPDATE_SHOP), 
   shopController.updateShop
 );
 
@@ -54,7 +54,7 @@ router.delete(
   shopValidation.deleteShopValidation,
   restrictTo('super_admin', 'org_admin'),
   checkShopAccess, 
-  checkPermission('canDeleteShop'),
+  checkPermission(PERMISSIONS.DELETE_SHOP),
   shopController.deleteShop
 );
 
@@ -63,7 +63,7 @@ router.patch(
   shopValidation.updateShopSettingsValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canManageShopSettings'), 
+  checkPermission(PERMISSIONS.MANAGE_SHOP_SETTINGS), 
   shopController.updateShopSettings
 );
 
@@ -71,7 +71,7 @@ router.get(
   '/:id/statistics',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess, 
-  checkPermission('canViewShopStatistics'),
+  checkPermission(PERMISSIONS.VIEW_SHOP_STATISTICS),
   shopController.getShopStatistics
 );
 router.get(
@@ -79,7 +79,7 @@ router.get(
   shopValidation.getActivityLogsValidation,
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canViewActivityLogs'),
+  checkPermission(PERMISSIONS.VIEW_AUDIT_LOG),
   shopController.getShopActivityLogs
 );
 

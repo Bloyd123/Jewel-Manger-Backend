@@ -14,6 +14,7 @@ import {
   createUpdateRateLimiter,
   deleteRateLimiter,
 } from '../middlewares/rateLimiter.js';
+import { PERMISSIONS } from '../../config/permission.constants.js';
 
 const router = express.Router({ mergeParams: true });
 router.use(authenticate);
@@ -24,19 +25,28 @@ router.get(
   '/analytics',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewAnalytics'),
+  checkPermission(PERMISSIONS.VIEW_ANALYTICS),
   apiRateLimiter,
   saleValidation.getAnalytics,
   saleController.getSalesAnalytics
 );
+// GET /api/v1/shops/:shopId/sales/top-products
 
+router.get(
+  '/top-products',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
+  checkShopAccess,
+  checkPermission(PERMISSIONS.VIEW_ANALYTICS),
+  apiRateLimiter,
+  saleController.getTopProducts
+);
 //  GET /api/v1/shops/:shopId/sales/dashboard
 
 router.get(
   '/dashboard',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewDashboard'),
+  checkPermission(PERMISSIONS.VIEW_DASHBOARD),
   apiRateLimiter,
   saleController.getSalesDashboard
 );
@@ -47,7 +57,7 @@ router.get(
   '/today',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleController.getTodaySales
 );
@@ -58,7 +68,7 @@ router.get(
   '/pending',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleController.getPendingSales
 );
@@ -69,7 +79,7 @@ router.get(
   '/unpaid',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewFinancials'),
+  checkPermission(PERMISSIONS.VIEW_FINANCIALS),
   apiRateLimiter,
   saleController.getUnpaidSales
 );
@@ -80,7 +90,7 @@ router.get(
   '/overdue',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewFinancials'),
+  checkPermission(PERMISSIONS.VIEW_FINANCIALS),
   apiRateLimiter,
   saleController.getOverdueSales
 );
@@ -91,7 +101,7 @@ router.get(
   '/search',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleValidation.searchSales,
   saleController.searchSales
@@ -103,7 +113,7 @@ router.get(
   '/by-date-range',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleValidation.dateRange,
   saleController.getSalesByDateRange
@@ -115,7 +125,7 @@ router.get(
   '/by-amount-range',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleValidation.amountRange,
   saleController.getSalesByAmountRange
@@ -127,7 +137,7 @@ router.get(
   '/customer/:customerId',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleController.getCustomerSales
 );
@@ -138,7 +148,7 @@ router.get(
   '/customer/:customerId/summary',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleController.getCustomerSalesSummary
 );
@@ -149,7 +159,7 @@ router.get(
   '/sales-person/:userId',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleController.getSalesPersonSales
 );
@@ -160,7 +170,7 @@ router.get(
   '/sales-person/:userId/performance',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewAnalytics'),
+  checkPermission(PERMISSIONS.VIEW_ANALYTICS),
   apiRateLimiter,
   saleController.getSalesPersonPerformance
 );
@@ -171,7 +181,7 @@ router.post(
   '/bulk-delete',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canDeleteSales'),
+  checkPermission(PERMISSIONS.DELETE_SALES),
   deleteRateLimiter,
   saleValidation.bulkDelete,
   saleController.bulkDeleteSales
@@ -183,7 +193,7 @@ router.post(
   '/bulk-print',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleValidation.bulkPrint,
   saleController.bulkPrintInvoices
@@ -195,7 +205,7 @@ router.post(
   '/bulk-send-reminders',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canManageSales'),
+  checkPermission(PERMISSIONS.MANAGE_SALES),
   createUpdateRateLimiter,
   saleValidation.bulkReminders,
   saleController.bulkSendReminders
@@ -207,7 +217,7 @@ router.post(
   '/',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
-  checkPermission('canCreateSales'),
+  checkPermission(PERMISSIONS.CREATE_SALE),
   createUpdateRateLimiter,
   saleValidation.createSale,
   saleController.createSale
@@ -218,7 +228,7 @@ router.get(
   '/',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleValidation.getSales,
   saleController.getAllSales
@@ -230,7 +240,7 @@ router.get(
   '/:saleId',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleValidation.getSale,
   saleController.getSale
@@ -242,7 +252,7 @@ router.put(
   '/:saleId',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditSales'),
+  checkPermission(PERMISSIONS.UPDATE_SALE),
   createUpdateRateLimiter,
   saleValidation.updateSale,
   saleController.updateSale
@@ -254,7 +264,7 @@ router.delete(
   '/:saleId',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canDeleteSales'),
+  checkPermission(PERMISSIONS.DELETE_SALES),
   deleteRateLimiter,
   saleValidation.deleteSale,
   saleController.deleteSale
@@ -266,7 +276,7 @@ router.patch(
   '/:saleId/status',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditSales'),
+  checkPermission(PERMISSIONS.UPDATE_SALE),
   createUpdateRateLimiter,
   saleValidation.updateStatus,
   saleController.updateSaleStatus
@@ -278,7 +288,7 @@ router.patch(
   '/:saleId/confirm',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
-  checkPermission('canEditSales'),
+  checkPermission(PERMISSIONS.UPDATE_SALE),
   createUpdateRateLimiter,
   saleValidation.confirmSale,
   saleController.confirmSale
@@ -290,7 +300,7 @@ router.patch(
   '/:saleId/deliver',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
-  checkPermission('canEditSales'),
+  checkPermission(PERMISSIONS.UPDATE_SALE),
   createUpdateRateLimiter,
   saleValidation.deliverSale,
   saleController.deliverSale
@@ -302,7 +312,7 @@ router.patch(
   '/:saleId/complete',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditSales'),
+  checkPermission(PERMISSIONS.UPDATE_SALE),
   createUpdateRateLimiter,
   saleValidation.completeSale,
   saleController.completeSale
@@ -314,7 +324,7 @@ router.patch(
   '/:saleId/cancel',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canCancelInvoices'),
+  checkPermission(PERMISSIONS.CANCEL_INVOICES),
   createUpdateRateLimiter,
   saleValidation.cancelSale,
   saleController.cancelSale
@@ -325,7 +335,7 @@ router.post(
   '/:saleId/send-reminder',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  checkPermission('canManageSales'),
+  checkPermission(PERMISSIONS.MANAGE_SALES),
   createUpdateRateLimiter,
   saleController.sendPaymentReminder
 );
@@ -335,7 +345,7 @@ router.post(
   '/:saleId/payments',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canReceivePayments'),
+  checkPermission(PERMISSIONS.RECEIVE_PAYMENTS),
   createUpdateRateLimiter,
   saleValidation.addPayment,
   saleController.addPayment
@@ -347,7 +357,7 @@ router.get(
   '/:saleId/payments',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleController.getSalePayments
 );
@@ -358,7 +368,7 @@ router.get(
   '/:saleId/receipt',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleController.generateReceipt
 );
@@ -369,7 +379,7 @@ router.post(
   '/:saleId/return',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canManageSales'),
+  checkPermission(PERMISSIONS.MANAGE_SALES),
   createUpdateRateLimiter,
   saleValidation.returnSale,
   saleController.returnSale
@@ -381,7 +391,7 @@ router.get(
   '/:saleId/return-details',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleController.getReturnDetails
 );
@@ -392,7 +402,7 @@ router.post(
   '/:saleId/old-gold',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canManageOldGold'),
+  checkPermission(PERMISSIONS.MANAGE_OLD_GOLD),
   createUpdateRateLimiter,
   saleValidation.addOldGold,
   saleController.addOldGold
@@ -404,7 +414,7 @@ router.delete(
   '/:saleId/old-gold',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canManageOldGold'),
+  checkPermission(PERMISSIONS.MANAGE_OLD_GOLD),
   createUpdateRateLimiter,
   saleController.removeOldGold
 );
@@ -415,7 +425,7 @@ router.get(
   '/:saleId/invoice',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleController.generateInvoice
 );
@@ -426,7 +436,7 @@ router.post(
   '/:saleId/invoice/send',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canGenerateInvoices'),
+  checkPermission(PERMISSIONS.GENERATE_INVOICES),
   createUpdateRateLimiter,
   saleValidation.sendInvoice,
   saleController.sendInvoice
@@ -438,7 +448,7 @@ router.post(
   '/:saleId/invoice/print',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   createUpdateRateLimiter,
   saleValidation.printInvoice,
   saleController.printInvoice
@@ -449,7 +459,7 @@ router.post(
   '/:saleId/apply-discount',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canApplyDiscounts'),
+  checkPermission(PERMISSIONS.APPLY_DISCOUNTS),
   createUpdateRateLimiter,
   saleValidation.applyDiscount,
   saleController.applyDiscount
@@ -461,7 +471,7 @@ router.delete(
   '/:saleId/remove-discount',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canApplyDiscounts'),
+  checkPermission(PERMISSIONS.APPLY_DISCOUNTS),
   createUpdateRateLimiter,
   saleController.removeDiscount
 );
@@ -471,7 +481,7 @@ router.post(
   '/:saleId/documents',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditSales'),
+  checkPermission(PERMISSIONS.UPDATE_SALE),
   createUpdateRateLimiter,
   saleValidation.uploadDocument,
   saleController.uploadDocument
@@ -482,7 +492,7 @@ router.get(
   '/:saleId/documents',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewSales'),
+  checkPermission(PERMISSIONS.VIEW_SALES),
   apiRateLimiter,
   saleController.getDocuments
 );
@@ -493,7 +503,7 @@ router.post(
   '/:saleId/approve',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canApproveSales'),
+  checkPermission(PERMISSIONS.APPROVE_SALES),
   createUpdateRateLimiter,
   saleValidation.approveSale,
   saleController.approveSale
@@ -504,10 +514,39 @@ router.post(
   '/:saleId/reject',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canApproveSales'),
+  checkPermission(PERMISSIONS.APPROVE_SALES),
   createUpdateRateLimiter,
   saleValidation.rejectSale,
   saleController.rejectSale
+);
+// GET /api/v1/shops/:shopId/sales/analytics/by-category
+router.get(
+  '/analytics/by-category',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewAnalytics'),
+  apiRateLimiter,
+  saleController.getSalesByCategory
+);
+
+// GET /api/v1/shops/:shopId/sales/analytics/monthly-comparison
+router.get(
+  '/analytics/monthly-comparison',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewAnalytics'),
+  apiRateLimiter,
+  saleController.getMonthlyComparison
+);
+
+// GET /api/v1/shops/:shopId/sales/analytics/revenue-expenses
+router.get(
+  '/analytics/revenue-expenses',
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
+  checkPermission('canViewAnalytics'),
+  apiRateLimiter,
+  saleController.getRevenueVsExpenses
 );
 
 export default router;

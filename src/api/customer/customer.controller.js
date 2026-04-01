@@ -490,6 +490,47 @@ export const redeemLoyaltyPoints = async (req, res) => {
     return sendInternalError(res, 'Failed to redeem loyalty points', error);
   }
 };
+export const getCustomerActivity = async (req, res) => {
+  try {
+    const { customerId } = req.params
+    const { module, action, limit } = req.query
+
+    const logs = await customerService.getCustomerActivity(customerId, {
+      module,
+      action,
+      limit,
+    })
+
+    return sendSuccess(res, 200, 'Activity logs fetched successfully', logs)
+  } catch (error) {
+    return sendInternalError(res, 'Failed to fetch activity logs', error)
+  }
+}
+
+export const getCustomerDocuments = async (req, res) => {
+  try {
+    const { shopId, customerId } = req.params
+
+    const documents = await customerService.getCustomerDocuments(customerId, shopId)
+
+    return sendSuccess(res, 200, 'Documents fetched successfully', documents)
+  } catch (error) {
+    if (error.name === 'NotFoundError') return sendNotFound(res, error.message)
+    return sendInternalError(res, 'Failed to fetch documents', error)
+  }
+}
+
+export const getCustomerLoyaltySummary = async (req, res) => {
+  try {
+    const { customerId } = req.params
+
+    const summary = await customerService.getCustomerLoyaltySummary(customerId)
+
+    return sendSuccess(res, 200, 'Loyalty summary fetched successfully', summary)
+  } catch (error) {
+    return sendInternalError(res, 'Failed to fetch loyalty summary', error)
+  }
+}
 
 /**
  * Get customer analytics
@@ -511,7 +552,18 @@ export const getCustomerAnalytics = async (req, res) => {
     return sendInternalError(res, 'Failed to fetch analytics', error);
   }
 };
+export const getAdvancedAnalytics = async (req, res) => {
+  try {
+    const { shopId }     = req.params
+    const organizationId = req.user.organizationId
 
+    const analytics = await customerService.getAdvancedAnalytics(shopId, organizationId)
+
+    return sendSuccess(res, 200, 'Advanced analytics fetched successfully', analytics)
+  } catch (error) {
+    return sendInternalError(res, 'Failed to fetch advanced analytics', error)
+  }
+}
 export default {
   createCustomer,
   getCustomers,
@@ -520,8 +572,13 @@ export default {
   updateCustomer,
   deleteCustomer,
   blacklistCustomer,
+  getAdvancedAnalytics,
   removeBlacklist,
   addLoyaltyPoints,
   redeemLoyaltyPoints,
   getCustomerAnalytics,
+  getCustomerLoyaltySummary,
+  getCustomerDocuments,
+  getCustomerActivity,
+  getAdvancedAnalytics,
 };

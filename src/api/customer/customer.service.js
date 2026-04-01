@@ -10,7 +10,9 @@ import {
   ValidationError,
   BadRequestError,
 } from '../../utils/AppError.js';
-
+import Sale from '../../models/Sale.js'
+import eventLogger from '../../utils/eventLogger.js'
+import ActivityLog from '../../models/ActivityLog.js'
 export const generateCustomerCode = async (shopId, prefix = 'CUST') => {
   let number = 1;
   let customerCode;
@@ -351,51 +353,115 @@ export const removeBlacklist = async (customerId, shopId, userId) => {
   return customer;
 };
 
-/**
- * Add loyalty points
- */
 export const addLoyaltyPoints = async (customerId, shopId, points, reason = null) => {
   const customer = await Customer.findOne({
     _id: customerId,
     shopId,
     deletedAt: null,
-  });
+  })
 
-  if (!customer) {
-    throw new NotFoundError('Customer not found');
-  }
+  if (!customer) throw new NotFoundError('Customer not found')
 
-  await customer.addLoyaltyPoints(points);
+  await customer.addLoyaltyPoints(points)
 
-  await invalidateCustomerCache(customerId, shopId, customer.phone);
+await eventLogger.logCustomer(
+  null,                                    // userId
+  customer.organizationId,                 // organizationId
+  shopId,                                  // shopId
+  'add_loyalty_points',                    // action
+  customer._id,                            // customerId
+  `Added ${points} loyalty points`,        // description
+  { points, reason }                       // metadata
+)
 
-  return customer;
-};
+  await invalidateCustomerCache(customerId, shopId, customer.phone)
 
-/**
- * Redeem loyalty points
- */
+  return customer
+}
+
 export const redeemLoyaltyPoints = async (customerId, shopId, points) => {
   const customer = await Customer.findOne({
     _id: customerId,
     shopId,
     deletedAt: null,
-  });
+  })
 
-  if (!customer) {
-    throw new NotFoundError('Customer not found');
-  }
+  if (!customer) throw new NotFoundError('Customer not found')
 
   if (customer.loyaltyPoints < points) {
-    throw new ValidationError('Insufficient loyalty points');
+    throw new ValidationError('Insufficient loyalty points')
   }
 
-  await customer.redeemLoyaltyPoints(points);
+  await customer.redeemLoyaltyPoints(points)
 
-  await invalidateCustomerCache(customerId, shopId, customer.phone);
+await eventLogger.logCustomer(
+  null,
+  customer.organizationId,
+  shopId,
+  'redeem_loyalty_points',
+  customer._id,
+  `Redeemed ${points} loyalty points`,
+  { points }
+)
 
-  return customer;
-};
+  await invalidateCustomerCache(customerId, shopId, customer.phone)
+
+  return customer
+}
+
+// NEW - getCustomerActivity
+export const getCustomerActivity = async (customerId, options = {}) => {
+  const { module, action, limit = 50 } = options
+
+  const queryOptions = {
+    limit: parseInt(limit),
+    ...(module && { module }),
+    ...(action && { action }),
+  }
+
+  return ActivityLog.findByUser(customerId, queryOptions)
+}
+
+// NEW - getCustomerDocuments
+export const getCustomerDocuments = async (customerId, shopId) => {
+  const customer = await Customer.findOne({
+    _id: customerId,
+    shopId,
+    deletedAt: null,
+  }).select('documents')
+
+  if (!customer) throw new NotFoundError('Customer not found')
+
+  return customer.documents
+}
+
+// NEW - getCustomerLoyaltySummary
+export const getCustomerLoyaltySummary = async (customerId) => {
+  const loyaltyLogs = await ActivityLog.findByUser(customerId, {
+    module: 'customer',
+    limit: 100,
+  })
+
+  const loyaltyTransactions = loyaltyLogs.filter(log =>
+    ['add_loyalty_points', 'redeem_loyalty_points'].includes(log.action)
+  )
+
+  const totalEarned = loyaltyTransactions
+    .filter(log => log.action === 'add_loyalty_points')
+    .reduce((sum, log) => sum + (log.metadata?.points || 0), 0)
+
+  const totalRedeemed = loyaltyTransactions
+    .filter(log => log.action === 'redeem_loyalty_points')
+    .reduce((sum, log) => sum + (log.metadata?.points || 0), 0)
+
+  const recentActivity = loyaltyTransactions.slice(0, 10)
+
+  return {
+    totalEarned,
+    totalRedeemed,
+    recentActivity,
+  }
+}
 
 /**
  * Get customer statistics
@@ -431,6 +497,434 @@ export const getCustomerStatistics = async (shopId) => {
     }
   );
 };
+export const getAdvancedAnalytics = async (shopId, organizationId) => {
+
+  const now = new Date()
+  const thirtyDaysAgo = new Date(now)
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  const ninetyDaysAgo = new Date(now)
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+
+  const [
+    basicStats,
+    growthData,
+    retentionData,
+    retentionCount,
+    totalActive,
+    topCustomers,
+    segmentationByTier,
+    segmentationByType,
+    segmentationByCategory,
+    geographyData,
+    purchasePatternData,
+    upcomingEventsRaw,
+    atRiskCustomers,
+    outstandingPayments,
+  ] = await Promise.all([
+
+    // 1. Basic Stats
+    getCustomerStatistics(shopId),
+
+    // 2. Growth Data
+    Customer.aggregate([
+      {
+        $match: {
+          shopId,
+          organizationId,
+          deletedAt: null,
+          createdAt: {
+            $gte: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year:  { $year:  '$createdAt' },
+            month: { $month: '$createdAt' },
+          },
+          newCustomers: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+      {
+        $project: {
+          _id: 0,
+          month: {
+            $concat: [
+              { $toString: '$_id.year' },
+              '-',
+              { $toString: '$_id.month' },
+            ],
+          },
+          newCustomers: 1,
+        },
+      },
+    ]),
+
+    // 3. Retention Data (monthly)
+    Customer.aggregate([
+      {
+        $match: {
+          shopId,
+          organizationId,
+          deletedAt: null,
+          'statistics.lastOrderDate': { $gte: ninetyDaysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year:  { $year:  '$statistics.lastOrderDate' },
+            month: { $month: '$statistics.lastOrderDate' },
+          },
+          activeCount: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+      {
+        $project: {
+          _id: 0,
+          month: {
+            $concat: [
+              { $toString: '$_id.year' },
+              '-',
+              { $toString: '$_id.month' },
+            ],
+          },
+          rate: '$activeCount',
+        },
+      },
+    ]),
+
+    // 4. Retention Rate - count karo
+    Customer.countDocuments({
+      shopId,
+      organizationId,
+      deletedAt: null,
+      isActive: true,
+      'statistics.lastOrderDate': { $gte: ninetyDaysAgo },
+    }),
+
+    // 5. Total Active - retention rate ke liye
+    Customer.countDocuments({
+      shopId,
+      organizationId,
+      deletedAt: null,
+      isActive: true,
+    }),
+
+    // 6. Top Customers
+    Customer.find({
+      shopId,
+      organizationId,
+      deletedAt: null,
+      isActive: true,
+    })
+      .sort({ 'statistics.totalSpent': -1 })
+      .limit(10)
+      .select(
+        'firstName lastName customerCode phone email totalPurchases loyaltyPoints membershipTier statistics.lastOrderDate'
+      )
+      .lean(),
+
+    // 7. Segmentation by Tier
+    Customer.aggregate([
+      { $match: { shopId, organizationId, deletedAt: null } },
+      {
+        $group: {
+          _id:   '$membershipTier',
+          value: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id:  0,
+          name: '$_id',
+          value: 1,
+        },
+      },
+    ]),
+
+    // 8. Segmentation by Type
+    Customer.aggregate([
+      { $match: { shopId, organizationId, deletedAt: null } },
+      {
+        $group: {
+          _id:   '$customerType',
+          value: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id:  0,
+          name: '$_id',
+          value: 1,
+        },
+      },
+    ]),
+
+    // 9. Segmentation by Category
+    Customer.aggregate([
+      { $match: { shopId, organizationId, deletedAt: null } },
+      {
+        $group: {
+          _id:   '$customerCategory',
+          value: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id:  0,
+          name: '$_id',
+          value: 1,
+        },
+      },
+    ]),
+
+    // 10. Geographic Distribution
+    Customer.aggregate([
+      {
+        $match: {
+          shopId,
+          organizationId,
+          deletedAt: null,
+          'address.city': { $exists: true, $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id:       '$address.city',
+          customers: { $sum: 1 },
+          revenue:   { $sum: '$totalPurchases' },
+        },
+      },
+      { $sort: { customers: -1 } },
+      { $limit: 10 },
+      {
+        $project: {
+          _id:  0,
+          city: '$_id',
+          customers: 1,
+          revenue: 1,
+        },
+      },
+    ]),
+
+    // 11. Purchase Pattern
+    Sale.aggregate([
+      {
+        $match: {
+          shopId,
+          organizationId,
+          deletedAt: null,
+          status: { $ne: 'cancelled' },
+          saleDate: {
+            $gte: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year:  { $year:  '$saleDate' },
+            month: { $month: '$saleDate' },
+          },
+          orders:  { $sum: 1 },
+          revenue: { $sum: '$financials.grandTotal' },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+      {
+        $project: {
+          _id: 0,
+          month: {
+            $concat: [
+              { $toString: '$_id.year' },
+              '-',
+              { $toString: '$_id.month' },
+            ],
+          },
+          orders: 1,
+          revenue: 1,
+          averageOrderValue: { $divide: ['$revenue', '$orders'] },
+        },
+      },
+    ]),
+
+    // 12. Upcoming Events raw data
+    Customer.aggregate([
+      {
+        $match: {
+          shopId,
+          organizationId,
+          deletedAt: null,
+          isActive: true,
+          $or: [
+            { dateOfBirth:     { $exists: true, $ne: null } },
+            { anniversaryDate: { $exists: true, $ne: null } },
+          ],
+        },
+      },
+      {
+        $project: {
+          customerCode:    1,
+          customerName:    { $concat: ['$firstName', ' ', { $ifNull: ['$lastName', ''] }] },
+          dateOfBirth:     1,
+          anniversaryDate: 1,
+        },
+      },
+      { $limit: 50 },
+    ]),
+
+    // 13. At-Risk Customers
+    Customer.find({
+      shopId,
+      organizationId,
+      deletedAt: null,
+      isActive: true,
+      'statistics.lastOrderDate': {
+        $lt: ninetyDaysAgo,
+        $exists: true,
+      },
+    })
+      .sort({ 'statistics.lastOrderDate': 1 })
+      .limit(10)
+      .select('firstName lastName customerCode phone statistics.lastOrderDate totalPurchases')
+      .lean()
+      .then(customers =>
+        customers.map(c => {
+          const daysSinceLastOrder = Math.floor(
+            (now - new Date(c.statistics.lastOrderDate)) / (1000 * 60 * 60 * 24)
+          )
+          return {
+            _id:                c._id,
+            customerCode:       c.customerCode,
+            fullName:           `${c.firstName} ${c.lastName || ''}`.trim(),
+            phone:              c.phone,
+            lastOrderDate:      c.statistics.lastOrderDate,
+            daysSinceLastOrder,
+            totalPurchases:     c.totalPurchases,
+            riskLevel:
+              daysSinceLastOrder > 180 ? 'high'
+              : daysSinceLastOrder > 90 ? 'medium'
+              : 'low',
+          }
+        })
+      ),
+
+    // 14. Outstanding Payments
+    Customer.find({
+      shopId,
+      organizationId,
+      deletedAt: null,
+      totalDue: { $gt: 0 },
+    })
+      .sort({ totalDue: -1 })
+      .limit(10)
+      .select('firstName lastName customerCode phone totalDue statistics.lastOrderDate')
+      .lean()
+      .then(customers =>
+        customers.map(c => ({
+          _id:             c._id,
+          customerCode:    c.customerCode,
+          fullName:        `${c.firstName} ${c.lastName || ''}`.trim(),
+          phone:           c.phone,
+          totalDue:        c.totalDue,
+          overdueAmount:   c.totalDue,
+          lastPaymentDate: c.statistics?.lastOrderDate || null,
+          daysOverdue:     c.statistics?.lastOrderDate
+            ? Math.floor(
+                (now - new Date(c.statistics.lastOrderDate)) / (1000 * 60 * 60 * 24)
+              )
+            : 0,
+        }))
+      ),
+  ])
+
+  // Growth Rate calculate karo
+  const lastMonthCustomers = growthData[growthData.length - 2]?.newCustomers || 0
+  const thisMonthCustomers = growthData[growthData.length - 1]?.newCustomers || 0
+  const growthRate =
+    lastMonthCustomers > 0
+      ? parseFloat(
+          (((thisMonthCustomers - lastMonthCustomers) / lastMonthCustomers) * 100).toFixed(2)
+        )
+      : 0
+
+  // Retention Rate calculate karo
+  const retentionRate =
+    totalActive > 0
+      ? parseFloat(((retentionCount / totalActive) * 100).toFixed(2))
+      : 0
+
+  // Upcoming Events process karo
+  const upcomingEvents = []
+  const today = new Date()
+
+  upcomingEventsRaw.forEach(customer => {
+    if (customer.dateOfBirth) {
+      const dob       = new Date(customer.dateOfBirth)
+      const thisYear  = new Date(today.getFullYear(), dob.getMonth(), dob.getDate())
+      const daysUntil = Math.ceil((thisYear - today) / (1000 * 60 * 60 * 24))
+
+      if (daysUntil >= 0 && daysUntil <= 30) {
+        upcomingEvents.push({
+          _id:          customer._id,
+          customerCode: customer.customerCode,
+          customerName: customer.customerName,
+          eventType:    'birthday',
+          date:         thisYear.toISOString(),
+          daysUntil,
+        })
+      }
+    }
+
+    if (customer.anniversaryDate) {
+      const ann       = new Date(customer.anniversaryDate)
+      const thisYear  = new Date(today.getFullYear(), ann.getMonth(), ann.getDate())
+      const daysUntil = Math.ceil((thisYear - today) / (1000 * 60 * 60 * 24))
+
+      if (daysUntil >= 0 && daysUntil <= 30) {
+        upcomingEvents.push({
+          _id:          customer._id,
+          customerCode: customer.customerCode,
+          customerName: customer.customerName,
+          eventType:    'anniversary',
+          date:         thisYear.toISOString(),
+          daysUntil,
+        })
+      }
+    }
+  })
+
+  const sortedEvents = upcomingEvents
+    .sort((a, b) => a.daysUntil - b.daysUntil)
+    .slice(0, 10)
+
+  return {
+    ...basicStats,
+    growthRate,
+    retentionRate,
+    growthData,
+    retentionData,
+    topCustomers: topCustomers.map(c => ({
+      ...c,
+      fullName: `${c.firstName} ${c.lastName || ''}`.trim(),
+    })),
+    segmentationData: {
+      byTier:     segmentationByTier,
+      byType:     segmentationByType,
+      byCategory: segmentationByCategory,
+    },
+    geographyData,
+    purchasePatternData,
+    upcomingEvents:     sortedEvents,
+    atRiskCustomers,
+    outstandingPayments,
+  }
+}
 
 /**
  * Normalize customer data

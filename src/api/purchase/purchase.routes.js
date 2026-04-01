@@ -10,7 +10,7 @@ import {
 } from '../middlewares/rateLimiter.js';
 import * as purchaseController from './purchase.controller.js';
 import * as purchaseValidation from './purchase.validation.js';
-
+import { PERMISSIONS } from '../../config/permission.constants.js';
 const router = express.Router({ mergeParams: true });
 
 
@@ -22,8 +22,7 @@ router.get(
   '/analytics',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  // checkPermission('canViewAnalytics'),
-  checkPermission('canViewPurchaseAnalytics'),
+ checkPermission(PERMISSIONS.VIEW_PURCHASE_ANALYTICS),
   apiRateLimiter,
   purchaseValidation.analyticsValidation, // optional dates
   purchaseController.getPurchaseAnalytics
@@ -34,7 +33,7 @@ router.get(
   '/pending',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canViewPurchases'),
+  checkPermission(PERMISSIONS.VIEW_PURCHASES),
   apiRateLimiter,
   purchaseController.getPendingPurchases
 );
@@ -46,7 +45,7 @@ router.get(
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'accountant'),
   checkShopAccess,
   // checkPermission('canViewFinancials'),
-  checkPermission('canViewUnpaidPurchases') ,
+  checkPermission(PERMISSIONS.VIEW_UNPAID_PURCHASES) ,
   apiRateLimiter,
   purchaseController.getUnpaidPurchases
 );
@@ -57,7 +56,7 @@ router.get(
 router.get(
   '/supplier/:supplierId',
   checkShopAccess,
-  checkPermission('canViewPurchases'),
+  checkPermission(PERMISSIONS.VIEW_PURCHASES),
   apiRateLimiter,
   purchaseValidation.supplierId,
   purchaseController.getPurchasesBySupplier
@@ -71,7 +70,7 @@ router.post(
   '/bulk-delete',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canDeletePurchases'),
+  checkPermission(PERMISSIONS.DELETE_PURCHASES),
   deleteRateLimiter,
   purchaseValidation.bulkDelete,
   purchaseController.bulkDeletePurchases
@@ -83,7 +82,7 @@ router.post(
   '/bulk-approve',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canApprovePurchases'),
+  checkPermission(PERMISSIONS.APPROVE_PURCHASES),
   createUpdateRateLimiter,
   purchaseValidation.bulkApprove,
   purchaseController.bulkApprovePurchases
@@ -97,7 +96,7 @@ router.post(
 router.get(
   '/search',
   checkShopAccess,
-  checkPermission('canViewPurchases'),
+  checkPermission(PERMISSIONS.VIEW_PURCHASES),
   apiRateLimiter,
   purchaseValidation.searchPurchases,
   purchaseController.searchPurchases
@@ -108,7 +107,7 @@ router.get(
 router.get(
   '/by-date-range',
   checkShopAccess,
-  checkPermission('canViewPurchases'),
+  checkPermission(PERMISSIONS.VIEW_PURCHASES),
   apiRateLimiter,
   purchaseValidation.dateRange,
   purchaseController.getPurchasesByDateRange
@@ -121,7 +120,7 @@ router.post(
   '/',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canCreatePurchase'),
+  checkPermission(PERMISSIONS.CREATE_PURCHASE),
   createUpdateRateLimiter,
   purchaseValidation.createPurchase,
   purchaseController.createPurchase
@@ -132,7 +131,7 @@ router.post(
 router.get(
   '/',
   checkShopAccess,
-  checkPermission('canViewPurchases'),
+  checkPermission(PERMISSIONS.VIEW_PURCHASES),
   apiRateLimiter,
   purchaseValidation.getPurchases,
   purchaseController.getAllPurchases
@@ -142,7 +141,7 @@ router.get(
 router.get(
   '/:purchaseId',
   checkShopAccess,
-  checkPermission('canViewPurchases'),
+  checkPermission(PERMISSIONS.VIEW_PURCHASES),
   apiRateLimiter,
   purchaseValidation.purchaseId,
   purchaseController.getPurchaseById
@@ -154,7 +153,7 @@ router.put(
   '/:purchaseId',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canUpdatePurchase') ,
+  checkPermission(PERMISSIONS.UPDATE_PURCHASE) ,
   // checkPermission('canEditPurchases')  , 
   createUpdateRateLimiter,
   purchaseValidation.updatePurchase,
@@ -167,7 +166,7 @@ router.delete(
   '/:purchaseId',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canDeletePurchases'),
+  checkPermission(PERMISSIONS.DELETE_PURCHASES),
   deleteRateLimiter,
   purchaseValidation.purchaseId,
   purchaseController.deletePurchase
@@ -178,7 +177,7 @@ router.patch(
   '/:purchaseId/status',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canUpdatePurchase'),
+  checkPermission(PERMISSIONS.UPDATE_PURCHASE),
   createUpdateRateLimiter,
   purchaseValidation.updateStatus,
   purchaseController.updatePurchaseStatus
@@ -190,7 +189,7 @@ router.patch(
   '/:purchaseId/receive',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canUpdatePurchase'),
+  checkPermission(PERMISSIONS.UPDATE_PURCHASE),
   createUpdateRateLimiter,
   purchaseValidation.receivePurchase,
   purchaseController.receivePurchase
@@ -202,7 +201,7 @@ router.patch(
   '/:purchaseId/cancel',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canDeletePurchases'),
+  checkPermission(PERMISSIONS.DELETE_PURCHASES),
   createUpdateRateLimiter,
   purchaseValidation.cancelPurchase,
   purchaseController.cancelPurchase
@@ -214,7 +213,7 @@ router.patch(
   '/:purchaseId/return',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canDeletePurchases'),
+  checkPermission(PERMISSIONS.DELETE_PURCHASES),
   createUpdateRateLimiter,
   purchaseValidation.returnPurchase, 
   purchaseController.returnPurchase  
@@ -226,7 +225,7 @@ router.post(
   '/:purchaseId/approve',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canApprovePurchases'),
+  checkPermission(PERMISSIONS.APPROVE_PURCHASES),
   createUpdateRateLimiter,
   purchaseValidation.approvePurchase,
   purchaseController.approvePurchase
@@ -238,7 +237,7 @@ router.post(
   '/:purchaseId/reject',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canApprovePurchases'),
+  checkPermission(PERMISSIONS.APPROVE_PURCHASES),
   createUpdateRateLimiter,
   purchaseValidation.rejectPurchase,
   purchaseController.rejectPurchase
@@ -250,7 +249,7 @@ router.post(
   '/:purchaseId/payments',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  checkPermission('canMakePayments'),
+  checkPermission(PERMISSIONS.MAKE_PAYMENTS),
   createUpdateRateLimiter,
   purchaseValidation.addPayment,
   purchaseController.addPayment
@@ -261,7 +260,7 @@ router.post(
 router.get(
   '/:purchaseId/payments',
   checkShopAccess,
-  checkPermission('canViewPurchases'),
+  checkPermission(PERMISSIONS.VIEW_PURCHASES),
   apiRateLimiter,
   purchaseValidation.purchaseId,
   purchaseController.getPayments
@@ -274,7 +273,7 @@ router.post(
   '/:purchaseId/documents',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canUploadPurchaseDocuments'),
+  checkPermission(PERMISSIONS.UPLOAD_PURCHASE_DOCUMENTS),
   createUpdateRateLimiter,
   purchaseValidation.uploadDocument,
   purchaseController.uploadDocument
@@ -285,7 +284,7 @@ router.post(
 router.get(
   '/:purchaseId/documents',
   checkShopAccess,
-  checkPermission('canViewPurchases'),
+  checkPermission(PERMISSIONS.VIEW_PURCHASES),
   apiRateLimiter,
   purchaseValidation.purchaseId,
   purchaseController.getDocuments

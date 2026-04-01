@@ -260,3 +260,73 @@ export const getTopSuppliers = catchAsync(async (req, res) => {
 
   sendSuccess(res, 200, 'Top suppliers fetched successfully', topSuppliers);
 });
+// ─── ADD THESE FUNCTIONS AT THE BOTTOM OF supplier.controller.js ────────────
+
+export const addDocument = catchAsync(async (req, res) => {
+  const shopId = req.body?.shopId || req.query?.shopId || req.user.primaryShop;
+
+  const supplier = await supplierService.addDocument(
+    req.params.id,
+    req.body,
+    req.user._id,
+    shopId,
+    req.user.organizationId
+  );
+
+  sendSuccess(res, 200, 'Document added successfully', supplier);
+});
+
+export const deleteDocument = catchAsync(async (req, res) => {
+  const shopId = req.query?.shopId || req.user.primaryShop;
+
+  const supplier = await supplierService.deleteDocument(
+    req.params.id,
+    req.params.documentId,
+    req.user._id,
+    shopId,
+    req.user.organizationId
+  );
+
+  sendSuccess(res, 200, 'Document deleted successfully', supplier);
+});
+
+export const addCertification = catchAsync(async (req, res) => {
+  const shopId = req.body?.shopId || req.query?.shopId || req.user.primaryShop;
+
+  const supplier = await supplierService.addCertification(
+    req.params.id,
+    req.body,
+    req.user._id,
+    shopId,
+    req.user.organizationId
+  );
+
+  sendSuccess(res, 200, 'Certification added successfully', supplier);
+});
+
+export const deleteCertification = catchAsync(async (req, res) => {
+  const shopId = req.query?.shopId || req.user.primaryShop;
+
+  const supplier = await supplierService.deleteCertification(
+    req.params.id,
+    req.params.certificationId,
+    req.user._id,
+    shopId,
+    req.user.organizationId
+  );
+
+  sendSuccess(res, 200, 'Certification deleted successfully', supplier);
+});
+
+export const getSupplierActivity = catchAsync(async (req, res) => {
+  const shopId = req.query?.shopId || req.user.primaryShop;
+
+  const activity = await supplierService.getSupplierActivity(
+    req.params.id,
+    shopId,
+    req.user.organizationId,
+    req.query
+  );
+
+  sendSuccess(res, 200, 'Supplier activity fetched successfully', activity);
+});

@@ -1062,3 +1062,249 @@ export const rejectSale = async (shopId, saleId, reason, userId, organizationId)
   cache.invalidateShop(shopId);
   return sale;
 };
+// ─────────────────────────────────────────────
+// TOP PRODUCTS
+// ─────────────────────────────────────────────
+export const getTopProducts = async (shopId, organizationId, limit = 5, startDate, endDate) => {
+  const matchStage = {
+    shopId:         new mongoose.Types.ObjectId(shopId),
+    organizationId: new mongoose.Types.ObjectId(organizationId),
+    status:         { $nin: ['cancelled', 'draft'] },
+    deletedAt:      null,
+  };
+
+  if (startDate || endDate) {
+    matchStage.saleDate = {};
+    if (startDate) matchStage.saleDate.$gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      matchStage.saleDate.$lte = end;
+    }
+  }
+
+  const topProducts = await Sale.aggregate([
+    { $match: matchStage },
+    { $unwind: '$items' },
+    {
+      $group: {
+        _id: {
+          productName: '$items.productName',
+          productCode: '$items.productCode',
+          metalType:   '$items.metalType',
+        },
+        totalQuantity: { $sum: '$items.quantity' },
+        totalRevenue:  { $sum: '$items.itemTotal' },
+      },
+    },
+    { $sort: { totalRevenue: -1 } },
+    { $limit: parseInt(limit) },
+    {
+      $project: {
+        _id:           0,
+        productName:   '$_id.productName',
+        productCode:   '$_id.productCode',
+        metalType:     '$_id.metalType',
+        totalQuantity: 1,
+        totalRevenue:  1,
+      },
+    },
+  ]);
+
+  return topProducts;
+};
+// ─────────────────────────────────────────────
+// SALES BY CATEGORY
+// ─────────────────────────────────────────────
+export const getSalesByCategory = async (shopId, organizationId, startDate, endDate) => {
+  const matchStage = {
+    shopId:         new mongoose.Types.ObjectId(shopId),
+    organizationId: new mongoose.Types.ObjectId(organizationId),
+    status:         { $nin: ['cancelled', 'draft'] },
+    deletedAt:      null,
+  };
+
+  if (startDate || endDate) {
+    matchStage.saleDate = {};
+    if (startDate) matchStage.saleDate.$gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      matchStage.saleDate.$lte = end;
+    }
+  }
+
+  const result = await Sale.aggregate([
+    { $match: matchStage },
+    { $unwind: '$items' },
+    {
+      $group: {
+        _id:          '$items.metalType',
+        totalRevenue: { $sum: '$items.itemTotal' },
+        totalItems:   { $sum: 1 },
+      },
+    },
+    { $sort: { totalRevenue: -1 } },
+    {
+      $project: {
+        _id:          0,
+        name:         '$_id',
+        value:        '$totalRevenue',
+        totalItems:   1,
+      },
+    },
+  ]);
+
+  return result;
+};
+
+// ─────────────────────────────────────────────
+// MONTHLY COMPARISON
+// ─────────────────────────────────────────────
+export const getMonthlyComparison = async (shopId, organizationId) => {
+  const currentYear = new Date().getFullYear();
+  const lastYear    = currentYear - 1;
+
+  const matchStage = {
+    shopId:         new mongoose.Types.ObjectId(shopId),
+    organizationId: new mongoose.Types.ObjectId(organizationId),
+    status:         { $nin: ['cancelled', 'draft'] },
+    deletedAt:      null,
+    $expr: {
+      $in: [{ $year: '$saleDate' }, [currentYear, lastYear]],
+    },
+  };
+
+  const result = await Sale.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: {
+          month: { $month: '$saleDate' },
+          year:  { $year:  '$saleDate' },
+        },
+        total: { $sum: '$financials.grandTotal' },
+      },
+    },
+    { $sort: { '_id.month': 1 } },
+  ]);
+
+  // Format karo — 12 months ka array banao
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const formatted = months.map((month, idx) => {
+    const monthNum = idx + 1
+
+    const curr = result.find(r => r._id.month === monthNum && r._id.year === currentYear)
+    const last = result.find(r => r._id.month === monthNum && r._id.year === lastYear)
+
+    return {
+      month,
+      currentYear: curr?.total || 0,
+      lastYear:    last?.total || 0,
+    }
+  })
+
+  return formatted;
+};
+
+// ─────────────────────────────────────────────
+// REVENUE VS EXPENSES
+// ─────────────────────────────────────────────
+export const getRevenueVsExpenses = async (shopId, organizationId, startDate, endDate) => {
+  const matchBase = {
+    deletedAt: null,
+  };
+
+  if (startDate || endDate) {
+    matchBase.saleDate = {};
+    if (startDate) matchBase.saleDate.$gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      matchBase.saleDate.$lte = end;
+    }
+  }
+
+  // Sales revenue — monthly group
+  const revenueData = await Sale.aggregate([
+    {
+      $match: {
+        ...matchBase,
+        shopId:         new mongoose.Types.ObjectId(shopId),
+        organizationId: new mongoose.Types.ObjectId(organizationId),
+        status:         { $nin: ['cancelled', 'draft'] },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          year:  { $year:  '$saleDate' },
+          month: { $month: '$saleDate' },
+        },
+        revenue: { $sum: '$financials.grandTotal' },
+      },
+    },
+    { $sort: { '_id.year': 1, '_id.month': 1 } },
+  ]);
+
+  // Purchase expenses — monthly group
+  const Purchase = (await import('../purchase/purchase.service.js')).default ||
+    (await import('../../models/Purchase.js')).default;
+
+  const expenseData = await Purchase.aggregate([
+    {
+      $match: {
+        shopId:         new mongoose.Types.ObjectId(shopId),
+        organizationId: new mongoose.Types.ObjectId(organizationId),
+        status:         { $nin: ['cancelled', 'draft'] },
+        deletedAt:      null,
+        ...(startDate || endDate
+          ? {
+              purchaseDate: {
+                ...(startDate ? { $gte: new Date(startDate) } : {}),
+                ...(endDate   ? { $lte: new Date(endDate)   } : {}),
+              },
+            }
+          : {}),
+      },
+    },
+    {
+      $group: {
+        _id: {
+          year:  { $year:  '$purchaseDate' },
+          month: { $month: '$purchaseDate' },
+        },
+        expenses: { $sum: '$financials.grandTotal' },
+      },
+    },
+    { $sort: { '_id.year': 1, '_id.month': 1 } },
+  ]);
+
+  // Combine karo
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const currentYear = new Date().getFullYear();
+
+  const formatted = months.map((month, idx) => {
+    const monthNum = idx + 1
+
+    const rev = revenueData.find(
+      r => r._id.month === monthNum && r._id.year === currentYear
+    )
+    const exp = expenseData.find(
+      e => e._id.month === monthNum && e._id.year === currentYear
+    )
+
+    const revenue  = rev?.revenue  || 0
+    const expenses = exp?.expenses || 0
+
+    return {
+      month,
+      revenue,
+      expenses,
+      profit: revenue - expenses,
+    }
+  })
+
+  return formatted;
+};

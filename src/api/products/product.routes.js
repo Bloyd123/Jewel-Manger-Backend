@@ -23,7 +23,7 @@ import {
   checkAnyPermission,
 } from '../middlewares/checkShopAccess.js';
 import { rateLimiter } from '../middlewares/rateLimiter.js';
-
+import { PERMISSIONS } from '../../config/permission.constants.js';
 const router = express.Router();
 
 router.use(authenticate);
@@ -33,7 +33,7 @@ router.post(
   '/',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canManageProducts'),
+ checkPermission(PERMISSIONS.MANAGE_PRODUCTS),
   rateLimiter({ max: 50, windowMs: 60000 }),
   createProductValidation,
   productController.createProduct
@@ -44,7 +44,7 @@ router.get(
   '/',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
   checkShopAccess,
-  checkPermission('canViewInventory'),
+  checkPermission(PERMISSIONS.VIEW_INVENTORY),
   rateLimiter({ max: 100, windowMs: 60000 }),
   getProductsValidation,
   productController.getProducts
@@ -55,7 +55,7 @@ router.get(
   '/search',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
   checkShopAccess,
-  checkPermission('canViewInventory'),
+  checkPermission(PERMISSIONS.VIEW_INVENTORY),
   rateLimiter({ max: 100, windowMs: 60000 }),
   searchProductsValidation,
   productController.searchProducts
@@ -66,7 +66,7 @@ router.get(
   '/low-stock',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canViewInventory'),
+  checkPermission(PERMISSIONS.VIEW_INVENTORY),
   rateLimiter({ max: 30, windowMs: 60000 }),
   getLowStockValidation,
   productController.getLowStock
@@ -77,7 +77,7 @@ router.get(
   '/analytics',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewAnalytics'),
+  checkPermission(PERMISSIONS.VIEW_ANALYTICS),
   rateLimiter({ max: 20, windowMs: 60000 }),
   productController.getProductAnalytics
 );
@@ -87,7 +87,7 @@ router.get(
   '/:id',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff', 'accountant', 'user'),
   checkShopAccess,
-  checkPermission('canViewInventory'),
+  checkPermission(PERMISSIONS.VIEW_INVENTORY),
   rateLimiter({ max: 100, windowMs: 60000 }),
   getProductByIdValidation,
   productController.getProductById
@@ -98,7 +98,7 @@ router.put(
   '/:id',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditInventory'),
+  checkPermission(PERMISSIONS.EDIT_INVENTORY),
   rateLimiter({ max: 50, windowMs: 60000 }),
   updateProductValidation,
   productController.updateProduct
@@ -109,7 +109,7 @@ router.delete(
   '/:id',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canDeleteProducts'),
+  checkPermission(PERMISSIONS.DELETE_PRODUCTS),
   rateLimiter({ max: 10, windowMs: 60000 }),
   deleteProductValidation,
   productController.deleteProduct
@@ -120,7 +120,7 @@ router.patch(
   '/:id/stock',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditInventory'),
+  checkPermission(PERMISSIONS.EDIT_INVENTORY),
   rateLimiter({ max: 50, windowMs: 60000 }),
   updateStockValidation,
   productController.updateStock
@@ -131,7 +131,7 @@ router.get(
   '/:id/history',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
   checkShopAccess,
-  checkPermission('canViewInventory'),
+  checkPermission(PERMISSIONS.VIEW_INVENTORY),
   rateLimiter({ max: 30, windowMs: 60000 }),
   productController.getProductHistory
 );
@@ -141,7 +141,7 @@ router.patch(
   '/:id/reserve',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
-  checkAnyPermission(['canManageSales', 'canCreateSales']),
+  checkAnyPermission([PERMISSIONS.MANAGE_SALES, PERMISSIONS.CREATE_SALE]),
   rateLimiter({ max: 50, windowMs: 60000 }),
   reserveProductValidation,
   productController.reserveProduct
@@ -152,7 +152,7 @@ router.patch(
   '/:id/cancel-reservation',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
-  checkAnyPermission(['canManageSales', 'canCreateSales']),
+  checkAnyPermission([PERMISSIONS.MANAGE_SALES, PERMISSIONS.CREATE_SALE]),
   rateLimiter({ max: 30, windowMs: 60000 }),
   productController.cancelReservation
 );
@@ -162,7 +162,7 @@ router.patch(
   '/:id/sold',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'staff'),
   checkShopAccess,
-  checkAnyPermission(['canManageSales', 'canCreateSales']),
+  checkAnyPermission([PERMISSIONS.MANAGE_SALES, PERMISSIONS.CREATE_SALE]),
   rateLimiter({ max: 50, windowMs: 60000 }),
   markAsSoldValidation,
   productController.markAsSold
@@ -173,7 +173,7 @@ router.post(
   '/:id/calculate-price',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkAnyPermission(['canEditInventory', 'canManageMetalRates']),
+  checkAnyPermission([PERMISSIONS.EDIT_INVENTORY, PERMISSIONS.MANAGE_METAL_RATES]),
   rateLimiter({ max: 30, windowMs: 60000 }),
   calculatePriceValidation,
   productController.calculatePrice
@@ -184,7 +184,7 @@ router.post(
   '/bulk-delete',
   restrictTo('super_admin', 'org_admin', 'shop_admin'),
   checkShopAccess,
-  checkPermission('canDeleteProducts'),
+  checkPermission(PERMISSIONS.DELETE_PRODUCTS),
   rateLimiter({ max: 5, windowMs: 60000 }),
   bulkDeleteValidation,
   productController.bulkDeleteProducts
@@ -195,7 +195,7 @@ router.post(
   '/bulk-update-status',
   restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
   checkShopAccess,
-  checkPermission('canEditInventory'),
+  checkPermission(PERMISSIONS.EDIT_INVENTORY),
   rateLimiter({ max: 20, windowMs: 60000 }),
   bulkUpdateStatusValidation,
   productController.bulkUpdateStatus
