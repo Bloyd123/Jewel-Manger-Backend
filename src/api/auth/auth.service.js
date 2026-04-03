@@ -236,7 +236,7 @@ export const loginUser = async (email, password, ipAddress, userAgent) => {
       throw new UnauthorizedError('Organization is inactive');
     }
 
-    if (!organization.isSubscriptionActive()) {
+    if (!organization.canAccess()) {
       throw new UnauthorizedError('Organization subscription has expired');
     }
   }

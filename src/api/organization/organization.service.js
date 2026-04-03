@@ -432,7 +432,29 @@ export const onboardSoloJeweller = async (onboardData, createdByUserId, ipAddres
       throw new ConflictError(`Username "${user.username}" already taken`);
     }
 
-    // ── Step 2: Organization banana ──
+    // ── Step 2: PEHLE User banana ──
+    // organizationId null rakhte hain — Step 4 mein set hoga
+    // role temporarily 'super_admin' rakho taaki organizationId required bypass ho
+    // Step 4 mein sahi role 'shop_admin' set kar denge
+    const [newUser] = await User.create(
+      [
+        {
+          username: user.username,
+          email: user.email,
+          password: user.password,
+          firstName: user.firstName,
+          lastName: user.lastName || '',
+          phone: user.phone,
+          organizationId: null,
+          role: 'super_admin',
+          isActive: true,
+          createdBy: createdByUserId,
+        },
+      ],
+      { session }
+    );
+
+    // ── Step 3: Ab Organization banana (ownerId available hai) ──
     const trialEndsAt = new Date();
     trialEndsAt.setMonth(trialEndsAt.getMonth() + freeForMonths);
 
@@ -443,6 +465,7 @@ export const onboardSoloJeweller = async (onboardData, createdByUserId, ipAddres
         {
           ...organization,
           slug,
+          ownerId: newUser._id, // ← ab available hai
           isActive: true,
           isVerified: false,
           createdBy: createdByUserId,
@@ -472,26 +495,12 @@ export const onboardSoloJeweller = async (onboardData, createdByUserId, ipAddres
       { session }
     );
 
-    // ── Step 3: User banana (shop_admin) ──
-    const [newUser] = await User.create(
-      [
-        {
-          username: user.username,
-          email: user.email,
-          password: user.password,
-          firstName: user.firstName,
-          lastName: user.lastName || '',
-          phone: user.phone,
-          organizationId: newOrg._id,
-          role: 'shop_admin',
-          isActive: true,
-          createdBy: createdByUserId,
-        },
-      ],
-      { session }
-    );
+    // ── Step 4: User ka organizationId aur role update karo ──
+    newUser.organizationId = newOrg._id;
+    newUser.role = 'shop_admin'; // ab sahi role set karo
+    await newUser.save({ session });
 
-    // ── Step 4: Shop banana ──
+    // ── Step 5: Shop banana ──
     const shopCode = await JewelryShop.generateCode(shop.name, newOrg._id);
 
     const [newShop] = await JewelryShop.create(
@@ -509,11 +518,11 @@ export const onboardSoloJeweller = async (onboardData, createdByUserId, ipAddres
       { session }
     );
 
-    // ── Step 5: User ka primaryShop set karo ──
+    // ── Step 6: User ka primaryShop set karo ──
     newUser.primaryShop = newShop._id;
     await newUser.save({ session });
 
-    // ── Step 6: UserShopAccess banana ──
+    // ── Step 7: UserShopAccess banana ──
     await UserShopAccess.create(
       [
         {
@@ -529,14 +538,13 @@ export const onboardSoloJeweller = async (onboardData, createdByUserId, ipAddres
       { session }
     );
 
-    // ── Step 7: Organization usage update karo ──
-    newOrg.ownerId = newUser._id;
+    // ── Step 8: Organization usage update karo ──
     newOrg.usage.totalShops = 1;
     newOrg.usage.totalUsers = 1;
     newOrg.usage.lastUpdated = new Date();
     await newOrg.save({ session });
 
-    // ── Step 8: Email verification token ──
+    // ── Step 9: Email verification token ──
     const verificationToken = tokenManager.generateEmailVerificationToken(
       newUser._id,
       newUser.email
@@ -548,7 +556,7 @@ export const onboardSoloJeweller = async (onboardData, createdByUserId, ipAddres
     newUser.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
     await newUser.save({ session });
 
-    // ── Step 9: Activity log ──
+    // ── Step 10: Activity log ──
     await ActivityLog.create(
       [
         {
