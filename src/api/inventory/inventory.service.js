@@ -4,7 +4,7 @@ import Product from '../../models/Product.js';
 import InventoryTransaction from '../../models/InventoryTransaction.js';
 import { NotFoundError, InsufficientStockError } from '../../utils/AppError.js';
 import { TRANSACTION_TYPES, REFERENCE_TYPES } from './inventory.constants.js';
-
+import JewelryShop from '../../models/Shop.js';
 export const decreaseStock = async ({
   organizationId,
   shopId,
@@ -233,38 +233,56 @@ export const createProductFromPurchase = async ({
 }) => {
   const productCode = await Product.generateProductCode(shopId);
 
+  // Shop fetch karo - markup + wastage settings ke liye
+  const shop = await JewelryShop.findById(shopId).lean();
+
+  // Shop ka markup use karo - hard coded 1.2 hatao
+  const defaultMarkup = shop?.settings?.defaultMarkupPercentage ?? 20;
+  const costPrice     = item.itemTotal / item.quantity;
+  const sellingPrice  = costPrice * (1 + defaultMarkup / 100);
+
+  // Shop ki wastage setting
+  const defaultWastage = shop?.settings?.enableWastage
+    ? shop?.settings?.defaultWastage || 0
+    : 0;
+
   const newProduct = await Product.create(
     [
       {
         organizationId,
         shopId,
-        name:        item.productName,
+        name:          item.productName,
         productCode,
-        categoryId:    item.category,       // ✅ category → categoryId
-      subCategoryId: item.subCategory,
+        categoryId:    item.category,
+        subCategoryId: item.subCategory,
         metal: {
-          type:   item.metalType,
-          purity: item.purity,
+          type:             item.metalType,
+          purity:           item.purity,
+          purityPercentage: item.purityPercentage || null,
         },
         weight: {
           grossWeight: item.grossWeight,
           stoneWeight: item.stoneWeight,
           netWeight:   item.netWeight,
           unit:        item.weightUnit,
+          wastage: {
+            percentage: item.wastagePercentage || defaultWastage,
+            weight:     0, // Pre-save me calculate hoga
+          },
         },
         stock: {
           quantity: item.quantity,
         },
         pricing: {
-          costPrice:    item.itemTotal / item.quantity,
-          sellingPrice: (item.itemTotal / item.quantity) * 1.2,
+          costPrice,
+          sellingPrice, // ← Ab shop ke markup se
         },
         supplierId,
         supplierDetails: {
           supplierName:  supplierDetails.supplierName,
           supplierCode:  supplierDetails.supplierCode,
           purchaseDate:  new Date(),
-          purchasePrice: item.itemTotal / item.quantity,
+          purchasePrice: costPrice,
           invoiceNumber: purchaseNumber,
         },
         huid:        item.huid,

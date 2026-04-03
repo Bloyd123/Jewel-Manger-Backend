@@ -13,24 +13,89 @@ import {
 } from '../../utils/AppError.js';
 import Category from '../../models/Category.js';
 import eventBus from '../../eventBus.js';
-
+// ─────────────────────────────────────────────
+// HELPER - Custom Metal Rate Build
+// ─────────────────────────────────────────────
+function buildCustomRates(metalType, customRate) {
+  return {
+    gold: {
+      gold24K: { sellingRate: customRate, buyingRate: customRate },
+      gold22K: { sellingRate: customRate, buyingRate: customRate },
+      gold18K: { sellingRate: customRate, buyingRate: customRate },
+      gold14K: { sellingRate: customRate, buyingRate: customRate },
+    },
+    silver: {
+      pure:       { sellingRate: customRate, buyingRate: customRate },
+      sterling925: { sellingRate: customRate, buyingRate: customRate },
+    },
+    platinum: {
+      sellingRate: customRate,
+      buyingRate:  customRate,
+    },
+    // getRateForPurity nahi hoga custom rates me
+    // isliye service me fallback handle hoga
+    getRateForPurity: null,
+  };
+}
 // ─────────────────────────────────────────────
 // CREATE
 // ─────────────────────────────────────────────
 export async function createProduct(productData, shopId, organizationId, userId) {
   const productCode = await Product.generateProductCode(shopId, 'PRD');
 
-  const metalRates = await MetalRate.getCurrentRate(shopId);
-  if (!metalRates) {
+// Shop fetch karo - GST + wastage + markup settings ke liye
+const shop = await JewelryShop.findById(shopId);
+
+// Metal Rate - system ya manual
+let metalRates    = await MetalRate.getCurrentRate(shopId);
+let isCustomRate  = false;
+
+if (!metalRates) {
+  if (productData.pricing?.customRate) {
+    isCustomRate = true;
+    metalRates   = buildCustomRates(
+      productData.metal.type,
+      productData.pricing.customRate
+    );
+  } else {
     throw new ValidationError(
-      'Metal rates not found for this shop. Please set metal rates first.'
+      'Metal rates not found. Please set metal rates OR provide a custom rate.'
     );
   }
+}
 
-  const grossWeight  = parseFloat(productData.weight?.grossWeight) || 0;
-  const stoneWeight  = parseFloat(productData.weight?.stoneWeight) || 0;
-  const netWeight    = grossWeight - stoneWeight;
+// Shop ki GST setting inject karo agar user ne nahi diya
+if (productData.pricing?.gst?.enabled === undefined) {
+  productData.pricing = {
+    ...productData.pricing,
+    gst: {
+      enabled:    shop?.settings?.enableGST ?? true,
+      percentage: shop?.settings?.gstRates?.[productData.metal?.type] ?? 3,
+    },
+  };
+}
 
+// Shop ki wastage setting inject karo agar user ne nahi diya
+if (
+  productData.weight?.wastage?.percentage === undefined &&
+  shop?.settings?.enableWastage &&
+  shop?.settings?.defaultWastage > 0
+) {
+  productData.weight = {
+    ...productData.weight,
+    wastage: {
+      percentage: shop.settings.defaultWastage,
+      weight:     0,
+    },
+  };
+}
+
+const grossWeight = parseFloat(productData.weight?.grossWeight) || 0;
+const stoneWeight = parseFloat(productData.weight?.stoneWeight) || 0;
+const wastagePerc = productData.weight?.wastage?.percentage || 0;
+const baseNet     = grossWeight - stoneWeight;
+const wastageWt   = (baseNet * wastagePerc) / 100;
+const netWeight   = Math.max(0, baseNet - wastageWt);
   const pricing = await calculateProductPrice(
     {
       ...productData,
@@ -70,20 +135,32 @@ export async function createProduct(productData, shopId, organizationId, userId)
     if (!subCategoryExists) throw new ValidationError('Invalid subcategory selected');
   }
 
-  const product = await Product.create({
-    organizationId,
-    shopId,
-    productCode,
-    ...productData,
-    categoryId:    finalCategoryId,
-    subCategoryId: finalSubCategoryId,
-    weight:     { ...productData.weight, netWeight },
-    pricing:    { ...productData.pricing, ...pricing },
-    stock:      { ...productData.stock, quantity, status: stockStatus },
-    createdBy:  userId,
-    isActive:   true,
-    saleStatus: 'available',
-  });
+const product = await Product.create({
+  organizationId,
+  shopId,
+  productCode,
+  ...productData,
+  categoryId:    finalCategoryId,
+  subCategoryId: finalSubCategoryId,
+  weight: {
+    ...productData.weight,
+    netWeight,
+    wastage: {
+      percentage: wastagePerc,
+      weight:     wastageWt,
+    },
+  },
+  pricing: {
+    ...productData.pricing,
+    ...pricing,
+    isCustomRate,
+    customRateNote: isCustomRate ? 'Manual rate provided by user' : null,
+  },
+  stock:      { ...productData.stock, quantity, status: stockStatus },
+  createdBy:  userId,
+  isActive:   true,
+  saleStatus: 'available',
+});
 
   await adjustStock({
     organizationId,
@@ -94,7 +171,7 @@ export async function createProduct(productData, shopId, organizationId, userId)
     performedBy: userId,
   });
 
-  const shop = await JewelryShop.findById(shopId);
+  // const shop = await JewelryShop.findById(shopId);
   if (shop) {
     shop.statistics.totalProducts       += 1;
     shop.statistics.totalInventoryValue += product.pricing.sellingPrice * product.stock.quantity;
@@ -119,28 +196,40 @@ export async function createProduct(productData, shopId, organizationId, userId)
 export async function calculateProductPrice(productData, metalRates) {
   const { metal, weight, makingCharges, stones, pricing } = productData;
 
-  let metalRate = 0;
+let metalRate = 0;
 
+// getRateForPurity use karo - purityPercentage bhi pass karo
+const rateObj = metalRates.getRateForPurity
+  ? metalRates.getRateForPurity(
+      metal.type,
+      metal.purity,
+      metal.purityPercentage || null
+    )
+  : null;
+
+if (rateObj) {
+  metalRate = rateObj.sellingRate || 0;
+} else {
+  // Fallback
   if (metal.type === 'gold') {
-    switch (metal.purity) {
-      case '24K': metalRate = metalRates.gold?.gold24K?.sellingRate || 0; break;
-      case '22K': metalRate = metalRates.gold?.gold22K?.sellingRate || 0; break;
-      case '18K': metalRate = metalRates.gold?.gold18K?.sellingRate || 0; break;
-      case '916': metalRate = metalRates.gold?.gold22K?.sellingRate || 0; break;
-      default:    metalRate = metalRates.gold?.gold22K?.sellingRate || 0;
-    }
+    metalRate = metalRates.gold?.gold22K?.sellingRate || 0;
   } else if (metal.type === 'silver') {
-    switch (metal.purity) {
-      case '999': metalRate = metalRates.silver?.pure?.sellingRate     || 0; break;
-      case '925': metalRate = metalRates.silver?.sterling?.sellingRate || 0; break;
-      default:    metalRate = metalRates.silver?.pure?.sellingRate     || 0;
-    }
+    metalRate = metalRates.silver?.pure?.sellingRate || 0;
   } else if (metal.type === 'platinum') {
     metalRate = metalRates.platinum?.sellingRate || 0;
   }
+}
 
-  const netWeight  = weight.netWeight || 0;
-  const metalValue = netWeight * metalRate;
+// Wastage calculate karo
+const grossWeight     = weight.grossWeight || 0;
+const stoneWeight     = weight.stoneWeight || 0;
+const baseNetWeight   = grossWeight - stoneWeight;
+const wastagePerc     = weight?.wastage?.percentage || 0;
+const wastageWeight   = (baseNetWeight * wastagePerc) / 100;
+const netWeight       = Math.max(0, baseNetWeight - wastageWeight);
+const wastageValue    = wastageWeight * metalRate;
+
+const metalValue = netWeight * metalRate;
 
   let makingChargesAmount = 0;
   if (makingCharges?.type === 'per_gram')        makingChargesAmount = netWeight * (makingCharges.value || 0);
@@ -157,24 +246,40 @@ export async function calculateProductPrice(productData, metalRates) {
   if (pricing?.discount?.type === 'percentage') discountAmount = (subtotal * (pricing.discount.value || 0)) / 100;
   else if (pricing?.discount?.type === 'flat')  discountAmount = pricing.discount.value || 0;
 
-  const afterDiscount = subtotal - discountAmount;
-  const gstPercentage = pricing?.gst?.percentage || 3;
-  const gstAmount     = (afterDiscount * gstPercentage) / 100;
-  const totalPrice    = afterDiscount + gstAmount;
+const afterDiscount = subtotal - discountAmount;
 
-  return {
-    metalRate, metalValue, stoneValue,
-    makingCharges: makingChargesAmount,
-    otherCharges, subtotal,
-    discount: {
-      type:   pricing?.discount?.type  || 'none',
-      value:  pricing?.discount?.value || 0,
-      amount: discountAmount,
-    },
-    gst: { percentage: gstPercentage, amount: gstAmount },
-    totalPrice,
-    sellingPrice: totalPrice,
-  };
+// GST - enabled check karo
+const gstEnabled    = pricing?.gst?.enabled !== false;
+const gstPercentage = gstEnabled ? (pricing?.gst?.percentage ?? 3) : 0;
+const gstAmount     = gstEnabled && gstPercentage > 0
+  ? (afterDiscount * gstPercentage) / 100
+  : 0;
+
+const totalPrice = afterDiscount + gstAmount;
+
+return {
+  metalRate, metalValue, stoneValue,
+  makingCharges: makingChargesAmount,
+  otherCharges, subtotal,
+  // Wastage info
+  wastage: {
+    percentage: wastagePerc,
+    weight:     wastageWeight,
+    value:      wastageValue,
+  },
+  discount: {
+    type:   pricing?.discount?.type  || 'none',
+    value:  pricing?.discount?.value || 0,
+    amount: discountAmount,
+  },
+  gst: {
+    enabled:    gstEnabled,
+    percentage: gstPercentage,
+    amount:     gstAmount,
+  },
+  totalPrice,
+  sellingPrice: totalPrice,
+};
 }
 
 // ─────────────────────────────────────────────

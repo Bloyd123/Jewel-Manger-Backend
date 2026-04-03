@@ -75,14 +75,16 @@ const saleSchema = new mongoose.Schema(
           required: true,
         },
         purity: String,
-        grossWeight: { type: Number, required: true, min: 0 },
-        stoneWeight: { type: Number, default: 0, min: 0 },
-        netWeight: { type: Number, required: true, min: 0 },
-        weightUnit: {
-          type: String,
-          enum: ['gram', 'kg', 'tola'],
-          default: 'gram',
-        },
+grossWeight:       { type: Number, required: true, min: 0 },
+stoneWeight:       { type: Number, default: 0, min: 0 },
+netWeight:         { type: Number, required: true, min: 0 },
+wastagePercentage: { type: Number, default: 0, min: 0, max: 100 },
+wastageWeight:     { type: Number, default: 0, min: 0 },
+weightUnit: {
+  type: String,
+  enum: ['gram', 'kg', 'tola'],
+  default: 'gram',
+},
         ratePerGram: { type: Number, default: 0, min: 0 },
         metalValue: { type: Number, default: 0, min: 0 },
         stoneValue: { type: Number, default: 0, min: 0 },
@@ -318,33 +320,42 @@ saleSchema.virtual('totalQuantity').get(function () {
 // ─────────────────────────────────────────────
 saleSchema.pre('save', function (next) {
   if (this.items && this.items.length > 0) {
-    this.items.forEach(item => {
-      item.netWeight = item.grossWeight - item.stoneWeight;
-      item.metalValue = item.netWeight * item.ratePerGram;
+this.items.forEach(item => {
+  // Wastage calculate karo
+  const baseNet          = item.grossWeight - item.stoneWeight;
+  const wastageWt        = (baseNet * (item.wastagePercentage || 0)) / 100;
+  item.wastageWeight     = wastageWt;
+  item.netWeight         = Math.max(0, baseNet - wastageWt);
 
-      if (item.makingChargesType === 'per_gram') {
-        item.makingCharges = item.netWeight * item.makingCharges;
-      } else if (item.makingChargesType === 'percentage') {
-        item.makingCharges = (item.metalValue * item.makingCharges) / 100;
-      }
+  item.metalValue = item.netWeight * item.ratePerGram;
 
-      item.taxableAmount = item.metalValue + item.stoneValue + item.makingCharges + item.otherCharges;
+  if (item.makingChargesType === 'per_gram') {
+    item.makingCharges = item.netWeight * item.makingCharges;
+  } else if (item.makingChargesType === 'percentage') {
+    item.makingCharges = (item.metalValue * item.makingCharges) / 100;
+  }
 
-      if (item.discount.type === 'percentage') {
-        item.discount.amount = (item.taxableAmount * item.discount.value) / 100;
-      } else if (item.discount.type === 'flat') {
-        item.discount.amount = item.discount.value;
-      }
+  item.taxableAmount = item.metalValue + item.stoneValue + item.makingCharges + item.otherCharges;
 
-      item.taxableAmount -= item.discount.amount;
+  if (item.discount.type === 'percentage') {
+    item.discount.amount = (item.taxableAmount * item.discount.value) / 100;
+  } else if (item.discount.type === 'flat') {
+    item.discount.amount = item.discount.value;
+  }
 
-      const gstAmount = (item.taxableAmount * item.gstPercentage) / 100;
-      item.cgst = gstAmount / 2;
-      item.sgst = gstAmount / 2;
-      item.totalGst = gstAmount;
+  item.taxableAmount -= item.discount.amount;
 
-      item.itemTotal = (item.taxableAmount + item.totalGst) * item.quantity;
-    });
+  // GST - sirf tab calculate karo jab gstPercentage > 0 ho
+  const gstAmount = item.gstPercentage > 0
+    ? (item.taxableAmount * item.gstPercentage) / 100
+    : 0;
+
+  item.cgst     = gstAmount / 2;
+  item.sgst     = gstAmount / 2;
+  item.totalGst = gstAmount;
+
+  item.itemTotal = (item.taxableAmount + item.totalGst) * item.quantity;
+});
 
     this.financials.subtotal = this.items.reduce((sum, item) => sum + item.taxableAmount * item.quantity, 0);
     this.financials.totalMetalValue = this.items.reduce((sum, item) => sum + item.metalValue * item.quantity, 0);

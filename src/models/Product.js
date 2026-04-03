@@ -85,16 +85,17 @@ const productSchema = new mongoose.Schema(
         required: true,
         index: true,
       },
-      purity: {
-        type: String,
-        enum: ['24K', '22K', '18K', '14K', '10K', '916', '999', '925', '850', '950', 'other'],
-        required: true,
-      },
-      purityPercentage: {
-        type: Number,
-        min: 0,
-        max: 100,
-      },
+purity: {
+  type: String,
+  trim: true,
+  required: true,
+},
+purityPercentage: {
+  type: Number,
+  min: 0,
+  max: 100,
+  default: null,
+},
       color: {
         type: String,
         enum: ['yellow', 'white', 'rose', 'mixed'],
@@ -233,12 +234,21 @@ const productSchema = new mongoose.Schema(
     },
 
     // Pricing
-    pricing: {
-      metalRate: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
+pricing: {
+  metalRate: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  isCustomRate: {
+    type: Boolean,
+    default: false,
+  },
+  customRateNote: {
+    type: String,
+    trim: true,
+    default: null,
+  },
       metalValue: {
         type: Number,
         default: 0,
@@ -264,18 +274,23 @@ const productSchema = new mongoose.Schema(
         default: 0,
         min: 0,
       },
-      gst: {
-        percentage: {
-          type: Number,
-          default: 3,
-          min: 0,
-        },
-        amount: {
-          type: Number,
-          default: 0,
-          min: 0,
-        },
-      },
+gst: {
+  enabled: {
+    type: Boolean,
+    default: true,
+  },
+  percentage: {
+    type: Number,
+    default: 3,
+    min: 0,
+    max: 100,
+  },
+  amount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+},
       totalPrice: {
         type: Number,
         default: 0,
@@ -622,18 +637,28 @@ productSchema.pre('save', function (next) {
   }
 
   // Calculate net weight
-  const gross = Number(this.weight?.grossWeight) || 0;
-  const stone = Number(this.weight?.stoneWeight) || 0;
-  this.weight.netWeight = Math.max(0, gross - stone);
+// Calculate net weight with wastage
+const gross   = Number(this.weight?.grossWeight) || 0;
+const stone   = Number(this.weight?.stoneWeight) || 0;
+const baseNet = Math.max(0, gross - stone);
 
-  // Calculate total stone value
-  if (this.stones && this.stones.length > 0) {
-    this.pricing = this.pricing || {};
+// Wastage calculate karo
+let wastageWeight = 0;
+if (this.weight?.wastage?.percentage > 0) {
+  wastageWeight = (baseNet * this.weight.wastage.percentage) / 100;
+  this.weight.wastage.weight = wastageWeight;
+}
 
-    this.pricing.stoneValue = Array.isArray(this.stones)
-      ? this.stones.reduce((sum, s) => sum + (s.totalStonePrice || 0), 0)
-      : 0;
-  }
+// Net weight = gross - stone - wastage
+this.weight.netWeight = Math.max(0, baseNet - wastageWeight);
+
+// Calculate total stone value
+if (this.stones && this.stones.length > 0) {
+  this.pricing = this.pricing || {};
+  this.pricing.stoneValue = Array.isArray(this.stones)
+    ? this.stones.reduce((sum, s) => sum + (s.totalStonePrice || 0), 0)
+    : 0;
+}
 
   next();
 });
@@ -749,11 +774,14 @@ productSchema.methods.calculatePrice = function (metalRate) {
     this.pricing.makingCharges +
     this.pricing.otherCharges;
 
-  // Calculate GST
-  this.pricing.gst.amount = (this.pricing.subtotal * this.pricing.gst.percentage) / 100;
+// GST sirf tab calculate karo jab enabled ho
+this.pricing.gst.amount =
+  this.pricing.gst.enabled && this.pricing.gst.percentage > 0
+    ? (this.pricing.subtotal * this.pricing.gst.percentage) / 100
+    : 0;
 
-  // Calculate total
-  this.pricing.totalPrice = this.pricing.subtotal + this.pricing.gst.amount;
+// Calculate total
+this.pricing.totalPrice = this.pricing.subtotal + this.pricing.gst.amount;
   this.pricing.sellingPrice = this.pricing.totalPrice;
 
   // Apply discount

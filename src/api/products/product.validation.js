@@ -51,12 +51,20 @@ export const createProductValidation = [
     .withMessage('Metal type is required')
     .isIn(['gold', 'silver', 'platinum', 'diamond', 'gemstone', 'mixed'])
     .withMessage('Invalid metal type'),
+body('metal.purity')
+  .notEmpty()
+  .withMessage('Metal purity is required')
+  .isString()
+  .withMessage('Purity must be a string')
+  .trim()
+  .isLength({ min: 1, max: 20 })
+  .withMessage('Purity must be between 1 and 20 characters'),
 
-  body('metal.purity')
-    .notEmpty()
-    .withMessage('Metal purity is required')
-    .isIn(['24K', '22K', '18K', '14K', '10K', '916', '999', '925', '850', '950', 'other'])
-    .withMessage('Invalid purity'),
+// purityPercentage - custom purity ke liye
+body('metal.purityPercentage')
+  .optional()
+  .isFloat({ min: 0.1, max: 100 })
+  .withMessage('Purity percentage must be between 0.1 and 100'),
 
   body('metal.color')
     .optional()
@@ -71,16 +79,22 @@ export const createProductValidation = [
     .withMessage('Gross weight must be greater than 0')
     .custom(isPositiveNumber),
 
-  body('weight.stoneWeight')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Stone weight must be a positive number')
-    .custom(isPositiveNumber),
+body('weight.stoneWeight')
+  .optional()
+  .isFloat({ min: 0 })
+  .withMessage('Stone weight must be a positive number')
+  .custom(isPositiveNumber),
 
-  body('weight.unit')
-    .optional()
-    .isIn(['gram', 'kg', 'tola', 'ounce', 'carat'])
-    .withMessage('Invalid weight unit'),
+// Wastage validation add karo
+body('weight.wastage.percentage')
+  .optional()
+  .isFloat({ min: 0, max: 100 })
+  .withMessage('Wastage percentage must be between 0 and 100'),
+
+body('weight.unit')
+  .optional()
+  .isIn(['gram', 'kg', 'tola', 'ounce', 'carat'])
+  .withMessage('Invalid weight unit'),
 
   // Making charges
   body('makingCharges.type')
@@ -108,16 +122,40 @@ export const createProductValidation = [
     .withMessage('Cost price must be positive')
     .custom(isPositiveNumber),
 
-  body('pricing.mrp')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('MRP must be positive')
-    .custom(isPositiveNumber),
+body('pricing.mrp')
+  .optional()
+  .isFloat({ min: 0 })
+  .withMessage('MRP must be positive')
+  .custom(isPositiveNumber),
 
-  body('pricing.gst.percentage')
-    .optional()
-    .isFloat({ min: 0, max: 100 })
-    .withMessage('GST percentage must be between 0 and 100'),
+// Custom Rate - metal rate manually dene ke liye
+body('pricing.customRate')
+  .optional()
+  .isFloat({ min: 1 })
+  .withMessage('Custom rate must be greater than 0'),
+
+body('pricing.gst.enabled')
+  .optional()
+  .isBoolean()
+  .withMessage('GST enabled must be true or false'),
+
+body('pricing.gst.percentage')
+  .optional()
+  .isFloat({ min: 0, max: 100 })
+  .withMessage('GST percentage must be between 0 and 100'),
+
+// Custom validation - enabled true hai toh percentage required
+body('pricing.gst')
+  .optional()
+  .custom((gst) => {
+    if (
+      gst?.enabled === true &&
+      (gst?.percentage === undefined || gst?.percentage < 0)
+    ) {
+      throw new Error('GST percentage is required when GST is enabled');
+    }
+    return true;
+  }),
 
   body('pricing.discount.type')
     .optional()

@@ -1,5 +1,6 @@
 // FILE: src/api/customer/customer.service.js
 
+import mongoose from 'mongoose';
 import Customer from '../../models/Customer.js';
 import JewelryShop from '../../models/Shop.js';
 import cache from '../../utils/cache.js';
@@ -468,7 +469,7 @@ export const getCustomerLoyaltySummary = async (customerId) => {
  */
 export const getCustomerStatistics = async (shopId) => {
   const stats = await Customer.aggregate([
-    { $match: { shopId, deletedAt: null } },
+     { $match: { shopId: new mongoose.Types.ObjectId(shopId), deletedAt: null } },
     {
       $group: {
         _id: null,

@@ -61,7 +61,15 @@ router.get(
   rateLimiter({ max: 30, windowMs: 60000 }),
   getCustomerAnalytics
 );
-
+router.get(
+  '/advanced-analytics',
+  shopIdValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
+  checkShopAccess,
+  checkPermission(PERMISSIONS.VIEW_CUSTOMER_ANALYTICS),
+  rateLimiter({ max: 20, windowMs: 60000 }),
+  getAdvancedAnalytics
+)
 /**
  * @route   GET /api/v1/shops/:shopId/customers/search
  * @desc    Search customer by phone/email/code
@@ -264,14 +272,6 @@ router.get(
   rateLimiter({ max: 50, windowMs: 60000 }),
   getCustomerLoyaltySummary
 )
-router.get(
-  '/advanced-analytics',
-  shopIdValidation,
-  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager', 'accountant'),
-  checkShopAccess,
-  checkPermission(PERMISSIONS.VIEW_CUSTOMER_ANALYTICS),
-  rateLimiter({ max: 20, windowMs: 60000 }),
-  getAdvancedAnalytics
-)
+
 
 export default router;

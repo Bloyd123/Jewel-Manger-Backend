@@ -113,13 +113,18 @@ const jewelryShopSchema = new mongoose.Schema(
 
     // BUSINESS REGISTRATION
 
-    gstNumber: {
-      type: String,
-      trim: true,
-      uppercase: true,
-      sparse: true,
-      match: [/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GST number'],
-    },
+gstNumber: {
+  type: String,
+  trim: true,
+  uppercase: true,
+  sparse: true,
+  match: [/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GST number'],
+},
+// ADD KARO - GST registered hai ya nahi
+isGSTRegistered: {
+  type: Boolean,
+  default: true,
+},
     panNumber: {
       type: String,
       trim: true,
@@ -290,21 +295,28 @@ const jewelryShopSchema = new mongoose.Schema(
         default: true,
       },
 
-      // Pricing Settings
-      enableMakingCharges: {
-        type: Boolean,
-        default: true,
-      },
-      makingChargesType: {
-        type: String,
-        enum: ['per_gram', 'percentage', 'fixed', 'flat', 'per_piece'],
-        default: 'per_gram',
-      },
-      defaultMakingCharges: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
+// Pricing Settings
+enableMakingCharges: {
+  type: Boolean,
+  default: true,
+},
+makingChargesType: {
+  type: String,
+  enum: ['per_gram', 'percentage', 'fixed', 'flat', 'per_piece'],
+  default: 'per_gram',
+},
+defaultMakingCharges: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
+// ADD KARO - Purchase se product bante waqt markup
+defaultMarkupPercentage: {
+  type: Number,
+  default: 20,
+  min: 0,
+  max: 1000,
+},
 
       // Metal Rates (Current rates)
       metalRates: {

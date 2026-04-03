@@ -688,7 +688,7 @@ export async function getSupplierActivity(supplierId, shopId, organizationId, fi
     const query = {
       shopId,
       organizationId,
-      'metadata.supplierId': supplierId,
+       'metadata.supplierId': new mongoose.Types.ObjectId(supplierId),
     };
 
     if (action)    query.action    = action;
