@@ -295,7 +295,6 @@ isGSTRegistered: {
         default: true,
       },
 
-// Pricing Settings
 enableMakingCharges: {
   type: Boolean,
   default: true,
@@ -310,7 +309,6 @@ defaultMakingCharges: {
   default: 0,
   min: 0,
 },
-// ADD KARO - Purchase se product bante waqt markup
 defaultMarkupPercentage: {
   type: Number,
   default: 20,

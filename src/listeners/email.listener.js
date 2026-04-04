@@ -112,7 +112,10 @@ eventBus.on('PURCHASE_PAYMENT_ADDED', async (data) => {
 // ─────────────────────────────────────────────
 eventBus.on('PRODUCT_LOW_STOCK', async (data) => {
   try {
-    const { product, newStatus, organizationId } = data;
+    const { product, newStatus, organizationId, shopId } = data;
+
+    // Shop fetch karo email template ke liye
+    const shop = await JewelryShop.findById(shopId).lean();
 
     const shopAdmins = await User.find({
       organizationId,
@@ -124,9 +127,10 @@ eventBus.on('PRODUCT_LOW_STOCK', async (data) => {
 
     if (shopAdmins.length === 0) return;
 
+    // sendLowStockAlertEmail(lowStockItems, shop, notifyUser) - Array expect karta hai
     await Promise.all(
       shopAdmins.map(admin =>
-        sendLowStockAlertEmail(product, admin, newStatus).catch(err =>
+        sendLowStockAlertEmail([product], shop, admin).catch(err =>
           logger.error(`email.listener PRODUCT_LOW_STOCK failed — ${product.productCode} → ${admin.email}:`, err.message)
         )
       )

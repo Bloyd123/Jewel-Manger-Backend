@@ -517,28 +517,124 @@ metalRateSchema.methods.deactivate = function () {
   return this.save();
 };
 
-metalRateSchema.methods.getRateForPurity = function (metalType, purity) {
+metalRateSchema.methods.getRateForPurity = function (
+  metalType,
+  purity,
+  purityPercentage = null
+) {
   if (metalType === 'gold') {
+    // Standard purity map
     const purityMap = {
       '24K': this.gold.gold24K,
+      '999': this.gold.gold24K,
       '22K': this.gold.gold22K,
+      '916': this.gold.gold22K,
       '20K': this.autoConvertedRates.gold20K,
+      '833': this.autoConvertedRates.gold20K,
       '18K': this.gold.gold18K,
+      '750': this.gold.gold18K,
       '14K': this.gold.gold14K,
+      '585': this.gold.gold14K,
     };
-    return purityMap[purity] || this.gold.gold24K;
+
+    // Step 1 - Standard map me check karo
+    if (purityMap[purity]) return purityMap[purity];
+
+    // Step 2 - customPurities me check karo
+    if (this.customPurities?.length > 0) {
+      const customPurity = this.customPurities.find(
+        cp =>
+          cp.metalType === 'gold' &&
+          cp.purityName === purity &&
+          cp.isActive
+      );
+      if (customPurity) {
+        return {
+          buyingRate:  customPurity.buyingRate,
+          sellingRate: customPurity.sellingRate,
+        };
+      }
+    }
+
+    // Step 3 - purityPercentage se calculate karo
+    if (purityPercentage && purityPercentage > 0) {
+      const base = this.gold.gold24K;
+      return {
+        buyingRate:  (base.buyingRate  * purityPercentage) / 100,
+        sellingRate: (base.sellingRate * purityPercentage) / 100,
+      };
+    }
+
+    // Step 4 - Fallback
+    return this.gold.gold22K;
+
   } else if (metalType === 'silver') {
     const purityMap = {
-      999: this.silver.pure,
-      925: this.silver.sterling925,
-      900: this.autoConvertedRates.silver900,
-      pure: this.silver.pure,
-      sterling: this.silver.sterling925,
+      '999':     this.silver.pure,
+      'pure':    this.silver.pure,
+      '925':     this.silver.sterling925,
+      'sterling': this.silver.sterling925,
+      '900':     this.autoConvertedRates.silver900,
     };
-    return purityMap[purity] || this.silver.pure;
+
+    if (purityMap[purity]) return purityMap[purity];
+
+    // customPurities check
+    if (this.customPurities?.length > 0) {
+      const customPurity = this.customPurities.find(
+        cp =>
+          cp.metalType === 'silver' &&
+          cp.purityName === purity &&
+          cp.isActive
+      );
+      if (customPurity) {
+        return {
+          buyingRate:  customPurity.buyingRate,
+          sellingRate: customPurity.sellingRate,
+        };
+      }
+    }
+
+    // purityPercentage se calculate karo
+    if (purityPercentage && purityPercentage > 0) {
+      const base = this.silver.pure;
+      return {
+        buyingRate:  (base.buyingRate  * purityPercentage) / 100,
+        sellingRate: (base.sellingRate * purityPercentage) / 100,
+      };
+    }
+
+    return this.silver.pure;
+
   } else if (metalType === 'platinum') {
+    // customPurities check
+    if (this.customPurities?.length > 0) {
+      const customPurity = this.customPurities.find(
+        cp =>
+          cp.metalType === 'platinum' &&
+          cp.purityName === purity &&
+          cp.isActive
+      );
+      if (customPurity) {
+        return {
+          buyingRate:  customPurity.buyingRate,
+          sellingRate: customPurity.sellingRate,
+        };
+      }
+    }
+
+    // purityPercentage se calculate karo
+    if (purityPercentage && purityPercentage > 0) {
+      const base = this.platinum;
+      return {
+        buyingRate:  (base.buyingRate  * purityPercentage) / 100,
+        sellingRate: (base.sellingRate * purityPercentage) / 100,
+      };
+    }
+
     return this.platinum;
   }
+
   return null;
 };
 

@@ -54,8 +54,20 @@ export const createPurchase = [
     .isIn(['gold', 'silver', 'platinum', 'diamond', 'mixed'])
     .withMessage('Invalid metal type'),
 
-  body('items.*.purity')
-    .notEmpty().withMessage('Purity is required'),
+body('items.*.purity')
+  .notEmpty()
+  .withMessage('Purity is required')
+  .isString()
+  .withMessage('Purity must be a string')
+  .trim()
+  .isLength({ min: 1, max: 20 })
+  .withMessage('Purity must be between 1 and 20 characters'),
+
+// Custom purity ke liye purityPercentage
+body('items.*.purityPercentage')
+  .optional()
+  .isFloat({ min: 0.1, max: 100 })
+  .withMessage('Purity percentage must be between 0.1 and 100'),
 
   body('items.*.grossWeight')
     .isFloat({ min: 0 }).withMessage('Gross weight must be a positive number'),
@@ -64,12 +76,18 @@ export const createPurchase = [
     .optional()
     .isFloat({ min: 0 }).withMessage('Stone weight must be a positive number'),
 
-  body('items.*.netWeight')
-    .isFloat({ min: 0 }).withMessage('Net weight must be a positive number'),
+body('items.*.netWeight')
+  .isFloat({ min: 0 }).withMessage('Net weight must be a positive number'),
 
-  body('items.*.quantity')
-    .optional()
-    .isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
+// Wastage validation add karo
+body('items.*.wastagePercentage')
+  .optional()
+  .isFloat({ min: 0, max: 100 })
+  .withMessage('Wastage percentage must be between 0 and 100'),
+
+body('items.*.quantity')
+  .optional()
+  .isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
 
   body('payment.paymentMode')
     .optional()
