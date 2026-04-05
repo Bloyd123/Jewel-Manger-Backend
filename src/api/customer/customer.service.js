@@ -170,16 +170,23 @@ export const searchCustomer = async (shopId, searchParams) => {
  * Get all customers with filters and pagination
  */
 export const getCustomers = async (shopId, filters = {}, paginationOptions = {}) => {
-  const query = { shopId, deletedAt: null };
+  const query = { shopId: new mongoose.Types.ObjectId(shopId), deletedAt: null };
 
-  if (filters.search) {
+if (filters.search) {
     query.$or = [
       { firstName: new RegExp(filters.search, 'i') },
       { lastName: new RegExp(filters.search, 'i') },
       { phone: new RegExp(filters.search) },
       { email: new RegExp(filters.search, 'i') },
       { customerCode: new RegExp(filters.search, 'i') },
+      { 'address.street': new RegExp(filters.search, 'i') },
+      { 'address.city': new RegExp(filters.search, 'i') },
+      { 'address.area': new RegExp(filters.search, 'i') },
+      { 'address.pincode': new RegExp(filters.search) },
     ];
+  }
+  if (filters.city) {
+    query['address.city'] = new RegExp(filters.city, 'i');
   }
 
   if (filters.customerType) {
@@ -198,8 +205,12 @@ export const getCustomers = async (shopId, filters = {}, paginationOptions = {})
     query.totalDue = { $gt: 0 };
   }
 
-  if (filters.vipOnly) {
-    query.$or = [{ customerType: 'vip' }, { membershipTier: 'platinum' }];
+if (filters.vipOnly) {
+    query.$and = [
+      ...(query.$or ? [{ $or: query.$or }] : []),
+      { $or: [{ customerType: 'vip' }, { membershipTier: 'platinum' }] },
+    ]
+    delete query.$or
   }
 
   if (filters.startDate || filters.endDate) {
@@ -223,7 +234,7 @@ export const getCustomers = async (shopId, filters = {}, paginationOptions = {})
     limit: paginationOptions.limit || 20,
     sort: paginationOptions.sort || '-createdAt',
     select:
-      'firstName lastName phone email customerCode customerType membershipTier loyaltyPoints totalPurchases totalDue isActive statistics.lastOrderDate createdAt',
+      'firstName lastName phone email customerCode customerType membershipTier loyaltyPoints totalPurchases totalDue isActive statistics.lastOrderDate address.street address.city address.state address.pincode createdAt',
     populate: [{ path: 'referredBy', select: 'firstName lastName customerCode' }],
   });
 
