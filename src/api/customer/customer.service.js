@@ -479,37 +479,105 @@ export const getCustomerLoyaltySummary = async (customerId) => {
  * Get customer statistics
  */
 export const getCustomerStatistics = async (shopId) => {
-  const stats = await Customer.aggregate([
-     { $match: { shopId: new mongoose.Types.ObjectId(shopId), deletedAt: null } },
-    {
-      $group: {
-        _id: null,
-        totalCustomers: { $sum: 1 },
-        activeCustomers: {
-          $sum: { $cond: ['$isActive', 1, 0] },
-        },
-        vipCustomers: {
-          $sum: { $cond: [{ $eq: ['$customerType', 'vip'] }, 1, 0] },
-        },
-        totalOutstanding: { $sum: '$totalDue' },
-        totalLoyaltyPoints: { $sum: '$loyaltyPoints' },
-        avgLifetimeValue: { $avg: '$totalPurchases' },
-      },
-    },
-  ]);
+  const shopObjId = new mongoose.Types.ObjectId(shopId)
 
-  return (
-    stats[0] || {
-      totalCustomers: 0,
-      activeCustomers: 0,
-      vipCustomers: 0,
-      totalOutstanding: 0,
-      totalLoyaltyPoints: 0,
-      avgLifetimeValue: 0,
+  const now = new Date()
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
+  const ninetyDaysAgo  = new Date(now)
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+
+  const [current, lastMonth, lastMonthActive, lastMonthVip, lastMonthOutstanding, lastMonthLoyalty, lastMonthAvgLtv] = await Promise.all([
+
+    // Current stats
+    Customer.aggregate([
+      { $match: { shopId: shopObjId, deletedAt: null } },
+      {
+        $group: {
+          _id: null,
+          totalCustomers:    { $sum: 1 },
+          activeCustomers:   { $sum: { $cond: ['$isActive', 1, 0] } },
+          vipCustomers:      { $sum: { $cond: [{ $eq: ['$customerType', 'vip'] }, 1, 0] } },
+          totalOutstanding:  { $sum: '$totalDue' },
+          totalLoyaltyPoints:{ $sum: '$loyaltyPoints' },
+          avgLifetimeValue:  { $avg: '$totalPurchases' },
+        },
+      },
+    ]),
+
+    // Last month total customers (created before this month)
+    Customer.countDocuments({
+      shopId: shopObjId,
+      deletedAt: null,
+      createdAt: { $lt: thisMonthStart },
+    }),
+
+    // Last month active
+    Customer.countDocuments({
+      shopId: shopObjId,
+      deletedAt: null,
+      isActive: true,
+      createdAt: { $lt: thisMonthStart },
+    }),
+
+    // Last month vip
+    Customer.countDocuments({
+      shopId: shopObjId,
+      deletedAt: null,
+      customerType: 'vip',
+      createdAt: { $lt: thisMonthStart },
+    }),
+
+    // Last month outstanding
+    Customer.aggregate([
+      { $match: { shopId: shopObjId, deletedAt: null, createdAt: { $lt: thisMonthStart } } },
+      { $group: { _id: null, total: { $sum: '$totalDue' } } },
+    ]),
+
+    // Last month loyalty
+    Customer.aggregate([
+      { $match: { shopId: shopObjId, deletedAt: null, createdAt: { $lt: thisMonthStart } } },
+      { $group: { _id: null, total: { $sum: '$loyaltyPoints' } } },
+    ]),
+
+    // Last month avg ltv
+    Customer.aggregate([
+      { $match: { shopId: shopObjId, deletedAt: null, createdAt: { $lt: thisMonthStart } } },
+      { $group: { _id: null, avg: { $avg: '$totalPurchases' } } },
+    ]),
+  ])
+
+  const curr = current[0] || {
+    totalCustomers: 0, activeCustomers: 0, vipCustomers: 0,
+    totalOutstanding: 0, totalLoyaltyPoints: 0, avgLifetimeValue: 0,
+  }
+
+  const calcTrend = (current, previous) => {
+    if (!previous || previous === 0) return { value: 0, direction: 'up' }
+    const diff = ((current - previous) / previous) * 100
+    return {
+      value:     Math.abs(parseFloat(diff.toFixed(1))),
+      direction: diff >= 0 ? 'up' : 'down',
     }
-  );
+  }
+
+  return {
+    ...curr,
+    trends: {
+      totalCustomers:     calcTrend(curr.totalCustomers,     lastMonth),
+      activeCustomers:    calcTrend(curr.activeCustomers,    lastMonthActive),
+      vipCustomers:       calcTrend(curr.vipCustomers,       lastMonthVip),
+      totalOutstanding:   calcTrend(curr.totalOutstanding,   lastMonthOutstanding[0]?.total  || 0),
+      totalLoyaltyPoints: calcTrend(curr.totalLoyaltyPoints, lastMonthLoyalty[0]?.total      || 0),
+      avgLifetimeValue:   calcTrend(curr.avgLifetimeValue,   lastMonthAvgLtv[0]?.avg         || 0),
+    },
+  }
 };
 export const getAdvancedAnalytics = async (shopId, organizationId) => {
+    const shopObjId = new mongoose.Types.ObjectId(shopId)
+  const orgObjId  = new mongoose.Types.ObjectId(organizationId)
+
 
   const now = new Date()
   const thirtyDaysAgo = new Date(now)
@@ -542,8 +610,8 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
     Customer.aggregate([
       {
         $match: {
-          shopId,
-          organizationId,
+        shopId: new mongoose.Types.ObjectId(shopId),
+          organizationId: new mongoose.Types.ObjectId(organizationId),
           deletedAt: null,
           createdAt: {
             $gte: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
@@ -579,8 +647,8 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
     Customer.aggregate([
       {
         $match: {
-          shopId,
-          organizationId,
+          shopId: new mongoose.Types.ObjectId(shopId),
+          organizationId: new mongoose.Types.ObjectId(organizationId),
           deletedAt: null,
           'statistics.lastOrderDate': { $gte: ninetyDaysAgo },
         },
@@ -612,8 +680,8 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
 
     // 4. Retention Rate - count karo
     Customer.countDocuments({
-      shopId,
-      organizationId,
+      shopId: shopObjId,
+      organizationId: orgObjId,
       deletedAt: null,
       isActive: true,
       'statistics.lastOrderDate': { $gte: ninetyDaysAgo },
@@ -621,16 +689,16 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
 
     // 5. Total Active - retention rate ke liye
     Customer.countDocuments({
-      shopId,
-      organizationId,
+      shopId: shopObjId,
+      organizationId: orgObjId,
       deletedAt: null,
       isActive: true,
     }),
 
     // 6. Top Customers
     Customer.find({
-      shopId,
-      organizationId,
+      shopId: shopObjId,
+      organizationId: orgObjId,
       deletedAt: null,
       isActive: true,
     })
@@ -643,7 +711,10 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
 
     // 7. Segmentation by Tier
     Customer.aggregate([
-      { $match: { shopId, organizationId, deletedAt: null } },
+      { $match: {
+               shopId: new mongoose.Types.ObjectId(shopId),
+          organizationId: new mongoose.Types.ObjectId(organizationId),
+          deletedAt: null } },
       {
         $group: {
           _id:   '$membershipTier',
@@ -661,7 +732,10 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
 
     // 8. Segmentation by Type
     Customer.aggregate([
-      { $match: { shopId, organizationId, deletedAt: null } },
+      { $match: { 
+          shopId: new mongoose.Types.ObjectId(shopId),
+          organizationId: new mongoose.Types.ObjectId(organizationId), 
+         deletedAt: null } },
       {
         $group: {
           _id:   '$customerType',
@@ -679,7 +753,10 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
 
     // 9. Segmentation by Category
     Customer.aggregate([
-      { $match: { shopId, organizationId, deletedAt: null } },
+      { $match: { 
+               shopId: new mongoose.Types.ObjectId(shopId),
+          organizationId: new mongoose.Types.ObjectId(organizationId),
+         deletedAt: null } },
       {
         $group: {
           _id:   '$customerCategory',
@@ -699,8 +776,8 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
     Customer.aggregate([
       {
         $match: {
-          shopId,
-          organizationId,
+          shopId: new mongoose.Types.ObjectId(shopId),
+          organizationId: new mongoose.Types.ObjectId(organizationId),
           deletedAt: null,
           'address.city': { $exists: true, $ne: null },
         },
@@ -728,8 +805,8 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
     Sale.aggregate([
       {
         $match: {
-          shopId,
-          organizationId,
+          shopId: shopObjId,
+          organizationId: orgObjId,
           deletedAt: null,
           status: { $ne: 'cancelled' },
           saleDate: {
@@ -769,8 +846,8 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
     Customer.aggregate([
       {
         $match: {
-          shopId,
-          organizationId,
+          shopId: new mongoose.Types.ObjectId(shopId),
+          organizationId: new mongoose.Types.ObjectId(organizationId),
           deletedAt: null,
           isActive: true,
           $or: [
@@ -792,8 +869,8 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
 
     // 13. At-Risk Customers
     Customer.find({
-      shopId,
-      organizationId,
+    shopId: shopObjId,
+      organizationId: orgObjId,
       deletedAt: null,
       isActive: true,
       'statistics.lastOrderDate': {
@@ -828,8 +905,8 @@ export const getAdvancedAnalytics = async (shopId, organizationId) => {
 
     // 14. Outstanding Payments
     Customer.find({
-      shopId,
-      organizationId,
+      shopId: shopObjId,
+      organizationId: orgObjId,
       deletedAt: null,
       totalDue: { $gt: 0 },
     })

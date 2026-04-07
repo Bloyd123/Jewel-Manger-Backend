@@ -20,6 +20,7 @@ import paymentRoutes from '../api/payment/payment.routes.js';
 import metalRoutes from '../api/metal-rates/metalRate.routes.js'
 import salesRoutes from '../api/sales/sales.routes.js'
 import orgRoutes from '../api/organization/organization.routes.js';
+import schemeRouter from '../api/scheme/scheme.routes.js';
 const loadExpressApp = app => {
   app.set('trust proxy', 1);
 
@@ -123,6 +124,7 @@ const loadExpressApp = app => {
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/shops', paymentRoutes);
   app.use('/api/v1/shops', shopRoutes);
+  app.use('api/v1/shops', schemeRouter); 
   app.use('/api/v1/shops/:shopId/customers', customerRoutes);
   app.use('/api/v1/suppliers', supplierRoutes);
   app.use('/api/v1/shops/:shopId/purchases', purchaseRoutes);
