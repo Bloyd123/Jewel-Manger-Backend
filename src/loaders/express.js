@@ -21,6 +21,12 @@ import metalRoutes from '../api/metal-rates/metalRate.routes.js'
 import salesRoutes from '../api/sales/sales.routes.js'
 import orgRoutes from '../api/organization/organization.routes.js';
 import schemeRouter from '../api/scheme/scheme.routes.js';
+import metalLedgerRoutes from '../api/metal-ledger/metal.routes.js';
+import openingBalanceRoutes from '../api/opening-balance/opening.routes.js';
+import girviRouter from '../api/girvi/girvi.routes.js'
+import paymentGirviRouter from '../api/girvipayment/girviPayment.routes.js'
+import cashbookRoutes from '../api/cashbook/girviCashbook.routes.js'
+import transferRoutes from '../api/transfer/girviTransfer.routes.js'
 const loadExpressApp = app => {
   app.set('trust proxy', 1);
 
@@ -124,7 +130,11 @@ const loadExpressApp = app => {
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/shops', paymentRoutes);
   app.use('/api/v1/shops', shopRoutes);
-  app.use('api/v1/shops', schemeRouter); 
+  app.use('/api/v1/shops', schemeRouter); 
+  app.use('/api/v1/shops/:shopId/girvi',girviRouter);
+  app.use('/api/v1/shops/:shopId/girvi/:girviId/payments',paymentGirviRouter);
+  app.use('/api/v1/shops/:shopId/girvi/:girviId/cashbook',cashbookRoutes);
+  app.use('/api/v1/shops/:shopId/girvi/:girviId/transfer',transferRoutes);
   app.use('/api/v1/shops/:shopId/customers', customerRoutes);
   app.use('/api/v1/suppliers', supplierRoutes);
   app.use('/api/v1/shops/:shopId/purchases', purchaseRoutes);
@@ -132,6 +142,8 @@ const loadExpressApp = app => {
   app.use('/api/v1/shops/:shopId/sales', salesRoutes); 
   app.use('/api/v1/categories', categoryRoutes);
   app.use('/api/v1/organizations', orgRoutes);
+  app.use('/api/v1/shops/:shopId/metal-ledger', metalLedgerRoutes);
+app.use('/api/v1/shops/:shopId/opening-balance', openingBalanceRoutes);
 
   app.use(notFound);
   app.use(errorLogger);

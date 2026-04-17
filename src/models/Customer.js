@@ -66,6 +66,22 @@ const customerSchema = new mongoose.Schema(
       enum: ['male', 'female', 'other'],
       default: null,
     },
+        jaati: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+    },
+    relationName: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+      comment: 'Son of / Husband of / Daughter of name',
+    },
+    relationType: {
+      type: String,
+      enum: ['son_of', 'husband_of', 'daughter_of', 'wife_of', 'other'],
+      default: null,
+    },
     anniversaryDate: Date,
 
     // Address
@@ -150,11 +166,42 @@ const customerSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    totalDue: {
-      type: Number,
-      default: 0,
-    },
+totalDue: {
+  type: Number,
+  default: 0,
+},
 
+// Metal Balance - Kacha Hisaab
+// Positive = customer ke upar hamar metal pending (they_owe)
+// Negative = hamare upar customer ka metal pending (we_owe)
+metalBalance: {
+  gold: {
+    type: Number,
+    default: 0,
+    // gram me
+  },
+  silver: {
+    type: Number,
+    default: 0,
+  },
+  platinum: {
+    type: Number,
+    default: 0,
+  },
+},
+
+// Opening Balance
+openingBalance: {
+  cashBalance: { type: Number, default: 0 },
+  // Positive = hamare dene hain
+  // Negative = unke dene hain
+  metalBalance: {
+    gold:     { type: Number, default: 0 },
+    silver:   { type: Number, default: 0 },
+    platinum: { type: Number, default: 0 },
+  },
+  setAt: { type: Date, default: null },
+},
     // Statistics
     statistics: {
       totalOrders: { type: Number, default: 0 },

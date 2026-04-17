@@ -700,11 +700,29 @@ defaultMarkupPercentage: {
 
     // SHOP STATISTICS
 
-    statistics: {
-      totalProducts: {
-        type: Number,
-        default: 0,
-      },
+// OPENING BALANCE SETUP
+openingStockDate: {
+  type: Date,
+  default: null,
+  // Jis date se system start hua
+},
+isOpeningBalanceSet: {
+  type: Boolean,
+  default: false,
+  // Ek baar true hone ke baad opening balance lock
+},
+openingBalanceId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'OpeningBalance',
+  default: null,
+},
+
+// SHOP STATISTICS
+statistics: {
+  totalProducts: {
+    type: Number,
+    default: 0,
+  },
       totalInventoryValue: {
         type: Number,
         default: 0,

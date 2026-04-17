@@ -307,6 +307,21 @@ const userShopAccessSchema = new mongoose.Schema(
       // Advanced Features (2)
       canManageHallmarking: { type: Boolean, default: false },
       canManageOldGold: { type: Boolean, default: false },
+  // Girvi Management (14)
+      canCreateGirvi: { type: Boolean, default: false },
+      canViewGirvi: { type: Boolean, default: false },
+      canUpdateGirvi: { type: Boolean, default: false },
+      canDeleteGirvi: { type: Boolean, default: false },
+      canReleaseGirvi: { type: Boolean, default: false },
+      canTransferGirvi: { type: Boolean, default: false },
+      canReturnGirviTransfer: { type: Boolean, default: false },
+      canCancelGirviTransfer: { type: Boolean, default: false },
+      canAddGirviPayment: { type: Boolean, default: false },
+      canDeleteGirviPayment: { type: Boolean, default: false },
+      canManageGirvi: { type: Boolean, default: false },
+      canViewGirviCashbook: { type: Boolean, default: false },
+      canCreateGirviCashbookEntry: { type: Boolean, default: false },
+      canDeleteGirviCashbookEntry: { type: Boolean, default: false },
 
       // System (7)
       canManageSettings: { type: Boolean, default: false },

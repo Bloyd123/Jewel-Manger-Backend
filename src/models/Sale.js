@@ -80,6 +80,8 @@ stoneWeight:       { type: Number, default: 0, min: 0 },
 netWeight:         { type: Number, required: true, min: 0 },
 wastagePercentage: { type: Number, default: 0, min: 0, max: 100 },
 wastageWeight:     { type: Number, default: 0, min: 0 },
+// Fine Weight = Net Weight × (Tunch/100)
+fineWeight:        { type: Number, default: 0, min: 0 },
 weightUnit: {
   type: String,
   enum: ['gram', 'kg', 'tola'],
@@ -113,10 +115,28 @@ weightUnit: {
         itemTotal: { type: Number, required: true, min: 0 },
         quantity: { type: Number, default: 1, min: 1 },
         huid: String,
-        isHallmarked: { type: Boolean, default: false },
-        warrantyPeriod: Number,
-        warrantyExpiryDate: Date,
-        notes: String,
+isHallmarked: { type: Boolean, default: false },
+warrantyPeriod: Number,
+warrantyExpiryDate: Date,
+notes: String,
+
+// Metal pending - customer ne gold diya instead of cash
+metalPending: {
+  isPending:     { type: Boolean, default: false },
+  metalType: {
+    type: String,
+    enum: ['gold', 'silver', 'platinum'],
+    default: null,
+  },
+  pendingWeight:  { type: Number, default: 0, min: 0 },
+  settledWeight:  { type: Number, default: 0, min: 0 },
+  rateAtEntry:    { type: Number, default: null },
+  status: {
+    type: String,
+    enum: ['none', 'pending', 'partial', 'settled'],
+    default: 'none',
+  },
+},
       },
     ],
 

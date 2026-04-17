@@ -84,7 +84,12 @@ body('items.*.wastagePercentage')
   .optional()
   .isFloat({ min: 0, max: 100 })
   .withMessage('Wastage percentage must be between 0 and 100'),
-
+// fineWeight optional - auto calculate hoga
+// lekin user manually override kar sakta hai
+body('items.*.fineWeight')
+  .optional()
+  .isFloat({ min: 0 })
+  .withMessage('Fine weight must be a positive number'),
 body('items.*.quantity')
   .optional()
   .isInt({ min: 1 }).withMessage('Quantity must be at least 1'),

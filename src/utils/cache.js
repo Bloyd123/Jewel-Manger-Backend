@@ -293,22 +293,28 @@ class CacheManager {
    * @param {String} pattern - Pattern to match (e.g., 'user:*')
    * @returns {Number} Number of deleted keys
    */
-  deletePattern(pattern) {
-    try {
-      const keys = this.cache.keys();
-      const regex = new RegExp(pattern.replace('*', '.*'));
-      const matchingKeys = keys.filter(key => regex.test(key));
+deletePattern(pattern) {
+  try {
+    const keys = this.cache.keys();
+    
+    // Properly escape special regex chars, then replace \* with .*
+    const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+    const regexStr = escaped.replace(/\\\*/g, '.*').replace(/\*/g, '.*');
+    const regex = new RegExp(`^${regexStr}$`);
+    
+    const matchingKeys = keys.filter(key => regex.test(key));
 
-      if (matchingKeys.length > 0) {
-        return this.mdel(matchingKeys);
-      }
-
-      return 0;
-    } catch (error) {
-      logger.error('Cache DELETE PATTERN error:', error);
-      return 0;
+    if (matchingKeys.length > 0) {
+      logger.debug(`Cache DELETE PATTERN: ${pattern} matched ${matchingKeys.length} keys`);
+      return this.mdel(matchingKeys);
     }
+
+    return 0;
+  } catch (error) {
+    logger.error('Cache DELETE PATTERN error:', error);
+    return 0;
   }
+}
 
   /**
    * Cache wrapper function - get from cache or execute function

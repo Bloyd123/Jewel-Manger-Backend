@@ -109,13 +109,16 @@ const paymentSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // Payment Mode
-    paymentMode: {
-      type: String,
-      enum: ['cash', 'card', 'upi', 'cheque', 'bank_transfer', 'wallet', 'other'],
-      required: true,
-      index: true,
-    },
+paymentMode: {
+  type: String,
+  enum: [
+    'cash', 'card', 'upi', 'cheque', 'bank_transfer', 'wallet',
+    'metal_gold', 'metal_silver', 'metal_platinum', 
+    'other'
+  ],
+  required: true,
+  index: true,
+},
 
     // Payment Details by Mode
     paymentDetails: {
@@ -199,10 +202,45 @@ const paymentSchema = new mongoose.Schema(
         transactionId: String,
       },
     },
+// Metal Payment Details
+// Jab payment mode metal_gold/silver/platinum ho
+metalPayment: {
+  metalType: {
+    type: String,
+    enum: ['gold', 'silver', 'platinum'],
+    default: null,
+  },
+  weight: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  weightUnit: {
+    type: String,
+    enum: ['gram', 'tola', 'kg'],
+    default: 'gram',
+  },
+  rateApplied: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  equivalentAmount: {
+    type: Number,
+    default: 0,
+    min: 0,
+    // weight × rateApplied
+  },
+  metalLedgerEntryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MetalLedger',
+    default: null,
+  },
+},
 
-    // Transaction Details
-    transactionId: String,
-    referenceNumber: String,
+// Transaction Details
+transactionId: String,
+referenceNumber: String,
 
     // Status
     status: {
@@ -345,19 +383,30 @@ paymentSchema.virtual('referenceDetails', {
   justOne: true,
 });
 
-// Pre-save middleware
 paymentSchema.pre('save', function (next) {
-  // Auto-complete for cash payments
   if (this.paymentMode === 'cash' && this.status === 'pending') {
     this.status = 'completed';
   }
 
-  // Mark as completed for UPI/Card payments with transaction ID
   if (
     (this.paymentMode === 'upi' || this.paymentMode === 'card') &&
     this.transactionId &&
     this.status === 'pending'
   ) {
+    this.status = 'completed';
+  }
+
+  // Metal payment - auto complete
+  // Weight aur rate dono hain toh complete
+  if (
+    ['metal_gold', 'metal_silver', 'metal_platinum'].includes(this.paymentMode) &&
+    this.metalPayment?.weight > 0 &&
+    this.metalPayment?.rateApplied > 0 &&
+    this.status === 'pending'
+  ) {
+    // Equivalent amount auto calculate
+    this.metalPayment.equivalentAmount =
+      this.metalPayment.weight * this.metalPayment.rateApplied;
     this.status = 'completed';
   }
 

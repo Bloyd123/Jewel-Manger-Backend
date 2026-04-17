@@ -289,6 +289,21 @@ export const PERMISSIONS = {
   MANAGE_HALLMARKING: 'canManageHallmarking',
   MANAGE_OLD_GOLD: 'canManageOldGold',
 
+  //  GIRVI MANAGEMENT (12)
+  CREATE_GIRVI: 'canCreateGirvi',
+  VIEW_GIRVI: 'canViewGirvi',
+  UPDATE_GIRVI: 'canUpdateGirvi',
+  DELETE_GIRVI: 'canDeleteGirvi',
+  RELEASE_GIRVI: 'canReleaseGirvi',
+  TRANSFER_GIRVI: 'canTransferGirvi',
+  RETURN_GIRVI_TRANSFER: 'canReturnGirviTransfer',
+  CANCEL_GIRVI_TRANSFER: 'canCancelGirviTransfer',
+  ADD_GIRVI_PAYMENT: 'canAddGirviPayment',
+  DELETE_GIRVI_PAYMENT: 'canDeleteGirviPayment',
+  MANAGE_GIRVI: 'canManageGirvi',
+  VIEW_GIRVI_CASHBOOK: 'canViewGirviCashbook',
+
+
   //  SYSTEM (7) 
   MANAGE_SETTINGS: 'canManageSettings',
   EXPORT_DATA: 'canExportData',
@@ -300,6 +315,20 @@ export const PERMISSIONS = {
 
 // Permission Categories for easier grouping
 export const PERMISSION_CATEGORIES = {
+    GIRVI: [
+    PERMISSIONS.CREATE_GIRVI,
+    PERMISSIONS.VIEW_GIRVI,
+    PERMISSIONS.UPDATE_GIRVI,
+    PERMISSIONS.DELETE_GIRVI,
+    PERMISSIONS.RELEASE_GIRVI,
+    PERMISSIONS.TRANSFER_GIRVI,
+    PERMISSIONS.RETURN_GIRVI_TRANSFER,
+    PERMISSIONS.CANCEL_GIRVI_TRANSFER,
+    PERMISSIONS.ADD_GIRVI_PAYMENT,
+    PERMISSIONS.DELETE_GIRVI_PAYMENT,
+    PERMISSIONS.MANAGE_GIRVI,
+    PERMISSIONS.VIEW_GIRVI_CASHBOOK,
+  ],
   CUSTOMER: [
     PERMISSIONS.CREATE_CUSTOMER,
     PERMISSIONS.SEARCH_CUSTOMER,

@@ -185,11 +185,41 @@ const supplierSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    advancePayment: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
+advancePayment: {
+  type: Number,
+  default: 0,
+  min: 0,
+},
+
+// Metal Balance - Kacha Hisaab
+// Positive = supplier ke upar hamar metal pending (they_owe)
+// Negative = hamare upar supplier ka metal pending (we_owe)
+metalBalance: {
+  gold: {
+    type: Number,
+    default: 0,
+    // gram me
+  },
+  silver: {
+    type: Number,
+    default: 0,
+  },
+  platinum: {
+    type: Number,
+    default: 0,
+  },
+},
+
+// Opening Balance
+openingBalance: {
+  cashBalance: { type: Number, default: 0 },
+  metalBalance: {
+    gold:     { type: Number, default: 0 },
+    silver:   { type: Number, default: 0 },
+    platinum: { type: Number, default: 0 },
+  },
+  setAt: { type: Date, default: null },
+},
 
     // Rating & Performance
     rating: {

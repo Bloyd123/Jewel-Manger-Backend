@@ -94,6 +94,8 @@ export const createCustomer = async (shopId, customerData, userId) => {
   await updateShopStatistics(shopId);
 
   await cacheCustomer(customer);
+    // ADD THIS — explicitly customers list cache clear karo
+  await cache.deletePattern(`customers:${shopId}:*`);
 
   return customer;
 };

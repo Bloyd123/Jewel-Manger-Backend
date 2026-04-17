@@ -6,14 +6,14 @@ import {
 } from '../api/ledger/ledger.service.js';
 import LedgerEntry from '../api/ledger/ledger.model.js';
 import logger from '../utils/logger.js';
+import { createMetalEntry } from '../api/metal-ledger/metal.service.js';
 
-// ─────────────────────────────────────────────
 // SALE_CREATED — customer pe debit entry
-// ─────────────────────────────────────────────
 eventBus.on('SALE_CREATED', async (data) => {
   try {
     const { sale, customer, userId } = data;
 
+    // Cash ledger entry - existing
     if (sale.payment.dueAmount > 0) {
       await createDebitEntry({
         organizationId:  sale.organizationId,
@@ -30,14 +30,35 @@ eventBus.on('SALE_CREATED', async (data) => {
         createdBy:       userId,
       });
     }
+
+    // Metal ledger entry - nayi
+    // Agar customer ne gold/silver diya hai
+    for (const item of sale.items) {
+      if (item.metalPending?.isPending && item.metalPending?.pendingWeight > 0) {
+        await createMetalEntry({
+          organizationId:  sale.organizationId,
+          shopId:          sale.shopId,
+          partyType:       'customer',
+          partyId:         customer._id,
+          partyModel:      'Customer',
+          partyName:       customer.fullName,
+          metalType:       item.metalPending.metalType,
+          entryType:       'received',
+          weight:          item.metalPending.pendingWeight,
+          direction:       'we_owe', // Customer ka metal hamare paas hai
+          referenceType:   'sale',
+          referenceId:     sale._id,
+          referenceNumber: sale.invoiceNumber,
+          userId,
+        });
+      }
+    }
   } catch (error) {
     logger.error('ledger.listener SALE_CREATED failed:', error.message);
   }
 });
 
-// ─────────────────────────────────────────────
 // SALE_CANCELLED — ledger entry reverse karo
-// ─────────────────────────────────────────────
 eventBus.on('SALE_CANCELLED', async (data) => {
   try {
     const { sale, userId } = data;
@@ -60,13 +81,12 @@ eventBus.on('SALE_CANCELLED', async (data) => {
   }
 });
 
-// ─────────────────────────────────────────────
 // PURCHASE_RECEIVED — supplier pe debit entry
-// ─────────────────────────────────────────────
 eventBus.on('PURCHASE_RECEIVED', async (data) => {
   try {
     const { purchase, userId } = data;
 
+    // Cash ledger entry - existing
     if (purchase.payment.dueAmount > 0) {
       await createDebitEntry({
         organizationId:  purchase.organizationId,
@@ -83,14 +103,35 @@ eventBus.on('PURCHASE_RECEIVED', async (data) => {
         createdBy:       userId,
       });
     }
+
+    // Metal ledger entry - nayi
+    // Agar koi item metal pending hai
+    for (const item of purchase.items) {
+      if (item.metalPending?.isPending && item.metalPending?.pendingWeight > 0) {
+        await createMetalEntry({
+          organizationId:  purchase.organizationId,
+          shopId:          purchase.shopId,
+          partyType:       'supplier',
+          partyId:         purchase.supplierId,
+          partyModel:      'Supplier',
+          partyName:       purchase.supplierDetails.supplierName,
+          metalType:       item.metalPending.metalType,
+          entryType:       'received',
+          weight:          item.metalPending.pendingWeight,
+          direction:       'we_owe', // Hum denge supplier ko
+          referenceType:   'purchase',
+          referenceId:     purchase._id,
+          referenceNumber: purchase.purchaseNumber,
+          userId,
+        });
+      }
+    }
   } catch (error) {
     logger.error('ledger.listener PURCHASE_RECEIVED failed:', error.message);
   }
 });
 
-// ─────────────────────────────────────────────
 // PURCHASE_CANCELLED — ledger entry reverse karo
-// ─────────────────────────────────────────────
 eventBus.on('PURCHASE_CANCELLED', async (data) => {
   try {
     const { purchase, userId } = data;
@@ -113,9 +154,7 @@ eventBus.on('PURCHASE_CANCELLED', async (data) => {
   }
 });
 
-// ─────────────────────────────────────────────
 // PURCHASE_RETURNED — supplier pe credit entry
-// ─────────────────────────────────────────────
 eventBus.on('PURCHASE_RETURNED', async (data) => {
   try {
     const { purchase, userId } = data;
@@ -139,9 +178,7 @@ eventBus.on('PURCHASE_RETURNED', async (data) => {
   }
 });
 
-// ─────────────────────────────────────────────
 // PURCHASE_PAYMENT_ADDED — supplier ko payment di
-// ─────────────────────────────────────────────
 eventBus.on('PURCHASE_PAYMENT_ADDED', async (data) => {
   try {
     const { purchase, payment, userId } = data;
@@ -165,9 +202,7 @@ eventBus.on('PURCHASE_PAYMENT_ADDED', async (data) => {
   }
 });
 
-// ─────────────────────────────────────────────
 // PAYMENT_COMPLETED — cash/bank entry
-// ─────────────────────────────────────────────
 eventBus.on('PAYMENT_COMPLETED', async (data) => {
   try {
     const { payment } = data;
@@ -226,9 +261,7 @@ eventBus.on('PAYMENT_COMPLETED', async (data) => {
   }
 });
 
-// ─────────────────────────────────────────────
 // PAYMENT_CANCELLED — ledger entries reverse karo
-// ─────────────────────────────────────────────
 eventBus.on('PAYMENT_CANCELLED', async (data) => {
   try {
     const { payment } = data;
@@ -251,9 +284,7 @@ eventBus.on('PAYMENT_CANCELLED', async (data) => {
   }
 });
 
-// ─────────────────────────────────────────────
 // CHEQUE_CLEARED — cheque clear hua toh bank entry
-// ─────────────────────────────────────────────
 eventBus.on('CHEQUE_CLEARED', async (data) => {
   try {
     const { payment } = data;
@@ -300,9 +331,7 @@ eventBus.on('CHEQUE_CLEARED', async (data) => {
   }
 });
 
-// ─────────────────────────────────────────────
 // CHEQUE_BOUNCED — reverse karo
-// ─────────────────────────────────────────────
 eventBus.on('CHEQUE_BOUNCED', async (data) => {
   try {
     const { payment } = data;

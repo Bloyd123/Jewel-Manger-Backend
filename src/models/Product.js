@@ -104,40 +104,46 @@ purityPercentage: {
     },
 
     // Weight Details
-    weight: {
-      grossWeight: {
-        type: Number,
-        required: [true, 'Gross weight is required'],
-        min: 0,
-      },
-      stoneWeight: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      netWeight: {
-        type: Number,
-        min: 0,
-      },
-      wastage: {
-        percentage: {
-          type: Number,
-          default: 0,
-          min: 0,
-          max: 100,
-        },
-        weight: {
-          type: Number,
-          default: 0,
-          min: 0,
-        },
-      },
-      unit: {
-        type: String,
-        enum: ['gram', 'kg', 'tola', 'ounce', 'carat'],
-        default: 'gram',
-      },
+weight: {
+  grossWeight: {
+    type: Number,
+    required: [true, 'Gross weight is required'],
+    min: 0,
+  },
+  stoneWeight: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  netWeight: {
+    type: Number,
+    min: 0,
+  },
+  // Fine Weight = Net Weight × (Purity%/100)
+  fineWeight: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  wastage: {
+    percentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
     },
+    weight: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+  unit: {
+    type: String,
+    enum: ['gram', 'kg', 'tola', 'ounce', 'carat'],
+    default: 'gram',
+  },
+},
 
     // Stones/Diamonds Details
     stones: [
@@ -651,7 +657,13 @@ if (this.weight?.wastage?.percentage > 0) {
 
 // Net weight = gross - stone - wastage
 this.weight.netWeight = Math.max(0, baseNet - wastageWeight);
-
+// Fine Weight auto calculate karo
+const tunch = this.metal?.purityPercentage
+  || parseFloat(this.metal?.purity)
+  || 0;
+this.weight.fineWeight = tunch > 0
+  ? parseFloat(((this.weight.netWeight * tunch) / 100).toFixed(3))
+  : 0;
 // Calculate total stone value
 if (this.stones && this.stones.length > 0) {
   this.pricing = this.pricing || {};

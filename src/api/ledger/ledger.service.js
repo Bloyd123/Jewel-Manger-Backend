@@ -327,3 +327,88 @@ export const reverseEntry = async ({
 
   return reversedEntry[0];
 };
+
+// ─────────────────────────────────────────────
+// OPENING BALANCE ENTRY
+// ────────────────────────────────────────────
+export const createOpeningBalanceEntry = async ({
+  organizationId,
+  shopId,
+  partyType,
+  partyId,
+  partyModel,
+  partyName,
+  amount,
+  direction,
+  createdBy,
+  notes,
+  referenceId,   // ← Add karo parameter me
+  session = null,
+}) => {
+  const entryType = direction === 'they_owe'
+    ? LEDGER_ENTRY_TYPES.DEBIT
+    : LEDGER_ENTRY_TYPES.CREDIT;
+
+  const entry = await LedgerEntry.create(
+    [{
+      organizationId,
+      shopId,
+      partyType,
+      partyId,
+      partyModel,
+      partyName,
+      entryType,
+      amount,
+      referenceType:   'opening_balance',
+      referenceId:     referenceId || partyId,  // ← Fix: null nahi, partyId use karo
+      referenceNumber: 'OPENING',
+      description:     `Opening balance - ${partyName}`,
+      createdBy,
+      notes,
+      status: LEDGER_STATUS.ACTIVE,
+    }],
+    session ? { session } : {}
+  );
+
+  return entry[0];
+};
+
+// ─────────────────────────────────────────────
+// CASH OPENING BALANCE ENTRY
+// ─────────────────────────────────────────────
+export const createCashOpeningEntry = async ({
+  organizationId,
+  shopId,
+  amount,
+  accountType = 'cash',
+  createdBy,
+  notes,
+  session = null,
+}) => {
+  const partyType = accountType === 'cash'
+    ? LEDGER_PARTY_TYPES.CASH
+    : LEDGER_PARTY_TYPES.BANK;
+
+  const entry = await LedgerEntry.create(
+    [{
+      organizationId,
+      shopId,
+      partyType,
+      partyId:         shopId,        // Shop ID as party
+      partyModel:      'JewelryShop',
+      partyName:       accountType.toUpperCase(),
+      entryType:       LEDGER_ENTRY_TYPES.DEBIT,
+      amount,
+      referenceType:   'opening_balance',
+      referenceId:     shopId,        // ← Fix: null ki jagah shopId use karo
+      referenceNumber: 'OPENING',
+      description:     `Opening ${accountType} balance`,
+      createdBy,
+      notes,
+      status: LEDGER_STATUS.ACTIVE,
+    }],
+    session ? { session } : {}
+  );
+
+  return entry[0];
+};

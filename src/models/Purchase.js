@@ -89,6 +89,10 @@ stoneWeight:       { type: Number, default: 0, min: 0 },
 netWeight:         { type: Number, required: true, min: 0 },
 wastagePercentage: { type: Number, default: 0, min: 0, max: 100 },
 wastageWeight:     { type: Number, default: 0, min: 0 },
+// Fine Weight = Net Weight × (Tunch/100)
+// Supplier billing ke liye actual pure metal weight
+fineWeight:        { type: Number, default: 0, min: 0 },
+
 weightUnit: {
   type: String,
   enum: ['gram', 'kg', 'tola'],
@@ -114,8 +118,27 @@ weightUnit: {
         itemTotal: { type: Number, default: 0, min: 0 },
         quantity: { type: Number, default: 1, min: 1 },
         huid: String,
-        isHallmarked: { type: Boolean, default: false },
-        notes: String,
+isHallmarked: { type: Boolean, default: false },
+notes: String,
+
+// Metal pending - kacha hisaab
+// Jab supplier metal deta hai aur cash baad me milega
+metalPending: {
+  isPending:   { type: Boolean, default: false },
+  metalType:   {
+    type: String,
+    enum: ['gold', 'silver', 'platinum'],
+    default: null,
+  },
+  pendingWeight:  { type: Number, default: 0, min: 0 },
+  settledWeight:  { type: Number, default: 0, min: 0 },
+  rateAtEntry:    { type: Number, default: null },
+  status: {
+    type: String,
+    enum: ['none', 'pending', 'partial', 'settled'],
+    default: 'none',
+  },
+},
       },
     ],
 
@@ -271,6 +294,15 @@ this.items.forEach(item => {
   const wastageWt    = (baseNet * (item.wastagePercentage || 0)) / 100;
   item.wastageWeight = wastageWt;
   item.netWeight     = Math.max(0, baseNet - wastageWt);
+    // Fine Weight auto calculate karo
+  // purityPercentage available hai toh use karo
+  // warna purity string se parse karo (e.g. "42.00" → 42)
+  const tunch = item.purityPercentage
+    || parseFloat(item.purity)
+    || 0;
+  item.fineWeight = tunch > 0
+    ? parseFloat(((item.netWeight * tunch) / 100).toFixed(3))
+    : 0;
 
   item.metalValue    = item.netWeight * item.ratePerGram;
   item.taxableAmount = item.metalValue + item.stoneValue + item.makingCharges + item.otherCharges;
