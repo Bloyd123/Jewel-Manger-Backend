@@ -201,11 +201,12 @@ export const getGirviById = async (girviId, shopId = null) => {
     const query = { _id: girviId, deletedAt: null };
     if (shopId) query.shopId = shopId;
 
-    girvi = await Girvi.findOne(query)
-      .populate('customerId',  'firstName lastName phone customerCode email address')
-      .populate('createdBy',   'firstName lastName')
-      .populate('releasedBy',  'firstName lastName')
-      .lean();
+
+girvi = await Girvi.findOne(query)
+  .populate('customerId', 'firstName lastName phone customerCode email address relationType relationName jaati')
+  .populate('createdBy',  'firstName lastName')
+  .populate('releasedBy', 'firstName lastName')
+  .lean();
 
     if (!girvi) throw new NotFoundError('Girvi not found');
 
