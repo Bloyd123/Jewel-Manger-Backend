@@ -6,25 +6,34 @@ import { body, param, query } from 'express-validator';
  * Validation for creating a new customer
  */
 export const createCustomerValidation = [
-  body('firstName')
-    .trim()
-    .notEmpty()
-    .withMessage('First name is required')
-    .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters')
-    .matches(/^[a-zA-Z\s]+$/)
-    .withMessage('First name can only contain letters'),
+body('firstName')
+  .trim()
+  .notEmpty()
+  .withMessage('First name is required')
+  .isLength({ min: 2, max: 50 })
+  .withMessage('First name must be between 2 and 50 characters')
+  .custom(value => {
+    // Numbers aur special chars block karo — letters (any language) allow karo
+    if (/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(value)) {
+      throw new Error('First name cannot contain numbers or special characters')
+    }
+    return true
+  }),
 
-  body('lastName')
-    .optional()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage('Last name cannot exceed 50 characters')
-    .matches(/^[a-zA-Z\s]*$/)
-    .withMessage('Last name can only contain letters'),
+body('lastName')
+  .optional()
+  .trim()
+  .isLength({ max: 50 })
+  .withMessage('Last name cannot exceed 50 characters')
+  .custom(value => {
+    if (value && /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(value)) {
+      throw new Error('Last name cannot contain numbers or special characters')
+    }
+    return true
+  }),
 
 body('phone')
-  .optional()
+  .optional({ nullable: true, checkFalsy: true })  // "", null, undefined sab skip
   .trim()
   .matches(/^[6-9][0-9]{9}$/)
   .withMessage('Invalid Indian phone number'),
@@ -174,21 +183,32 @@ body('phone')
 export const updateCustomerValidation = [
   param('customerId').isMongoId().withMessage('Invalid customer ID'),
 
-  // Same as create but all optional
-  body('firstName')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 50 })
-    .withMessage('First name must be between 2 and 50 characters'),
+body('firstName')
+  .optional()
+  .trim()
+  .isLength({ min: 2, max: 50 })
+  .withMessage('First name must be between 2 and 50 characters')
+  .custom(value => {
+    if (value && /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(value)) {
+      throw new Error('First name cannot contain numbers or special characters')
+    }
+    return true
+  }),
 
-  body('lastName')
-    .optional()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage('Last name cannot exceed 50 characters'),
+body('lastName')
+  .optional()
+  .trim()
+  .isLength({ max: 50 })
+  .withMessage('Last name cannot exceed 50 characters')
+  .custom(value => {
+    if (value && /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(value)) {
+      throw new Error('Last name cannot contain numbers or special characters')
+    }
+    return true
+  }),
 
 body('phone')
-  .optional()
+  .optional({ nullable: true, checkFalsy: true })  // "", null, undefined sab skip
   .trim()
   .matches(/^[6-9][0-9]{9}$/)
   .withMessage('Invalid Indian phone number'),

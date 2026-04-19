@@ -1034,21 +1034,32 @@ export const normalizeCustomerData = (data) => {
     normalized.email = normalized.email.toLowerCase().trim();
   }
 
-  if (normalized.firstName) {
+
+if (normalized.firstName) {
+  const isLatin = /^[a-zA-Z\s]+$/.test(normalized.firstName.trim())
+  if (isLatin) {
     normalized.firstName = normalized.firstName
       .trim()
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+      .join(' ')
+  } else {
+    normalized.firstName = normalized.firstName.trim()
   }
+}
 
-  if (normalized.lastName) {
+if (normalized.lastName) {
+  const isLatin = /^[a-zA-Z\s]+$/.test(normalized.lastName.trim())
+  if (isLatin) {
     normalized.lastName = normalized.lastName
       .trim()
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+      .join(' ')
+  } else {
+    normalized.lastName = normalized.lastName.trim()
   }
+}
 
   if (normalized.aadharNumber) {
     normalized.aadharNumber = normalized.aadharNumber.replace(/\s/g, '');
