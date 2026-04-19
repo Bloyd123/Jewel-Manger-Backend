@@ -250,6 +250,87 @@ export const getGirvisValidation = [
     .withMessage('Invalid sort field'),
 ];
 
+// ─── Partial Release Validation ────────────────────────────────────────────────
+export const partialReleaseValidation = [
+  param('girviId').isMongoId().withMessage('Invalid girvi ID'),
+
+  body('releasedItems')
+    .isArray({ min: 1 }).withMessage('At least one item must be selected for release'),
+
+  body('releasedItems.*.itemId')
+    .notEmpty().withMessage('Item ID is required')
+    .isMongoId().withMessage('Invalid item ID'),
+
+  body('releasedItems.*.releasedQuantity')
+    .notEmpty().withMessage('Released quantity is required')
+    .isInt({ min: 1 }).withMessage('Released quantity must be at least 1'),
+
+  body('interestPaid')
+    .notEmpty().withMessage('Interest paid is required')
+    .isFloat({ min: 0 }).withMessage('Interest paid must be positive'),
+
+  body('principalPaid')
+    .notEmpty().withMessage('Principal paid is required')
+    .isFloat({ min: 0 }).withMessage('Principal paid must be positive'),
+
+  body('discountGiven')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('Discount must be positive'),
+
+  body('releaseDate')
+    .notEmpty().withMessage('Release date is required')
+    .isISO8601().withMessage('Invalid release date'),
+
+  body('paymentMode')
+    .notEmpty().withMessage('Payment mode is required')
+    .isIn(['cash', 'upi', 'bank_transfer', 'cheque'])
+    .withMessage('Invalid payment mode'),
+
+  body('remarks')
+    .optional()
+    .trim()
+    .isLength({ max: 500 }),
+];
+
+// ─── Renewal Validation ────────────────────────────────────────────────────────
+export const renewalValidation = [
+  param('girviId').isMongoId().withMessage('Invalid girvi ID'),
+
+  body('interestPaid')
+    .notEmpty().withMessage('Interest paid is required')
+    .isFloat({ min: 0 }).withMessage('Interest paid must be positive'),
+
+  body('principalPaid')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('Principal paid must be positive'),
+
+  body('discountGiven')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('Discount must be positive'),
+
+  body('newDueDate')
+    .notEmpty().withMessage('New due date is required')
+    .isISO8601().withMessage('Invalid new due date'),
+
+  body('renewalDate')
+    .notEmpty().withMessage('Renewal date is required')
+    .isISO8601().withMessage('Invalid renewal date'),
+
+  body('newInterestRate')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('New interest rate must be positive'),
+
+  body('paymentMode')
+    .notEmpty().withMessage('Payment mode is required')
+    .isIn(['cash', 'upi', 'bank_transfer', 'cheque'])
+    .withMessage('Invalid payment mode'),
+
+  body('remarks')
+    .optional()
+    .trim()
+    .isLength({ max: 500 }),
+];
+
 // ─── Calculate Interest ────────────────────────────────────────────────────────
 export const calculateInterestValidation = [
   param('girviId').isMongoId().withMessage('Invalid girvi ID'),

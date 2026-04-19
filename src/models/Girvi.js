@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 
-// ─── Item Sub-Schema ───────────────────────────────────────────────────────────
 const girviItemSchema = new mongoose.Schema(
   {
     itemName: {
@@ -23,8 +22,24 @@ const girviItemSchema = new mongoose.Schema(
       min: [1, 'Quantity must be at least 1'],
       default: 1,
     },
+    itemStatus: {
+      type: String,
+      enum: ['active', 'partial_released', 'released'],
+      default: 'active',
+    },
+    releasedQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    itemReleaseDate: Date,
+    itemPrincipalRecovered: {
+      type: Number,
+      default: 0,
+      min: 0,
+      comment: 'Principal recovered for this specific item',
+    },
 
-    // ── Weight Details ──────────────────────────────────────────────────────────
     grossWeight: {
       type: Number,
       required: [true, 'Gross weight is required'],
@@ -40,7 +55,6 @@ const girviItemSchema = new mongoose.Schema(
       min: [0, 'Net weight cannot be negative'],
     },
 
-    // ── Purity & Rate ───────────────────────────────────────────────────────────
     tunch: {
       type: Number,
       min: [0, 'Tunch cannot be negative'],
@@ -58,7 +72,6 @@ const girviItemSchema = new mongoose.Schema(
       comment: 'Today market rate per gram in INR',
     },
 
-    // ── Value ───────────────────────────────────────────────────────────────────
     approxValue: {
       type: Number,
       min: [0, 'Approx value cannot be negative'],
@@ -84,7 +97,6 @@ const girviItemSchema = new mongoose.Schema(
   { _id: true }
 );
 
-// ─── Document Sub-Schema ───────────────────────────────────────────────────────
 const girviDocumentSchema = new mongoose.Schema(
   {
     documentType: {
@@ -98,10 +110,8 @@ const girviDocumentSchema = new mongoose.Schema(
   { _id: true }
 );
 
-// ─── Main Girvi Schema ─────────────────────────────────────────────────────────
 const girviSchema = new mongoose.Schema(
   {
-    // ── Identification ──────────────────────────────────────────────────────────
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
@@ -128,7 +138,6 @@ const girviSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── Status ──────────────────────────────────────────────────────────────────
     status: {
       type: String,
       enum: [
@@ -143,7 +152,6 @@ const girviSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── Pledge Items ────────────────────────────────────────────────────────────
     items: {
       type: [girviItemSchema],
       required: [true, 'At least one item is required'],
@@ -153,12 +161,10 @@ const girviSchema = new mongoose.Schema(
       },
     },
 
-    // ── Total Items Summary (calculated) ────────────────────────────────────────
     totalGrossWeight: { type: Number, default: 0 },
     totalNetWeight:   { type: Number, default: 0 },
     totalApproxValue: { type: Number, default: 0 },
 
-    // ── Financial Details ───────────────────────────────────────────────────────
     principalAmount: {
       type: Number,
       required: [true, 'Principal amount is required'],
@@ -201,7 +207,6 @@ const girviSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // ── Running Balance ─────────────────────────────────────────────────────────
     totalPrincipalPaid: {
       type: Number,
       default: 0,
@@ -236,7 +241,6 @@ const girviSchema = new mongoose.Schema(
       comment: 'outstandingPrincipal + accruedInterest',
     },
 
-    // ── Transfer Details ────────────────────────────────────────────────────────
     isTransferred: {
       type: Boolean,
       default: false,
@@ -260,8 +264,47 @@ const girviSchema = new mongoose.Schema(
       type: String,
       enum: ['simple', 'compound'],
     },
+    renewals: [
+      {
+        renewalDate:       { type: Date, required: true },
+        previousDueDate:   { type: Date },
+        newDueDate:        { type: Date },
+        interestPaid:      { type: Number, default: 0 },
+        principalPaid:     { type: Number, default: 0 },
+        discountGiven:     { type: Number, default: 0 },
+        newPrincipal:      { type: Number, default: 0 },
+        newInterestRate:   { type: Number },
+        paymentMode:       { type: String, enum: ['cash', 'upi', 'bank_transfer', 'cheque'] },
+        receiptNumber:     { type: String },
+        remarks:           { type: String, trim: true },
+        renewedBy:         { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      },
+    ],
 
-    // ── Release Summary ─────────────────────────────────────────────────────────
+    partialReleases: [
+      {
+        releaseDate:          { type: Date, required: true },
+        releasedItems:        [
+          {
+            itemId:           mongoose.Schema.Types.ObjectId,
+            itemName:         String,
+            releasedQuantity: Number,
+            itemValue:        Number,
+          },
+        ],
+        interestPaid:         { type: Number, default: 0 },
+        principalPaid:        { type: Number, default: 0 },
+        discountGiven:        { type: Number, default: 0 },
+        netAmountReceived:    { type: Number, default: 0 },
+        principalBeforeRelease: { type: Number, default: 0 },
+        principalAfterRelease:  { type: Number, default: 0 },
+        remainingItemsValue:  { type: Number, default: 0 },
+        paymentMode:          { type: String, enum: ['cash', 'upi', 'bank_transfer', 'cheque'] },
+        receiptNumber:        { type: String },
+        remarks:              { type: String, trim: true },
+        releasedBy:           { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      },
+    ],
     releaseDate: Date,
     releasedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -269,7 +312,6 @@ const girviSchema = new mongoose.Schema(
     },
     releaseNotes: String,
 
-    // Release financials (filled when released)
     releaseSummary: {
       totalItemsApproxValue:    { type: Number, default: 0 },
       totalPrincipal:           { type: Number, default: 0 },
@@ -286,7 +328,6 @@ const girviSchema = new mongoose.Schema(
       releaseRemarks: String,
     },
 
-    // ── Document & Notes ────────────────────────────────────────────────────────
     girviSlipNumber: {
       type: String,
       trim: true,
@@ -305,7 +346,6 @@ const girviSchema = new mongoose.Schema(
     },
     documents: [girviDocumentSchema],
 
-    // ── Audit ───────────────────────────────────────────────────────────────────
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -323,14 +363,12 @@ const girviSchema = new mongoose.Schema(
   }
 );
 
-// ─── Indexes ───────────────────────────────────────────────────────────────────
 girviSchema.index({ organizationId: 1, shopId: 1, girviNumber: 1 }, { unique: true });
 girviSchema.index({ shopId: 1, status: 1 });
 girviSchema.index({ shopId: 1, customerId: 1 });
 girviSchema.index({ shopId: 1, girviDate: -1 });
 girviSchema.index({ shopId: 1, dueDate: 1, status: 1 });
 
-// ─── Virtuals ──────────────────────────────────────────────────────────────────
 girviSchema.virtual('isOverdue').get(function () {
   if (this.status !== 'active') return false;
   const effectiveDueDate = this.dueDate
@@ -356,25 +394,19 @@ girviSchema.virtual('transfers', {
   foreignField: 'girviId',
 });
 
-// ─── Pre-save Middleware ───────────────────────────────────────────────────────
 girviSchema.pre('save', function (next) {
-  // Calculate item derived fields
   this.items.forEach(item => {
-    // Net weight
     item.netWeight = Math.max(0, (item.grossWeight || 0) - (item.lessWeight || 0));
 
-    // Approx value: netWeight × (tunch/100) × ratePerGram
     if (item.netWeight && item.tunch && item.ratePerGram) {
       item.approxValue = parseFloat(
         (item.netWeight * (item.tunch / 100) * item.ratePerGram).toFixed(2)
       );
     }
 
-    // Final value: user given or calculated
     item.finalValue = item.userGivenValue || item.approxValue || 0;
   });
 
-  // Total summary
   this.totalGrossWeight = parseFloat(
     this.items.reduce((sum, i) => sum + (i.grossWeight || 0), 0).toFixed(3)
   );
@@ -385,13 +417,11 @@ girviSchema.pre('save', function (next) {
     this.items.reduce((sum, i) => sum + (i.finalValue || 0), 0).toFixed(2)
   );
 
-  // Outstanding principal
   this.outstandingPrincipal = Math.max(
     0,
     (this.principalAmount || 0) - (this.totalPrincipalPaid || 0)
   );
 
-  // Total amount due
   this.totalAmountDue = parseFloat(
     (this.outstandingPrincipal + (this.accruedInterest || 0)).toFixed(2)
   );
@@ -407,7 +437,6 @@ girviSchema.pre(/^find/, function (next) {
   next();
 });
 
-// ─── Instance Methods ──────────────────────────────────────────────────────────
 girviSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   return this.save();
@@ -424,14 +453,11 @@ girviSchema.methods.calculateInterest = function (toDate = new Date()) {
   if (this.interestType === 'simple') {
     interest = principal * (rate / 100) * months;
   } else {
-    // Compound
     interest = principal * (Math.pow(1 + rate / 100, months) - 1);
   }
 
   return parseFloat(Math.max(0, interest).toFixed(2));
 };
-
-// ─── Static Methods ────────────────────────────────────────────────────────────
 girviSchema.statics.generateGirviNumber = async function (shopId, prefix = 'GRV') {
   let number = 1;
   let girviNumber;

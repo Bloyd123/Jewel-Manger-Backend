@@ -6,6 +6,8 @@ import {
   updateGirvi,
   getInterestCalculation,
   releaseGirvi,
+  partialRelease,
+  renewGirvi,
   deleteGirvi,
   getGirviStatistics,
 } from './girvi.controller.js';
@@ -13,6 +15,8 @@ import {
   createGirviValidation,
   updateGirviValidation,
   releaseGirviValidation,
+  partialReleaseValidation,
+  renewalValidation,
   getGirvisValidation,
   shopIdValidation,
   girviIdValidation,
@@ -136,6 +140,38 @@ router.patch(
   checkAnyPermission(['canReleaseGirvi', 'canManageGirvi']),
   rateLimiter({ max: 30, windowMs: 60000 }),
   releaseGirvi
+);
+
+/**
+ * @route   PATCH /api/v1/shops/:shopId/girvi/:girviId/partial-release
+ * @desc    Partially release some items, pay interest + principal, girvi continues
+ * @access  Private (Admin, Manager)
+ */
+router.patch(
+  '/:girviId/partial-release',
+  shopIdValidation,
+  partialReleaseValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
+  checkAnyPermission(['canReleaseGirvi', 'canManageGirvi']),
+  rateLimiter({ max: 30, windowMs: 60000 }),
+  partialRelease
+);
+
+/**
+ * @route   PATCH /api/v1/shops/:shopId/girvi/:girviId/renew
+ * @desc    Renew girvi — pay interest + optional principal, set new due date
+ * @access  Private (Admin, Manager)
+ */
+router.patch(
+  '/:girviId/renew',
+  shopIdValidation,
+  renewalValidation,
+  restrictTo('super_admin', 'org_admin', 'shop_admin', 'manager'),
+  checkShopAccess,
+  checkAnyPermission(['canReleaseGirvi', 'canManageGirvi']),
+  rateLimiter({ max: 30, windowMs: 60000 }),
+  renewGirvi
 );
 
 /**

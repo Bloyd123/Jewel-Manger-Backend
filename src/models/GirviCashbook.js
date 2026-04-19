@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 
 const girviCashbookSchema = new mongoose.Schema(
   {
-    // ── Identification ──────────────────────────────────────────────────────────
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Organization',
@@ -28,7 +27,6 @@ const girviCashbookSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── Entry Type ──────────────────────────────────────────────────────────────
     entryType: {
       type: String,
       enum: [
@@ -46,7 +44,6 @@ const girviCashbookSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── Flow ────────────────────────────────────────────────────────────────────
     flowType: {
       type: String,
       enum: ['inflow', 'outflow'],
@@ -71,7 +68,6 @@ const girviCashbookSchema = new mongoose.Schema(
       comment: 'UPI ID, cheque number, bank ref etc.',
     },
 
-    // ── Breakdown (for release/payment entries) ─────────────────────────────────
     breakdown: {
       principalAmount:    { type: Number, default: 0 },
       interestAmount:     { type: Number, default: 0 },
@@ -80,7 +76,6 @@ const girviCashbookSchema = new mongoose.Schema(
       netAmount:          { type: Number, default: 0 },
     },
 
-    // ── References ──────────────────────────────────────────────────────────────
     girviId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Girvi',
@@ -100,12 +95,10 @@ const girviCashbookSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── Girvi Reference Info (for quick display without populate) ───────────────
     girviNumber:   { type: String, trim: true },
     customerName:  { type: String, trim: true },
     customerPhone: { type: String, trim: true },
 
-    // ── Balance ─────────────────────────────────────────────────────────────────
     openingBalance: {
       type: Number,
       default: 0,
@@ -117,7 +110,6 @@ const girviCashbookSchema = new mongoose.Schema(
       comment: 'Cashbook balance after this entry',
     },
 
-    // ── Audit ───────────────────────────────────────────────────────────────────
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -132,14 +124,12 @@ const girviCashbookSchema = new mongoose.Schema(
   }
 );
 
-// ─── Indexes ───────────────────────────────────────────────────────────────────
 girviCashbookSchema.index({ organizationId: 1, shopId: 1, entryNumber: 1 }, { unique: true });
 girviCashbookSchema.index({ shopId: 1, entryDate: -1 });
 girviCashbookSchema.index({ shopId: 1, entryType: 1, entryDate: -1 });
 girviCashbookSchema.index({ shopId: 1, flowType: 1, entryDate: -1 });
 girviCashbookSchema.index({ shopId: 1, customerId: 1, entryDate: -1 });
 
-// ─── Soft Delete Middleware ────────────────────────────────────────────────────
 girviCashbookSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null });
@@ -147,7 +137,6 @@ girviCashbookSchema.pre(/^find/, function (next) {
   next();
 });
 
-// ─── Static Methods ────────────────────────────────────────────────────────────
 girviCashbookSchema.statics.generateEntryNumber = async function (shopId, prefix = 'GRVCB') {
   let number = 1;
   let entryNumber;
@@ -293,7 +282,6 @@ girviCashbookSchema.statics.createEntry = async function ({
   });
 };
 
-// ─── Instance Methods ──────────────────────────────────────────────────────────
 girviCashbookSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   return this.save();

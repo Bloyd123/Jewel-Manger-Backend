@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 
-// ─── Item Snapshot Sub-Schema ──────────────────────────────────────────────────
 const itemSnapshotSchema = new mongoose.Schema(
   {
     itemName:      { type: String, trim: true },
@@ -20,7 +19,6 @@ const itemSnapshotSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// ─── Party Sub-Schema ──────────────────────────────────────────────────────────
 const partySchema = new mongoose.Schema(
   {
     type: {
@@ -60,10 +58,8 @@ const partySchema = new mongoose.Schema(
   { _id: false }
 );
 
-// ─── Main Transfer Schema ──────────────────────────────────────────────────────
 const girviTransferSchema = new mongoose.Schema(
   {
-    // ── Identification ──────────────────────────────────────────────────────────
     girviId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Girvi',
@@ -96,7 +92,6 @@ const girviTransferSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── Transfer Type ───────────────────────────────────────────────────────────
     transferType: {
       type: String,
       enum: [
@@ -117,7 +112,6 @@ const girviTransferSchema = new mongoose.Schema(
       required: true,
     },
 
-    // ── Transfer Financials ─────────────────────────────────────────────────────
     transferDate: {
       type: Date,
       required: [true, 'Transfer date is required'],

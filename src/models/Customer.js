@@ -44,7 +44,7 @@ const customerSchema = new mongoose.Schema(
 },
     phone: {
       type: String,
-      required: [true, 'Phone number is required'],
+      required: [false, 'Phone number is required'],
       trim: true,
       match: [/^[0-9]{10}$/, 'Invalid phone number'],
     },

@@ -50,20 +50,29 @@ export const createCustomer = async (req, res) => {
       shopId,
     });
 
-    return sendCreated(res, 'Customer created successfully', {
-      customer: {
-        _id: customer._id,
-        customerCode: customer.customerCode,
-        fullName: customer.fullName,
-        phone: customer.phone,
-        email: customer.email,
-        customerType: customer.customerType,
-        membershipTier: customer.membershipTier,
-        loyaltyPoints: customer.loyaltyPoints,
-        isActive: customer.isActive,
-        createdAt: customer.createdAt,
-      },
-    });
+return sendCreated(res, 'Customer created successfully', {
+  customer: {
+    _id: customer._id,
+    customerCode: customer.customerCode,
+
+    firstName: customer.firstName,
+    lastName: customer.lastName,
+    phone: customer.phone,
+    email: customer.email,
+
+    jaati: customer.jaati,
+    relationName: customer.relationName,
+    relationType: customer.relationType,
+
+    address: customer.address,
+
+    customerType: customer.customerType,
+    membershipTier: customer.membershipTier,
+    loyaltyPoints: customer.loyaltyPoints,
+    isActive: customer.isActive,
+    createdAt: customer.createdAt,
+  },
+});
   } catch (error) {
     logger.error('Error creating customer', {
       error: error.message,

@@ -23,12 +23,11 @@ export const createCustomerValidation = [
     .matches(/^[a-zA-Z\s]*$/)
     .withMessage('Last name can only contain letters'),
 
-  body('phone')
-    .trim()
-    .notEmpty()
-    .withMessage('Phone number is required')
-    .matches(/^[6-9][0-9]{9}$/)
-    .withMessage('Invalid Indian phone number (must start with 6-9 and be 10 digits)'),
+body('phone')
+  .optional()
+  .trim()
+  .matches(/^[6-9][0-9]{9}$/)
+  .withMessage('Invalid Indian phone number'),
 
   body('alternatePhone')
     .optional()
@@ -188,12 +187,13 @@ export const updateCustomerValidation = [
     .isLength({ max: 50 })
     .withMessage('Last name cannot exceed 50 characters'),
 
-  body('phone')
-    .optional()
-    .trim()
-    .matches(/^[6-9][0-9]{9}$/)
-    .withMessage('Invalid phone number'),
+body('phone')
+  .optional()
+  .trim()
+  .matches(/^[6-9][0-9]{9}$/)
+  .withMessage('Invalid Indian phone number'),
 
+  
   body('email').optional().trim().isEmail().withMessage('Invalid email address'),
 
   body('customerType')

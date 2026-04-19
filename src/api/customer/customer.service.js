@@ -56,8 +56,11 @@ export const createCustomer = async (shopId, customerData, userId) => {
   }
 
   const normalizedData = normalizeCustomerData(customerData);
+  let duplicate = null;
 
-  const duplicate = await checkDuplicatePhone(shopId, normalizedData.phone);
+if (normalizedData.phone) {
+  duplicate = await checkDuplicatePhone(shopId, normalizedData.phone);
+}
   if (duplicate) {
     throw new ConflictError(
       `Customer with phone ${normalizedData.phone} already exists in this shop`
@@ -236,7 +239,7 @@ if (filters.vipOnly) {
     limit: paginationOptions.limit || 20,
     sort: paginationOptions.sort || '-createdAt',
     select:
-      'firstName lastName phone email customerCode customerType membershipTier loyaltyPoints totalPurchases totalDue isActive statistics.lastOrderDate address.street address.city address.state address.pincode createdAt',
+  'firstName lastName phone email customerCode customerType membershipTier loyaltyPoints totalPurchases totalDue isActive statistics.lastOrderDate address.street address.city address.state address.pincode createdAt jaati relationName relationType',
     populate: [{ path: 'referredBy', select: 'firstName lastName customerCode' }],
   });
 

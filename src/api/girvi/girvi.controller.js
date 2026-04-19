@@ -227,7 +227,96 @@ export const releaseGirvi = async (req, res) => {
   }
 };
 
-// ─── Delete Girvi ──────────────────────────────────────────────────────────────
+// ─── Partial Release ───────────────────────────────────────────────────────────
+export const partialRelease = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return sendBadRequest(res, 'Validation failed', errors.array());
+
+    const { shopId, girviId } = req.params;
+    const releaseData         = req.body;
+
+    const result = await girviService.partialRelease(girviId, shopId, releaseData, req.user._id);
+
+    await eventLogger.logActivity({
+      userId:         req.user._id,
+      organizationId: req.user.organizationId,
+      shopId,
+      action:         'partial_release',
+      module:         'girvi',
+      description:    `Partial release: ${result.girvi.girviNumber} — ${result.partialReleaseSummary.releasedItems.length} items released`,
+      level:          'info',
+      status:         'success',
+      metadata: {
+        girviId,
+        girviNumber:       result.girvi.girviNumber,
+        releasedItems:     result.partialReleaseSummary.releasedItems,
+        principalPaid:     result.partialReleaseSummary.principalPaid,
+        interestPaid:      result.partialReleaseSummary.interestPaid,
+        principalAfter:    result.partialReleaseSummary.principalAfter,
+        remainingItems:    result.partialReleaseSummary.remainingItemsValue,
+      },
+      ipAddress: req.ip,
+    });
+
+    return sendSuccess(res, 200, 'Partial release successful', {
+      girvi:                result.girvi,
+      payment:              result.payment,
+      partialReleaseSummary: result.partialReleaseSummary,
+    });
+  } catch (error) {
+    logger.error('Error in partial release', { error: error.message, girviId: req.params.girviId });
+    if (error.name === 'NotFoundError')   return sendNotFound(res, error.message);
+    if (error.name === 'ValidationError') return sendBadRequest(res, error.message);
+    return sendInternalError(res, 'Failed to process partial release', error);
+  }
+};
+
+// ─── Renewal ───────────────────────────────────────────────────────────────────
+export const renewGirvi = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return sendBadRequest(res, 'Validation failed', errors.array());
+
+    const { shopId, girviId } = req.params;
+    const renewalData         = req.body;
+
+    const result = await girviService.renewGirvi(girviId, shopId, renewalData, req.user._id);
+
+    await eventLogger.logActivity({
+      userId:         req.user._id,
+      organizationId: req.user.organizationId,
+      shopId,
+      action:         'renewal',
+      module:         'girvi',
+      description:    `Girvi renewed: ${result.girvi.girviNumber} — new due date: ${result.renewalSummary.newDueDate}`,
+      level:          'info',
+      status:         'success',
+      metadata: {
+        girviId,
+        girviNumber:    result.girvi.girviNumber,
+        interestPaid:   result.renewalSummary.interestPaid,
+        principalPaid:  result.renewalSummary.principalPaid,
+        newPrincipal:   result.renewalSummary.newPrincipal,
+        newDueDate:     result.renewalSummary.newDueDate,
+        renewalCount:   result.renewalSummary.renewalCount,
+      },
+      ipAddress: req.ip,
+    });
+
+    return sendSuccess(res, 200, 'Girvi renewed successfully', {
+      girvi:         result.girvi,
+      payment:       result.payment,
+      renewalSummary: result.renewalSummary,
+    });
+  } catch (error) {
+    logger.error('Error renewing girvi', { error: error.message, girviId: req.params.girviId });
+    if (error.name === 'NotFoundError')   return sendNotFound(res, error.message);
+    if (error.name === 'ValidationError') return sendBadRequest(res, error.message);
+    return sendInternalError(res, 'Failed to renew girvi', error);
+  }
+};
+
 export const deleteGirvi = async (req, res) => {
   try {
     const { shopId, girviId } = req.params;

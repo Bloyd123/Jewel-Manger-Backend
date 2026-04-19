@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 
 const girviPaymentSchema = new mongoose.Schema(
   {
-    // ── Identification ──────────────────────────────────────────────────────────
     girviId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Girvi',
@@ -35,7 +34,6 @@ const girviPaymentSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── Payment Type ────────────────────────────────────────────────────────────
     paymentType: {
       type: String,
       enum: [
@@ -48,7 +46,6 @@ const girviPaymentSchema = new mongoose.Schema(
       required: [true, 'Payment type is required'],
     },
 
-    // ── Interest Calculation ────────────────────────────────────────────────────
     interestType: {
       type: String,
       enum: ['simple', 'compound'],
@@ -87,7 +84,6 @@ const girviPaymentSchema = new mongoose.Schema(
       comment: 'Actual interest received (user editable)',
     },
 
-    // ── Payment Breakdown ───────────────────────────────────────────────────────
     principalReceived: {
       type: Number,
       default: 0,
@@ -107,7 +103,6 @@ const girviPaymentSchema = new mongoose.Schema(
       comment: 'interestReceived + principalReceived - discountGiven',
     },
 
-    // ── Payment Details ─────────────────────────────────────────────────────────
     paymentDate: {
       type: Date,
       required: [true, 'Payment date is required'],
@@ -125,7 +120,6 @@ const girviPaymentSchema = new mongoose.Schema(
       comment: 'UPI ID, cheque number, bank reference etc.',
     },
 
-    // ── Balance Snapshot (at time of payment) ───────────────────────────────────
     principalBefore: {
       type: Number,
       default: 0,
@@ -147,7 +141,6 @@ const girviPaymentSchema = new mongoose.Schema(
       comment: 'Total outstanding after payment',
     },
 
-    // ── Audit ───────────────────────────────────────────────────────────────────
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -166,22 +159,18 @@ const girviPaymentSchema = new mongoose.Schema(
   }
 );
 
-// ─── Indexes ───────────────────────────────────────────────────────────────────
 girviPaymentSchema.index({ organizationId: 1, shopId: 1, receiptNumber: 1 }, { unique: true });
 girviPaymentSchema.index({ girviId: 1, paymentDate: -1 });
 girviPaymentSchema.index({ shopId: 1, paymentDate: -1 });
 girviPaymentSchema.index({ shopId: 1, customerId: 1, paymentDate: -1 });
 
-// ─── Pre-save Middleware ───────────────────────────────────────────────────────
 girviPaymentSchema.pre('save', function (next) {
-  // Calculate interest days
   if (this.interestFrom && this.interestTo) {
     this.interestDays = Math.floor(
       (new Date(this.interestTo) - new Date(this.interestFrom)) / (1000 * 60 * 60 * 24)
     );
   }
 
-  // Net amount received
   this.netAmountReceived = parseFloat(
     Math.max(
       0,
@@ -194,7 +183,6 @@ girviPaymentSchema.pre('save', function (next) {
   next();
 });
 
-// ─── Soft Delete Middleware ────────────────────────────────────────────────────
 girviPaymentSchema.pre(/^find/, function (next) {
   if (!this.getOptions().includeDeleted) {
     this.where({ deletedAt: null });
@@ -202,7 +190,6 @@ girviPaymentSchema.pre(/^find/, function (next) {
   next();
 });
 
-// ─── Static Methods ────────────────────────────────────────────────────────────
 girviPaymentSchema.statics.generateReceiptNumber = async function (shopId, prefix = 'GRVPAY') {
   let number = 1;
   let receiptNumber;
@@ -245,7 +232,6 @@ girviPaymentSchema.statics.getPaymentSummary = async function (girviId) {
   };
 };
 
-// ─── Instance Methods ──────────────────────────────────────────────────────────
 girviPaymentSchema.methods.softDelete = function () {
   this.deletedAt = new Date();
   return this.save();
