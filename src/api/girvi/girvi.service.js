@@ -35,7 +35,13 @@ export const calculateInterestAmount = ({
   fromDate,
   toDate = new Date(),
 }) => {
-  const days   = Math.floor((new Date(toDate) - new Date(fromDate)) / (1000 * 60 * 60 * 24));
+const from = new Date(fromDate)
+const to   = new Date(toDate)
+
+from.setHours(0, 0, 0, 0)
+to.setHours(0, 0, 0, 0)
+
+const days = Math.round((to - from) / (1000 * 60 * 60 * 24))
   const months = calculationBasis === 'daily' ? days : days / 30;
 
   let interest = 0;
@@ -136,14 +142,12 @@ export const createGirvi = async (shopId, girviData, userId) => {
   }
 };
 
-// ─── Get All Girvis ────────────────────────────────────────────────────────────
 export const getGirvis = async (shopId, filters = {}, paginationOptions = {}) => {
   const query = {
     shopId:    new mongoose.Types.ObjectId(shopId),
     deletedAt: null,
   };
 
-  // Search
   if (filters.search) {
     query.$or = [
       { girviNumber:    new RegExp(filters.search, 'i') },
@@ -151,23 +155,19 @@ export const getGirvis = async (shopId, filters = {}, paginationOptions = {}) =>
     ];
   }
 
-  // Status filter
   if (filters.status) {
     query.status = filters.status;
   }
 
-  // Customer filter
   if (filters.customerId) {
     query.customerId = new mongoose.Types.ObjectId(filters.customerId);
   }
 
-  // Overdue filter
   if (filters.overdueOnly === true || filters.overdueOnly === 'true') {
     query.status  = 'active';
     query.dueDate = { $lt: new Date() };
   }
 
-  // Date range
   if (filters.startDate || filters.endDate) {
     query.girviDate = {};
     if (filters.startDate) query.girviDate.$gte = new Date(filters.startDate);
