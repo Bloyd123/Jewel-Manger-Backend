@@ -53,8 +53,13 @@ export const transferOutValidation = [
   // To party (doosri party)
   ...partyValidation('toParty'),
 
-  body('toParty.name')
-    .notEmpty().withMessage('To party name is required'),
+body('toParty.supplierId')
+  .optional()
+  .isMongoId().withMessage('Invalid supplier ID'),
+
+body('toParty.name')
+  .if(body('toParty.supplierId').not().exists())
+  .notEmpty().withMessage('To party name is required'),
 
   body('toParty.interestRate')
     .notEmpty().withMessage('To party interest rate is required')

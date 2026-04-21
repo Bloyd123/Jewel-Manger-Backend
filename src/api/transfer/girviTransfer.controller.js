@@ -10,7 +10,6 @@ import {
 import logger      from '../../utils/logger.js';
 import eventLogger from '../../utils/eventLogger.js';
 
-// ─── Transfer Out ──────────────────────────────────────────────────────────────
 export const transferOut = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -73,7 +72,6 @@ export const transferOut = async (req, res) => {
   }
 };
 
-// ─── Transfer Return ───────────────────────────────────────────────────────────
 export const transferReturn = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -136,7 +134,6 @@ export const transferReturn = async (req, res) => {
   }
 };
 
-// ─── Get Transfers for Girvi ───────────────────────────────────────────────────
 export const getTransfersByGirvi = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -172,7 +169,6 @@ export const getTransfersByGirvi = async (req, res) => {
   }
 };
 
-// ─── Get Single Transfer ───────────────────────────────────────────────────────
 export const getTransferById = async (req, res) => {
   try {
     const { shopId, girviId, transferId } = req.params;
@@ -192,7 +188,6 @@ export const getTransferById = async (req, res) => {
   }
 };
 
-// ─── Get All Shop Transfers ────────────────────────────────────────────────────
 export const getShopTransfers = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -227,7 +222,6 @@ export const getShopTransfers = async (req, res) => {
   }
 };
 
-// ─── Calculate Party Interest Preview ─────────────────────────────────────────
 export const calculatePartyInterest = async (req, res) => {
   try {
     const { shopId, girviId, transferId } = req.params;
@@ -254,7 +248,6 @@ export const calculatePartyInterest = async (req, res) => {
   }
 };
 
-// ─── Cancel Transfer ───────────────────────────────────────────────────────────
 export const cancelTransfer = async (req, res) => {
   try {
     const { shopId, girviId, transferId } = req.params;

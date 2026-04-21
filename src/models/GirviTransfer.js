@@ -44,6 +44,11 @@ const partySchema = new mongoose.Schema(
       ref: 'JewelryShop',
       comment: 'Only if type is shop and another shop in system',
     },
+    supplierId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Supplier',
+  default: null,
+},
     interestRate: {
       type: Number,
       min: 0,

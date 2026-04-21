@@ -1,5 +1,6 @@
 import mongoose      from 'mongoose';
-import Girvi          from '../../models/Girvi.js';
+import Girvi         from '../../models/Girvi.js';
+import Supplier      from '../../models/Supplier.js';
 import GirviTransfer  from '../../models/GirviTransfer.js';
 import GirviPayment   from '../../models/GirviPayment.js';
 import GirviCashbook  from '../../models/GirviCashbook.js';
@@ -37,7 +38,22 @@ export const transferOut = async (girviId, shopId, transferData, userId) => {
 
     const customer = await Customer.findById(girvi.customerId).session(session);
 
-    const transferDate = new Date(transferData.transferDate);
+   const transferDate = new Date(transferData.transferDate);
+
+// Supplier se auto-fill
+if (transferData.toParty?.supplierId) {
+  const supplier = await Supplier.findOne({
+    _id: transferData.toParty.supplierId,
+    shopId,
+    deletedAt: null,
+  }).session(session);
+
+  if (!supplier) throw new NotFoundError('Supplier not found');
+
+  transferData.toParty.name    = supplier.businessName;
+  transferData.toParty.phone   = supplier.contactPerson?.phone;
+  transferData.toParty.address = supplier.address?.street;
+}
 
     // Calculate our interest till transfer date
     const fromDate = girvi.lastInterestCalcDate || girvi.girviDate;
@@ -100,6 +116,7 @@ export const transferOut = async (girviId, shopId, transferData, userId) => {
             phone:        transferData.toParty?.phone,
             address:      transferData.toParty?.address,
             shopId:       transferData.toParty?.shopId,
+              supplierId:   transferData.toParty?.supplierId || null,
             interestRate: transferData.toParty.interestRate,
             interestType: transferData.toParty.interestType || 'simple',
           },
