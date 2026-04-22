@@ -160,31 +160,31 @@ if (transferData.toParty?.supplierId) {
 
     await girvi.save({ session });
 
-    // Cashbook entry - transfer out (cash given to party if any)
-    if (transferData.transferAmount > 0) {
-      await GirviCashbook.createEntry({
-        shopId,
-        organizationId:       girvi.organizationId,
-        entryType:            'transfer_out',
-        flowType:             'outflow',
-        amount:               parseFloat(transferData.transferAmount),
-        paymentMode:          transferData.paymentMode || 'cash',
-        transactionReference: transferData.transactionReference,
-        breakdown: {
-          principalAmount: parseFloat(transferData.transferAmount),
-          netAmount:       parseFloat(transferData.transferAmount),
-        },
-        girviId,
-        transferId:    transfer._id,
-        customerId:    girvi.customerId,
-        girviNumber:   girvi.girviNumber,
-        customerName:  customer?.fullName,
-        customerPhone: customer?.phone,
-        entryDate:     transferDate,
-        createdBy:     userId,
-        remarks:       `Transfer out to ${transferData.toParty.name}: ${girvi.girviNumber}`,
-      });
-    }
+// Cashbook entry - transfer out (cash received FROM party)
+if (transferData.transferAmount > 0) {
+  await GirviCashbook.createEntry({
+    shopId,
+    organizationId:       girvi.organizationId,
+    entryType:            'transfer_out',
+    flowType:             'inflow',
+    amount:               parseFloat(transferData.transferAmount),
+    paymentMode:          transferData.paymentMode || 'cash',
+    transactionReference: transferData.transactionReference,
+    breakdown: {
+      principalAmount: parseFloat(transferData.transferAmount),
+      netAmount:       parseFloat(transferData.transferAmount),
+    },
+    girviId,
+    transferId:    transfer._id,
+    customerId:    girvi.customerId,
+    girviNumber:   girvi.girviNumber,
+    customerName:  customer?.fullName,
+    customerPhone: customer?.phone,
+    entryDate:     transferDate,
+    createdBy:     userId,
+    remarks:       `Transfer out - received from ${transferData.toParty.name}: ${girvi.girviNumber}`, // ✅ remarks bhi sahi
+  });
+}
 
     await session.commitTransaction();
     await invalidateTransferCache(shopId, girviId);

@@ -136,7 +136,12 @@ const girviTransferSchema = new mongoose.Schema(
     partyInterestType:         { type: String, enum: ['simple', 'compound'], default: 'simple' },
 
     // Transfer settlement
-    transferAmount:            { type: Number, default: 0, min: 0, comment: 'Final amount settled on transfer' },
+transferAmount: { 
+  type: Number, 
+  default: 0, 
+  min: 0, 
+  comment: 'Amount received from party on transfer' 
+},
     commission:                { type: Number, default: 0, min: 0 },
     paymentMode: {
       type: String,
