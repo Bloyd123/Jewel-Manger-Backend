@@ -153,10 +153,10 @@ girviCashbookSchema.statics.generateEntryNumber = async function (shopId, prefix
 
 girviCashbookSchema.statics.getLatestBalance = async function (shopId) {
   const latest = await this.findOne({ shopId, deletedAt: null })
-    .sort({ entryDate: -1, createdAt: -1 })
+    .sort({ createdAt: -1 })
     .select('closingBalance')
     .lean();
-  return latest?.closingBalance || 0;
+  return latest?.closingBalance ?? 0;
 };
 
 girviCashbookSchema.statics.getDailySummary = async function (shopId, date) {

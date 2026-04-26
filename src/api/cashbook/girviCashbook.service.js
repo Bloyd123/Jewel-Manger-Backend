@@ -449,10 +449,13 @@ export const deleteEntry = async (entryId, shopId, userId) => {
 
 // ─── Get Current Balance ───────────────────────────────────────────────────────
 export const getCurrentBalance = async (shopId) => {
-  const balance = await GirviCashbook.getLatestBalance(shopId);
+  const latest = await GirviCashbook.findOne({ shopId, deletedAt: null })
+    .sort({ createdAt: -1 })
+    .select('closingBalance')
+    .lean();
+  const balance = latest?.closingBalance ?? 0;
   return { shopId, currentBalance: balance };
 };
-
 // ─── Cache Helpers ─────────────────────────────────────────────────────────────
 export const invalidateCashbookCache = async (shopId) => {
   await cache.deletePattern(`cashbook:${shopId}:*`);
